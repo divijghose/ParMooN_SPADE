@@ -234,6 +234,18 @@ struct TParaDB
   double SOLD_PARAMETER_SCALING_FACTOR;
 
   //======================================================================
+  // ******** Parameters for Monte Carlo Runs *********//
+  //======================================================================
+  int REALIZATIONS;
+  double LENGTHSCALE;
+  double EIGENPERCENT;
+
+  int stddev_switch;
+  double stddev_denom;
+  double stddev_disp;
+  double stddev_power;
+
+  //======================================================================
   /** parameters for vectorial FE (Raviart-Thomas, Brezzi-Douglas-Marini) */
   //======================================================================
   int NORMAL_ORIENTATION_QUAD[4];
@@ -1186,6 +1198,9 @@ struct TTimDB
   //dG time steppings
   int DG_TimeDisc;
   int DG_Order;
+
+
+
 
 
  

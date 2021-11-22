@@ -73,8 +73,11 @@ void U1BoundValue(int BdComp, double Param, double &value)
     case 1: 
             value=0;
             break;
-    case 2:  
-            value=1; // top moving side velocity
+    case 2: 
+            if(abs(Param - 0) < 1e-6 || abs(Param - 1.0) < 1e-6 )
+            value=0; // top moving side velocity
+            else 
+              value = 1.0;
             break;
     case 3: 
             value=0;
@@ -97,7 +100,7 @@ void LinCoeffs(int n_points, double *X, double *Y,
 {
   int i;
   double *coeff, x, y; 
-  static double eps=1/TDatabase::ParamDB->RE_NR;
+  static double eps=double(1.0/TDatabase::ParamDB->RE_NR);
 
   for(i=0;i<n_points;i++)
   {

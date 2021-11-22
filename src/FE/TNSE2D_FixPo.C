@@ -2168,12 +2168,13 @@ double ***LocMatrices, double **LocRhs)
   Orig2 = OrigValues[2];         // u
   Orig3 = OrigValues[3];         // p
 
-  c0 = coeff[0];                 // nu
+  c0 = double(1.0/TDatabase::ParamDB->RE_NR);                 // nu
   c1 = coeff[1];                 // f1
   c2 = coeff[2];                 // f2
 
   u1 = param[0];                 // u1old
   u2 = param[1];                 // u2old
+
 
   for(i=0;i<N_U;i++)
   {

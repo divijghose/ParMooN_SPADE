@@ -2128,7 +2128,7 @@ void NSType4GalerkinDD3D(double Mult, double *coeff,
   u1 = param[0]; // u1old
   u2 = param[1]; // u2old
   u3 = param[2]; // u3old
-
+  
   for(i=0;i<N_U;i++)
   {
     Matrix11Row = MatrixA11[i];

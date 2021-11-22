@@ -664,6 +664,17 @@ void TDatabase::SetDefaultParameters()
   ParamDB->SC_STEP_LENGTH_CONTROL_FINE_SCALAR = 0;
   ParamDB->SC_STEP_LENGTH_CONTROL_ALL_SCALAR = 1;
 
+  /////************Default Monte Carlo Parameters******/////
+  ParamDB->REALIZATIONS = 5;
+  ParamDB->LENGTHSCALE = 10;
+  ParamDB->EIGENPERCENT = 0.80;
+
+  ParamDB->stddev_switch = 1;
+  ParamDB->stddev_denom = 0.03;
+  ParamDB->stddev_disp = 0.3;
+  ParamDB->stddev_power = 2;
+  
+
   // ******** parameters for saddle point system *********//
 
   // parameters for nonlinear iteration

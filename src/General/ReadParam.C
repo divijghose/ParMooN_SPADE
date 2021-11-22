@@ -632,7 +632,43 @@ int TDomain::ReadParam(char *ParamFile)
       dat >> TDatabase::ParamDB->SDFEM_NORM_B;
       N_Param++;
     }
-
+///////////Reading Monte Carlo Parameters///////////////////////
+    if (!strcmp(line, "REALIZATIONS:"))
+    {
+      dat >> TDatabase::ParamDB->REALIZATIONS;
+      N_Param++;
+    }
+    if (!strcmp(line, "LENGTHSCALE:"))
+    {
+      dat >> TDatabase::ParamDB->LENGTHSCALE;
+      N_Param++;
+    }
+    if (!strcmp(line, "EIGENPERCENT:"))
+    {
+      dat >> TDatabase::ParamDB->EIGENPERCENT;
+      N_Param++;
+    }
+    if (!strcmp(line, "stddev_switch:"))
+    {
+      dat >> TDatabase::ParamDB->stddev_switch;
+      N_Param++;
+    }
+    if (!strcmp(line, "stddev_denom:"))
+    {
+      dat >> TDatabase::ParamDB->stddev_denom;
+      N_Param++;
+    }
+    if (!strcmp(line, "stddev_disp:"))
+    {
+      dat >> TDatabase::ParamDB->stddev_disp;
+      N_Param++;
+    }
+    if (!strcmp(line, "stddev_power:"))
+    {
+      dat >> TDatabase::ParamDB->stddev_power;
+      N_Param++;
+    }
+////////////////////////////////////////////////////////////////    
     if (!strcmp(line, "FILTER_WIDTH_CONSTANT:"))
     {
       dat >> TDatabase::ParamDB->FILTER_WIDTH_CONSTANT;
