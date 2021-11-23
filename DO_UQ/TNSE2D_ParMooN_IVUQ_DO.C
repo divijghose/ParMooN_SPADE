@@ -334,7 +334,8 @@ int main(int argc, char *argv[])
 		printf("The algorithm computing SVD failed to converge.\n");
 		exit(1);
 	}
-	cout << " SVD COMPUTED " << endl;
+    cout << " SVD COMPUTED" << endl;
+	
 	int energyVal = 0;
 
 	double sumSingularVal = 0;
@@ -355,7 +356,7 @@ int main(int argc, char *argv[])
 	double *Ut = new double[N_U * modDim]();
 	double *Z = new double[N_Realisations * modDim]();
 
-	double *SolutionVector = new double[N_U * N_Realisations]();
+	double *RealizationVector = new double[N_U * N_Realisations]();
 	// -------------- Generate Random Number Based on Normal Distribution -------------------------//
 	int k = 0;
 	int skip = N_U - modDim;
@@ -396,7 +397,7 @@ int main(int argc, char *argv[])
 
 	cout << " N_Realisations : " << N_Realisations << endl;
 	cout << " MULT START " << endl;
-	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_U, N_Realisations, modDim, 1.0, Ut, modDim, Z, N_Realisations, 0.0, SolutionVector, N_Realisations);
+	cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_U, N_Realisations, modDim, 1.0, Ut, modDim, Z, N_Realisations, 0.0, RealizationVector, N_Realisations);
 	cout << " MULT DONE " << endl;
 	// printMatrix(SolutionVector, N_DOF,N_Realisations);
 
@@ -404,8 +405,29 @@ int main(int argc, char *argv[])
 	cout << " COPY DONE " << endl;
 
 	cout << " REALISATIONS COMPUTED " << endl;
+ //////////////////////////////////End of Realization/////////////////////////////////////////
 
-	//////////////////////////////////End of Realization/////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
+/////////// DO - Initialization /////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
+double* MeanVector = new double[N_U * 1]();
+for(int i=0; i<N_U; ++i) {
+  for(int j = 0; j < N_Realisations; ++j){
+            MeanVector[i] +=  (RealizationVector[j*N_U+i]/N_Realisations);
+        }
+}
+
+
+double* PerturbationVector = new double[N_U * N_Realisations]();
+for(int i = 0; i < N_U; ++i){
+  for(int j = 0; j < N_Realisations; ++j){
+    PerturbationVector[j*N_U+i] = RealizationVector[j*N_U+i] - MeanVector[i];
+  }
+}
+
+
+
+
 
 	//======================================================================
 	// SystemMatrix construction and solution

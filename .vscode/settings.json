@@ -127,6 +127,7 @@
         "TNSE2D_ParMooN_IVUQ_MC.C": "cpp",
         "TNSE2D_DO.C": "cpp",
         "TNSE2D_MC_RE_NR_ParMooN.C": "cpp",
-        "TNSE2D_ParMooN_RE_NR_MC.C": "cpp"
+        "TNSE2D_ParMooN_RE_NR_MC.C": "cpp",
+        "TNSE2D_ParMooN_IVUQ_DO.C": "cpp"
     }
 }
