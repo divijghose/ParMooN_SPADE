@@ -239,6 +239,7 @@ struct TParaDB
   int REALIZATIONS;
   double LENGTHSCALE;
   double EIGENPERCENT;
+  double SVPERCENT;
 
   int stddev_switch;
   double stddev_denom;
