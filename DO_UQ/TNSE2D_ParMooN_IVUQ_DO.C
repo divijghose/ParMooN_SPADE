@@ -337,7 +337,7 @@ int main(int argc, char *argv[])
     cout << " SVD COMPUTED" << endl;
 	
 	int energyVal = 0;
-
+	double SVPercent = TDatabase::ParamDB->SVPERCENT;
 	double sumSingularVal = 0;
 	for (int i = 0; i < N_U; i++)
 		sumSingularVal += S[i];
@@ -345,7 +345,7 @@ int main(int argc, char *argv[])
 	for (energyVal = 0; energyVal < N_U; energyVal++)
 	{
 		val += S[energyVal];
-		if (val / sumSingularVal > EigenPercent)
+		if (val / sumSingularVal > SVPercent)
 			break;
 	}
 
@@ -426,8 +426,133 @@ for(int i = 0; i < N_U; ++i){
 }
 
 
+//================================================================================================
+/////////////////////////////DO - Initialization SVD//////////////////////////////////////////////
+//================================================================================================
+ // Declare SVD parameters
+    MKL_INT mDO = N_U, nDO = N_Realisations, ldaDO = N_U, lduDO = N_U, ldvtDO = N_Realisations, infoDO;
+    double superbDO[std::min(N_U,N_U)-1];
+
+    double* a = new double[N_U * N_Realisations]();
+    memcpy(a,PerturbationVector,N_U*N_Realisations*SizeOfDouble);
+
+    double* Sg = new double[N_Realisations];
+    double* L = new double[N_U*N_U];
+    double* Rt = new double[N_Realisations*N_Realisations];
+    cout << " REALISATIONS COMPUTED " <<endl;
+    infoDO = LAPACKE_dgesvd( LAPACK_COL_MAJOR, 'S', 'A', mDO, nDO, a, ldaDO,
+                        Sg, L, lduDO, Rt, ldvtDO, superbDO );
+
+    cout << endl <<endl;
+
+    if( infoDO > 0 ) {
+      printf( "The algorithm computing SVD for DO failed to converge.\n" );
+      exit( 1 );
+    }
+    cout << " DO SVD COMPUTED " <<endl;
+//////DO - SVD End///////////////////////////////
+
+///////DO - Subspace dimension calculation //////
+    int s = 0;
+    double valDO = 0.0;
+    double sumSingularValDO = 0;
+    for( int i=0;i<N_Realisations;i++) sumSingularValDO += Sg[i];
+    while( valDO/sumSingularValDO < 0.99999999)
+    {
+        valDO += Sg[s];
+        s++;
+    }
+
+    cout << " SUBSPACE DIMENSION : "  << s+1 <<endl;
+
+  int subDim = s+1;
+  ////////Subspace dimension calculated//////////////////
+
+/////Projection Matrix///////////
+////////////////////////////////
+double* ProjectionVector = new double[N_Realisations * N_Realisations]();
+cout << "PROJ VECTOR MULT START "<<endl;
+    cblas_dgemm(CblasColMajor,CblasTrans,CblasNoTrans,N_Realisations,N_Realisations, N_U , 1.0, PerturbationVector,N_U,L,N_U,0.0,ProjectionVector,N_Realisations);
+    cout << "PROJ VECTOR MULT DONE "<<endl;
+
+///// Initialize Coefficient Matrix - First subDim columns of Projection Matrix ////////////////////
+double* CoeffVector = new double[N_Realisations * subDim]();
+memcpy(CoeffVector, ProjectionVector, N_Realisations*subDim*SizeOfDouble);
+
+////////////Initialize Mode Vector - First subDim columns of Left Singular Vector//////////////////
+double* ModeVector = new double[N_U* subDim]();
+memcpy(ModeVector, L, N_U*subDim*SizeOfDouble);
+
+////////////////////////////////////////////DO - Initialization Ends//////////////////////////////////////
+///////================================================================================//////////////////
+
+double* Cov = new double[subDim* subDim]();
+cblas_dgemm(CblasColMajor,CblasTrans,CblasNoTrans,N_Realisations,subDim, subDim, (1.0/(N_Realisations-1)), CoeffVector,subDim,CoeffVector,subDim,0.0,Cov,subDim);
+
+// Assign the Cov Array to the global pointer - Tdatabase
+TDatabase::ParamDB->COVARIANCE_MATRIX_DO = Cov;
 
 
+
+///cblas_dgemm Usage///////////////////////////////////////////////////////////////////////////////////////
+//aplha(A*B) + beta(C)
+//1 - CblasColMajor/CblasRowMajor
+//2 - CblasTrans/CblasNoTrans - for A
+//3 - CblasTrans/CblasNoTrans - for B
+// cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
+//            m, n, k, alpha, A, k, B, n, beta, C, n);
+
+// The arguments provide options for how Intel MKL performs the operation. In this case:
+
+// CblasRowMajor
+//     Indicates that the matrices are stored in row major order, with the elements of each row of the matrix stored contiguously as shown in the figure above.
+// CblasNoTrans
+//     Enumeration type indicating that the matrices A and B should not be transposed or conjugate transposed before multiplication.
+// m, n, k
+//     Integers indicating the size of the matrices:
+//         A: m rows by k columns
+//         B: k rows by n columns
+//         C: m rows by n columns
+// alpha
+//     Real value used to scale the product of matrices A and B
+// A
+//     Array used to store matrix A
+// k
+//     Leading dimension of array A, or the number of elements between successive rows (for row major storage) in memory.
+//     In the case of this exercise the leading dimension is the same as the number of columns
+// B
+//     Array used to store matrix B
+// n
+//     Leading dimension of array B, or the number of elements between successive rows (for row major storage)
+//     in memory. In the case of this exercise the leading dimension is the same as the number of columns
+// beta
+//     Real value used to scale matrix C
+// C
+//     Array used to store matrix C
+// n
+//     Leading dimension of array C, or the number of elements between successive rows (for row major storage)
+//     in memory. In the case of this exercise the leading dimension is the same as the number of columns
+
+////////////////////////////////////////////////////////////
+///////Co-Skewness Matrix
+
+double* M = new double[subDim*subDim*subDim]();
+for(int i = 0; i < subDim; i++){
+  for(int j = 0; j < subDim; j++){
+    for(int k = 0; k < subDim; k++){
+      for(int p = 0; p < subDim; p++){
+
+        M[subDim*subDim*i + subDim*j + k] += ((CoeffVector[subDim*i+p]*CoeffVector[subDim*j+p]*CoeffVector[subDim*k+p])/(N_Realisations-1));
+
+      }
+
+    }
+  }
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	//======================================================================
 	// SystemMatrix construction and solution

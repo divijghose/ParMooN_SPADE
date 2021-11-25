@@ -668,6 +668,7 @@ void TDatabase::SetDefaultParameters()
   ParamDB->REALIZATIONS = 5;
   ParamDB->LENGTHSCALE = 10;
   ParamDB->EIGENPERCENT = 0.80;
+  ParamDB->SVPERCENT = 0.99;
 
   ParamDB->stddev_switch = 1;
   ParamDB->stddev_denom = 0.03;

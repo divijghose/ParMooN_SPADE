@@ -648,6 +648,7 @@ int TDomain::ReadParam(char *ParamFile)
       dat >> TDatabase::ParamDB->EIGENPERCENT;
       N_Param++;
     }
+
     if (!strcmp(line, "stddev_switch:"))
     {
       dat >> TDatabase::ParamDB->stddev_switch;
@@ -666,6 +667,11 @@ int TDomain::ReadParam(char *ParamFile)
     if (!strcmp(line, "stddev_power:"))
     {
       dat >> TDatabase::ParamDB->stddev_power;
+      N_Param++;
+    }
+    if (!strcmp(line, "SVPERCENT:"))
+    {
+      dat >> TDatabase::ParamDB->SVPERCENT;
       N_Param++;
     }
 ////////////////////////////////////////////////////////////////    
