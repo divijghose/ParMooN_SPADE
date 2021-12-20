@@ -90,3 +90,178 @@ The leading dimension of the array VT. \
 ```S[i], 0<=i<N_U``` \
 ```U, N_U x N_U``` \
 ```Vt, N_U x N_U```
+
+_____________________________________________________
+### Multiplication of truncated left singular value matrix with standard deviation matrix
+
+#### Purpose
+The dgemm routine calculates the product of double precision matrices \
+ ```C = alpha*(A x B) + k*C```\
+Here, we want \
+``` RealizationVector = Ut x Z ```
+
+#### Code snippet
+```cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,m, n, k, alpha, A, k, B, n, beta, C, n);```
+
+#### Input 
+```CblasRowMajor``` \
+Indicates that the matrices are stored in row major order, with the elements of each row of the matrix stored contiguously as shown in the figure above. 
+
+```CblasNoTrans``` \
+Enumeration type
+indicating that the matrices A
+and B
+should not be transposed or conjugate transposed before multiplication. 
+
+m, n, k
+Integers indicating the size of the matrices:
+
+A
+: m
+rows by k
+columns\
+B
+: k
+rows by n
+columns\
+C
+: m
+rows by n
+columns\
+Here, ```A = Ut```, ```B=Z```, ```C = RealizationVector```, hence \
+```m = N_U``` \
+```n = N_Realisations``` \
+```k = modDim``` 
+
+alpha
+Real value used to scale the product of matrices A
+and B.\
+```alpha = 1.0``` 
+
+A \
+Array used to store matrix A (```Ut``` in our case)
+
+k \
+Leading dimension of array A (```Ut```)
+, or the number of elements between successive rows (for row major storage)
+in memory. \
+```k = modDim```
+
+B \
+Array used to store matrix B (```Z``` in our case)
+
+n \
+Leading dimension of array B (```Z```)
+, or the number of elements between successive rows (for row major storage)
+in memory. \
+```n = N_Realisations```
+
+beta \
+Real value used to scale matrix C (```RealizationVector```)
+```beta = 0.0```
+
+C \ 
+Array used to store matrix C (```RealizationVector``` in our case)
+
+n
+Leading dimension of array C
+, or the number of elements between successive rows (for row major storage)
+in memory.
+```n = N_Realisations```
+
+________________________________________________________
+## DO Initialization
+### SVD of perturbation matrix
+
+```MKL_INT m1 = N_U, n = N_U, lda = N_U, ldu = N_U, ldvt = N_U, info;
+double superb[std::min(N_U, N_U) - 1];
+
+double *S = new double[N_U];
+double *U = new double[N_U * N_U];
+double *Vt = new double[N_U * N_U];
+
+info = LAPACKE_dgesvd(LAPACK_ROW_MAJOR, 'A', 'A', m1, n, C, lda,S, U, ldu, Vt, ldvt, superb);
+
+cout << endl
+        << endl;
+
+if (info > 0)
+{
+    printf("The algorithm computing SVD failed to converge.\n");
+    exit(1);
+}
+cout << " SVD COMPUTED" << endl;
+```
+
+#### Purpose
+ DGESVD computes the singular value decomposition (SVD) of a real
+ ```N_U x N_Realisations``` matrix ```PerturbationVector```, also computing the left and/or right singular
+ vectors. The SVD is written
+
+      PerturbationVector = L * Sg * Rt
+
+
+
+ __Note that the routine returns R**T, not R.__
+
+#### Input
+```MATRIX_LAYOUT```
+indicates whether the input and output matrices are stored in row major order or column major order, where:\
+matrix_layout = ```LAPACK_ROW_MAJOR```, the matrices are stored in row major order.
+
+```JOBU``` is CHARACTER*1\
+Specifies options for computing all or part of the matrix \
+L := ```'S'```:  the first ```min(N_U,N_Realisation)``` columns of U (the left singular matrix)\
+__Here we are assuming ```N_Realisations > N_U```, hence U will have dimension ```N_U x N_U```__
+
+
+```JOBVT``` is CHARACTER*1 \
+Specifies options for computing all or part of the matrix\
+VT := ```'A'```:  all N rows of V**T are returned in the array VT;
+
+```M``` is INTEGER \
+The number of rows of the input matrix ```PerturbationVectorCopy``` (Copy of ```PerturbationVector```). \
+```mDO = N_U```.
+
+```N``` is INTEGER \
+The number of columns of the input matrix  ```PerturbationVectorCopy``` (Copy of ```PerturbationVector```). \
+```nDO = N_Realisations```.
+
+A is DOUBLE PRECISION array, dimension (LDA,N), in our case ```PerturbationVectorCopy``` (Copy of ```PerturbationVector```)\
+On entry, the M-by-N matrix ```PerturbationVectorCopy```. \
+On exit, 
+if ```JOBU != 'O'``` and ```JOBVT != 'O'```, the contents of ```PerturbationVectorCopy```
+are destroyed.(Hence we are using ```PerturbationVectorCopy``` and not ```PerturbationVector```)
+
+```LDA``` is INTEGER \
+The leading dimension of the array ```PerturbationVectorCopy```. \
+LDA >= max(1,M)\
+```lda = N_Realisations``` \
+**Assumption of ```N_Realisations > N_U``` also applies here**
+
+```Sg``` is DOUBLE PRECISION array, dimension (min(M,N))= ```N_U```.  
+The singular values of A, sorted so that S(i) >= S(i+1).
+
+```U ``` is DOUBLE PRECISION array, dimension ```LDU x N_U``` \      
+If JOBU = 'S', U contains the first min(m,n) columns of U
+(the left singular vectors, stored columnwise)
+          
+```LDU``` is INTEGER \
+The leading dimension of the array U.\
+```ldu = N_U```
+
+	
+
+```Vt``` is DOUBLE PRECISION array, 
+If JOBVT = 'A', ```Vt``` contains the ```N_U x N_Realisation``` orthogonal matrix V**T
+
+```LDVT``` is INTEGER \
+The leading dimension of the array VT. \
+```ldvt = N_Realisations```
+
+#### Output
+```Sg[i], 0<=i<N_U``` \
+```L, N_U x N_U``` \
+```Vt, N_U x N_Realisations```
+
+

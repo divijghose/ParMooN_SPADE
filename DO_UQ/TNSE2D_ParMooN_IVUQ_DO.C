@@ -405,51 +405,150 @@ int main(int argc, char *argv[])
 	cout << " COPY DONE " << endl;
 
 	cout << " REALISATIONS COMPUTED " << endl;
+
+
+
+std::ofstream filerel;
+filerel.open("RealizationVect.txt");
+
+for (int i = 0; i < N_U; i++)
+{
+	for (int j = 0; j < N_Realisations; j++)
+	{
+		filerel << RealizationVector[i * N_Realisations + j];
+		if (j != N_Realisations - 1)
+			filerel << ",";
+	}
+	filerel << endl;
+}
+
+filerel.close();
  //////////////////////////////////End of Realization/////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////////////////
 /////////// DO - Initialization /////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
+
 double* MeanVector = new double[N_U * 1]();
 for(int i=0; i<N_U; ++i) {
   for(int j = 0; j < N_Realisations; ++j){
-            MeanVector[i] +=  (RealizationVector[j*N_U+i]/N_Realisations);
+            MeanVector[i] +=  (RealizationVector[i*N_Realisations+j]/N_Realisations);
         }
 }
+
+std::ofstream filem;
+filem.open("MeanVect.txt");
+
+for (int i = 0; i < N_U; i++)
+{
+
+	filem << MeanVector[i];
+	if (i != N_U - 1)
+		filem << ",";
+	
+}
+
+filem.close();
 
 
 double* PerturbationVector = new double[N_U * N_Realisations]();
 for(int i = 0; i < N_U; ++i){
   for(int j = 0; j < N_Realisations; ++j){
-    PerturbationVector[j*N_U+i] = RealizationVector[j*N_U+i] - MeanVector[i];
+    PerturbationVector[i*N_Realisations+j] = RealizationVector[i*N_Realisations+j] - MeanVector[i];
   }
 }
 
+
+std::ofstream fileper;
+fileper.open("PertVect.txt");
+
+for (int i = 0; i < N_U; i++)
+{
+	for (int j = 0; j < N_Realisations; j++)
+	{
+		fileper << PerturbationVector[i * N_Realisations + j];
+		if (j != N_Realisations - 1)
+			fileper << ",";
+	}
+	fileper << endl;
+}
+
+fileper.close();
 
 //================================================================================================
 /////////////////////////////DO - Initialization SVD//////////////////////////////////////////////
 //================================================================================================
  // Declare SVD parameters
-    MKL_INT mDO = N_U, nDO = N_Realisations, ldaDO = N_U, lduDO = N_U, ldvtDO = N_Realisations, infoDO;
-    double superbDO[std::min(N_U,N_U)-1];
+MKL_INT mDO = N_U, nDO = N_Realisations, ldaDO = N_Realisations, lduDO = N_U, ldvtDO = N_Realisations, infoDO;
+double superbDO[std::min(N_U,N_Realisations)-1];
 
-    double* a = new double[N_U * N_Realisations]();
-    memcpy(a,PerturbationVector,N_U*N_Realisations*SizeOfDouble);
+double* PerturbationVectorCopy = new double[N_U * N_Realisations]();
+memcpy(PerturbationVectorCopy,PerturbationVector,N_U*N_Realisations*SizeOfDouble);
 
-    double* Sg = new double[N_Realisations];
-    double* L = new double[N_U*N_U];
-    double* Rt = new double[N_Realisations*N_Realisations];
-    cout << " REALISATIONS COMPUTED " <<endl;
-    infoDO = LAPACKE_dgesvd( LAPACK_COL_MAJOR, 'S', 'A', mDO, nDO, a, ldaDO,
-                        Sg, L, lduDO, Rt, ldvtDO, superbDO );
+double* Sg = new double[N_U];
+double* L = new double[N_U*N_U];
+double* Rt = new double[N_U*N_Realisations];
 
-    cout << endl <<endl;
+infoDO = LAPACKE_dgesvd( LAPACK_ROW_MAJOR, 'S', 'A', mDO, nDO, PerturbationVectorCopy, ldaDO,
+					Sg, L, lduDO, Rt, ldvtDO, superbDO );
 
-    if( infoDO > 0 ) {
-      printf( "The algorithm computing SVD for DO failed to converge.\n" );
-      exit( 1 );
-    }
-    cout << " DO SVD COMPUTED " <<endl;
+cout << endl <<endl;
+
+if( infoDO > 0 ) {
+	printf( "The algorithm computing SVD for DO failed to converge.\n" );
+	exit( 1 );
+}
+cout << " DO SVD COMPUTED " <<endl;
+
+std::ofstream filel;
+filel.open("DOSVDL.txt");
+
+for (int i = 0; i < N_U; i++)
+{
+	for (int j = 0; j < N_U; j++)
+	{
+		filel << L[i * N_U + j];
+		if (j != N_U - 1)
+			filel << ",";
+	}
+	filel << endl;
+}
+
+filel.close();
+
+
+std::ofstream filert;
+filert.open("DOSVDRt.txt");
+
+for (int i = 0; i < N_U; i++)
+{
+	for (int j = 0; j < N_Realisations; j++)
+	{
+		filert << Rt[i * N_Realisations + j];
+		if (j != N_Realisations - 1)
+			filert << ",";
+	}
+	filert << endl;
+}
+
+filert.close();
+
+std::ofstream filesg;
+filesg.open("DOSVDSg.txt");
+
+for (int i = 0; i < N_U; i++)
+{
+	
+	filesg << Sg[i];
+	if (i != N_U - 1)
+	filesg << ",";
+
+}
+
+filesg.close();
+
+
+exit(0);
 //////DO - SVD End///////////////////////////////
 
 ///////DO - Subspace dimension calculation //////
@@ -475,22 +574,22 @@ cout << "PROJ VECTOR MULT START "<<endl;
     cblas_dgemm(CblasColMajor,CblasTrans,CblasNoTrans,N_Realisations,N_Realisations, N_U , 1.0, PerturbationVector,N_U,L,N_U,0.0,ProjectionVector,N_Realisations);
     cout << "PROJ VECTOR MULT DONE "<<endl;
 
-///// Initialize Coefficient Matrix - First subDim columns of Projection Matrix ////////////////////
+/// Initialize Coefficient Matrix - First subDim columns of Projection Matrix ////////////////////
 double* CoeffVector = new double[N_Realisations * subDim]();
 memcpy(CoeffVector, ProjectionVector, N_Realisations*subDim*SizeOfDouble);
 
 ////////////Initialize Mode Vector - First subDim columns of Left Singular Vector//////////////////
-double* ModeVector = new double[N_U* subDim]();
-memcpy(ModeVector, L, N_U*subDim*SizeOfDouble);
+// double* ModeVector = new double[N_U* subDim]();
+// memcpy(ModeVector, L, N_U*subDim*SizeOfDouble);
 
 ////////////////////////////////////////////DO - Initialization Ends//////////////////////////////////////
 ///////================================================================================//////////////////
 
-double* Cov = new double[subDim* subDim]();
-cblas_dgemm(CblasColMajor,CblasTrans,CblasNoTrans,N_Realisations,subDim, subDim, (1.0/(N_Realisations-1)), CoeffVector,subDim,CoeffVector,subDim,0.0,Cov,subDim);
+// double* Cov = new double[subDim* subDim]();
+// cblas_dgemm(CblasColMajor,CblasTrans,CblasNoTrans,N_Realisations,subDim, subDim, (1.0/(N_Realisations-1)), CoeffVector,subDim,CoeffVector,subDim,0.0,Cov,subDim);
 
 // Assign the Cov Array to the global pointer - Tdatabase
-TDatabase::ParamDB->COVARIANCE_MATRIX_DO = Cov;
+// TDatabase::ParamDB->COVARIANCE_MATRIX_DO = Cov;
 
 
 
@@ -536,19 +635,19 @@ TDatabase::ParamDB->COVARIANCE_MATRIX_DO = Cov;
 ////////////////////////////////////////////////////////////
 ///////Co-Skewness Matrix
 
-double* M = new double[subDim*subDim*subDim]();
-for(int i = 0; i < subDim; i++){
-  for(int j = 0; j < subDim; j++){
-    for(int k = 0; k < subDim; k++){
-      for(int p = 0; p < subDim; p++){
+// double* M = new double[subDim*subDim*subDim]();
+// for(int i = 0; i < subDim; i++){
+//   for(int j = 0; j < subDim; j++){
+//     for(int k = 0; k < subDim; k++){
+//       for(int p = 0; p < subDim; p++){
 
-        M[subDim*subDim*i + subDim*j + k] += ((CoeffVector[subDim*i+p]*CoeffVector[subDim*j+p]*CoeffVector[subDim*k+p])/(N_Realisations-1));
+//         M[subDim*subDim*i + subDim*j + k] += ((CoeffVector[subDim*i+p]*CoeffVector[subDim*j+p]*CoeffVector[subDim*k+p])/(N_Realisations-1));
 
-      }
+//       }
 
-    }
-  }
-}
+//     }
+//   }
+// }
 
 
 
@@ -648,7 +747,7 @@ for(int i = 0; i < subDim; i++){
 		// assemble M, A matrices and rhs
 
 		for (int i = 0; i < N_U; i++)
-			sol[mappingArray[i]] = SolutionVector[RealNo + N_Realisations * i];
+			sol[mappingArray[i]] = RealizationVector[RealNo + N_Realisations * i];
 		SystemMatrix->Assemble(sol, rhs);
 
 		VtkBaseName = TDatabase::ParamDB->VTKBASENAME;
