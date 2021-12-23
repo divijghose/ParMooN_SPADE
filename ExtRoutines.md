@@ -1,7 +1,20 @@
 # BLAS and LAPACK routines used in the code 
 
-## Monte Carlo Realization generation
+## Contents
+1. [Monte Carlo realization generation](#monte-carlo-realization-generation)\
+a. [SVD of Covariance Matrix](#svd-of-covariance-matrix)\
+b. [Multiplication of truncated left singular value matrix with standard deviation matrix](#multiplication-of-truncated-left-singular-value-matrix-with-standard-deviation-matrix)
+2. [DO Initialization](#do-initialization)\
+a. [SVD of perturbation matrix](#svd-of-perturbation-matrix) \
+b. [Calculation of Projection Matrix](#calculation-of-projection-matrix)
+
+
+
+## Monte Carlo Realization generation 
+[Back to Contents](#contents)
+
 ### SVD of Covariance matrix 
+[Back to Contents](#contents)
 #### Code Snippet
 
 ```MKL_INT m1 = N_U, n = N_U, lda = N_U, ldu = N_U, ldvt = N_U, info;
@@ -93,6 +106,7 @@ The leading dimension of the array VT. \
 
 _____________________________________________________
 ### Multiplication of truncated left singular value matrix with standard deviation matrix
+[Back to Contents](#contents)
 
 #### Purpose
 The dgemm routine calculates the product of double precision matrices \
@@ -171,26 +185,37 @@ in memory.
 
 ________________________________________________________
 ## DO Initialization
+[Back to Contents](#contents)
 ### SVD of perturbation matrix
+[Back to Contents](#contents)
+1. [If N_Realisations > N_U](#if-number-of-realisations-is-greater-than-number-of-degrees-of-freedom)
+2. [If N_U > N_Realisations](#if-number-of-degrees-of-freedom-is-greater-than-number-of-realisations)
 
-```MKL_INT m1 = N_U, n = N_U, lda = N_U, ldu = N_U, ldvt = N_U, info;
-double superb[std::min(N_U, N_U) - 1];
+#### If number of realisations is greater than number of degrees of freedom 
+[Back to SVD of perturbation matrix](#svd-of-perturbation-matrix) \
+```min(N_R,N_U) =  N_U```
 
-double *S = new double[N_U];
-double *U = new double[N_U * N_U];
-double *Vt = new double[N_U * N_U];
+```int minDim = std::min(N_U,N_Realisations);
+//Here, minDim = N_U
+MKL_INT mDO = N_U, nDO = N_Realisations, ldaDO = N_Realisations, lduDO = minDim, ldvtDO = N_Realisations, infoDO;
+double superbDO[minDim-1];
 
-info = LAPACKE_dgesvd(LAPACK_ROW_MAJOR, 'A', 'A', m1, n, C, lda,S, U, ldu, Vt, ldvt, superb);
+double* PerturbationVectorCopy = new double[N_U * N_Realisations]();
+memcpy(PerturbationVectorCopy,PerturbationVector,N_U*N_Realisations*SizeOfDouble);
 
-cout << endl
-        << endl;
+double* Sg = new double[minDim];
+double* L = new double[N_U*minDim];
+double* Rt = new double[minDim*N_Realisations];
 
-if (info > 0)
-{
-    printf("The algorithm computing SVD failed to converge.\n");
-    exit(1);
+infoDO = LAPACKE_dgesvd( LAPACK_ROW_MAJOR, 'S', 'N', mDO, nDO, PerturbationVectorCopy, ldaDO,
+					Sg, L, lduDO, Rt, ldvtDO, superbDO );
+
+
+if( infoDO > 0 ) {
+	printf( "The algorithm computing SVD for DO failed to converge.\n" );
+	exit( 1 );
 }
-cout << " SVD COMPUTED" << endl;
+cout << " DO SVD COMPUTED " <<endl;
 ```
 
 #### Purpose
@@ -217,7 +242,7 @@ __Here we are assuming ```N_Realisations > N_U```, hence U will have dimension `
 
 ```JOBVT``` is CHARACTER*1 \
 Specifies options for computing all or part of the matrix\
-VT := ```'A'```:  all N rows of V**T are returned in the array VT;
+VT := ```'N'```: no rows of V**T (no right singular vectors) are computed.\
 
 ```M``` is INTEGER \
 The number of rows of the input matrix ```PerturbationVectorCopy``` (Copy of ```PerturbationVector```). \
@@ -250,18 +275,105 @@ If JOBU = 'S', U contains the first min(m,n) columns of U
 The leading dimension of the array U.\
 ```ldu = N_U```
 
-	
 
-```Vt``` is DOUBLE PRECISION array, 
-If JOBVT = 'A', ```Vt``` contains the ```N_U x N_Realisation``` orthogonal matrix V**T
-
-```LDVT``` is INTEGER \
-The leading dimension of the array VT. \
-```ldvt = N_Realisations```
 
 #### Output
 ```Sg[i], 0<=i<N_U``` \
 ```L, N_U x N_U``` \
-```Vt, N_U x N_Realisations```
+++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+#### If number of degrees of freedom is greater than number of realisations 
+[Back to SVD of perturbation matrix](#svd-of-perturbation-matrix) \
+```min(N_R,N_U) =  N_Realisations```
+
+```int minDim = std::min(N_U,N_Realisations);
+//Here, minDim = N_Realisations
+MKL_INT mDO = N_U, nDO = N_Realisations, ldaDO = N_Realisations, lduDO = minDim, ldvtDO = N_Realisations, infoDO;
+double superbDO[minDim-1];
+
+double* PerturbationVectorCopy = new double[N_U * N_Realisations]();
+memcpy(PerturbationVectorCopy,PerturbationVector,N_U*N_Realisations*SizeOfDouble);
+
+double* Sg = new double[minDim];
+double* L = new double[N_U*minDim];
+double* Rt = new double[minDim*N_Realisations];
+
+infoDO = LAPACKE_dgesvd( LAPACK_ROW_MAJOR, 'S', 'N', mDO, nDO, PerturbationVectorCopy, ldaDO,
+					Sg, L, lduDO, Rt, ldvtDO, superbDO );
+
+
+if( infoDO > 0 ) {
+	printf( "The algorithm computing SVD for DO failed to converge.\n" );
+	exit( 1 );
+}
+cout << " DO SVD COMPUTED " <<endl;
+```
+
+#### Purpose
+ DGESVD computes the singular value decomposition (SVD) of a real
+ ```N_U x N_Realisations``` matrix ```PerturbationVector```, also computing the left and/or right singular
+ vectors. The SVD is written
+
+      PerturbationVector = L * Sg * Rt
+
+
+
+ __Note that the routine returns R**T, not R.__
+
+#### Input
+```MATRIX_LAYOUT```
+indicates whether the input and output matrices are stored in row major order or column major order, where:\
+matrix_layout = ```LAPACK_ROW_MAJOR```, the matrices are stored in row major order.
+
+```JOBU``` is CHARACTER*1\
+Specifies options for computing all or part of the matrix \
+L := ```'S'```:  the first ```min(N_U,N_Realisation)``` columns of U (the left singular matrix)\
+__Here we are assuming ```N_U > N_Realisations```, hence U will have dimension ```N_U x N_Realisations```__
+
+
+```JOBVT``` is CHARACTER*1 \
+Specifies options for computing all or part of the matrix\
+VT := ```'N'```: no rows of V**T (no right singular vectors) are computed.\
+
+```M``` is INTEGER \
+The number of rows of the input matrix ```PerturbationVectorCopy``` (Copy of ```PerturbationVector```). \
+```mDO = N_U```.
+
+```N``` is INTEGER \
+The number of columns of the input matrix  ```PerturbationVectorCopy``` (Copy of ```PerturbationVector```). \
+```nDO = N_Realisations```.
+
+A is DOUBLE PRECISION array, dimension (LDA,N), in our case ```PerturbationVectorCopy``` (Copy of ```PerturbationVector```)\
+On entry, the M-by-N matrix ```PerturbationVectorCopy```. \
+On exit, 
+if ```JOBU != 'O'``` and ```JOBVT != 'O'```, the contents of ```PerturbationVectorCopy```
+are destroyed.(Hence we are using ```PerturbationVectorCopy``` and not ```PerturbationVector```)
+
+```LDA``` is INTEGER \
+The leading dimension of the array ```PerturbationVectorCopy```. \
+LDA >= max(1,M)\
+```lda = N_Realisations``` \
+
+
+```Sg``` is DOUBLE PRECISION array, dimension (min(M,N))= ```N_Realisations```.  
+The singular values of A, sorted so that S(i) >= S(i+1).
+
+```U ``` is DOUBLE PRECISION array, dimension ```LDU x N_U``` \      
+If JOBU = 'S', U contains the first min(m,n) columns of U
+(the left singular vectors, stored columnwise)
+          
+```LDU``` is INTEGER \
+The leading dimension of the array U.\
+```ldu = N_Realisations```
+
+
+
+#### Output
+```Sg[i], 0<=i<N_U``` \
+```L, N_U x N_U``` \
+
+________________________________________________________
+
+### Calculation of Projection Matrix
+[Back to Contents](#contents)
 

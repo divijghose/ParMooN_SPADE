@@ -479,26 +479,28 @@ fileper.close();
 /////////////////////////////DO - Initialization SVD//////////////////////////////////////////////
 //================================================================================================
  // Declare SVD parameters
-MKL_INT mDO = N_U, nDO = N_Realisations, ldaDO = N_Realisations, lduDO = N_U, ldvtDO = N_Realisations, infoDO;
-double superbDO[std::min(N_U,N_Realisations)-1];
+int minDim = std::min(N_U,N_Realisations);
+MKL_INT mDO = N_U, nDO = N_Realisations, ldaDO = N_Realisations, lduDO = minDim, ldvtDO = N_Realisations, infoDO;
+double superbDO[minDim-1];
 
 double* PerturbationVectorCopy = new double[N_U * N_Realisations]();
 memcpy(PerturbationVectorCopy,PerturbationVector,N_U*N_Realisations*SizeOfDouble);
 
-double* Sg = new double[N_U];
-double* L = new double[N_U*N_U];
-double* Rt = new double[N_U*N_Realisations];
+double* Sg = new double[minDim];
+double* L = new double[N_U*minDim];
+double* Rt = new double[minDim*N_Realisations];
 
-infoDO = LAPACKE_dgesvd( LAPACK_ROW_MAJOR, 'S', 'A', mDO, nDO, PerturbationVectorCopy, ldaDO,
+infoDO = LAPACKE_dgesvd( LAPACK_ROW_MAJOR, 'S', 'N', mDO, nDO, PerturbationVectorCopy, ldaDO,
 					Sg, L, lduDO, Rt, ldvtDO, superbDO );
 
-cout << endl <<endl;
 
 if( infoDO > 0 ) {
 	printf( "The algorithm computing SVD for DO failed to converge.\n" );
 	exit( 1 );
 }
 cout << " DO SVD COMPUTED " <<endl;
+
+
 
 std::ofstream filel;
 filel.open("DOSVDL.txt");
@@ -554,9 +556,9 @@ exit(0);
 ///////DO - Subspace dimension calculation //////
     int s = 0;
     double valDO = 0.0;
-    double sumSingularValDO = 0;
-    for( int i=0;i<N_Realisations;i++) sumSingularValDO += Sg[i];
-    while( valDO/sumSingularValDO < 0.99999999)
+    double sumSingularValDO = 0.0;
+    for( int i=0;i<minDim;i++) sumSingularValDO += Sg[i];
+    while( valDO/sumSingularValDO < SVPercent)
     {
         valDO += Sg[s];
         s++;
@@ -569,7 +571,7 @@ exit(0);
 
 /////Projection Matrix///////////
 ////////////////////////////////
-double* ProjectionVector = new double[N_Realisations * N_Realisations]();
+double* ProjectionVector = new double[N_Realisations * minDim]();
 cout << "PROJ VECTOR MULT START "<<endl;
     cblas_dgemm(CblasColMajor,CblasTrans,CblasNoTrans,N_Realisations,N_Realisations, N_U , 1.0, PerturbationVector,N_U,L,N_U,0.0,ProjectionVector,N_Realisations);
     cout << "PROJ VECTOR MULT DONE "<<endl;
