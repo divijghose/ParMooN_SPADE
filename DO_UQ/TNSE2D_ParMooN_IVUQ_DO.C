@@ -507,10 +507,10 @@ filel.open("DOSVDL.txt");
 
 for (int i = 0; i < N_U; i++)
 {
-	for (int j = 0; j < N_U; j++)
+	for (int j = 0; j < minDim; j++)
 	{
-		filel << L[i * N_U + j];
-		if (j != N_U - 1)
+		filel << L[i * minDim + j];
+		if (j != minDim - 1)
 			filel << ",";
 	}
 	filel << endl;
@@ -519,30 +519,30 @@ for (int i = 0; i < N_U; i++)
 filel.close();
 
 
-std::ofstream filert;
-filert.open("DOSVDRt.txt");
+// std::ofstream filert;
+// filert.open("DOSVDRt.txt");
 
-for (int i = 0; i < N_U; i++)
-{
-	for (int j = 0; j < N_Realisations; j++)
-	{
-		filert << Rt[i * N_Realisations + j];
-		if (j != N_Realisations - 1)
-			filert << ",";
-	}
-	filert << endl;
-}
+// for (int i = 0; i < N_U; i++)
+// {
+// 	for (int j = 0; j < N_Realisations; j++)
+// 	{
+// 		filert << Rt[i * N_Realisations + j];
+// 		if (j != N_Realisations - 1)
+// 			filert << ",";
+// 	}
+// 	filert << endl;
+// }
 
-filert.close();
+// filert.close();
 
 std::ofstream filesg;
 filesg.open("DOSVDSg.txt");
 
-for (int i = 0; i < N_U; i++)
+for (int i = 0; i < minDim; i++)
 {
 	
 	filesg << Sg[i];
-	if (i != N_U - 1)
+	if (i != minDim - 1)
 	filesg << ",";
 
 }
@@ -550,14 +550,16 @@ for (int i = 0; i < N_U; i++)
 filesg.close();
 
 
-exit(0);
+
 //////DO - SVD End///////////////////////////////
 
 ///////DO - Subspace dimension calculation //////
     int s = 0;
     double valDO = 0.0;
     double sumSingularValDO = 0.0;
-    for( int i=0;i<minDim;i++) sumSingularValDO += Sg[i];
+    for( int i=0;i<minDim;i++) {
+		sumSingularValDO += Sg[i];
+	}
     while( valDO/sumSingularValDO < SVPercent)
     {
         valDO += Sg[s];
@@ -567,18 +569,63 @@ exit(0);
     cout << " SUBSPACE DIMENSION : "  << s+1 <<endl;
 
   int subDim = s+1;
+
+  
   ////////Subspace dimension calculated//////////////////
 
 /////Projection Matrix///////////
 ////////////////////////////////
 double* ProjectionVector = new double[N_Realisations * minDim]();
 cout << "PROJ VECTOR MULT START "<<endl;
-    cblas_dgemm(CblasColMajor,CblasTrans,CblasNoTrans,N_Realisations,N_Realisations, N_U , 1.0, PerturbationVector,N_U,L,N_U,0.0,ProjectionVector,N_Realisations);
-    cout << "PROJ VECTOR MULT DONE "<<endl;
+cblas_dgemm(CblasRowMajor,CblasTrans,CblasNoTrans,N_Realisations,minDim, N_U , 1.0, PerturbationVector,N_U,L,minDim,0.0,ProjectionVector,minDim);//error
+cout << "PROJ VECTOR MULT DONE "<< endl;
+
+
+std::ofstream fileproj;
+fileproj.open("ProjVect.txt");
+
+for (int i = 0; i < N_Realisations; i++)
+{
+	for (int j = 0; j < minDim; j++)
+	{
+		fileproj << ProjectionVector[i * minDim + j];
+		if (j != minDim - 1)
+			fileproj << ",";
+	}
+	fileproj << endl;
+}
+
+fileproj.close();
+
+
+
+
+
+
 
 /// Initialize Coefficient Matrix - First subDim columns of Projection Matrix ////////////////////
 double* CoeffVector = new double[N_Realisations * subDim]();
 memcpy(CoeffVector, ProjectionVector, N_Realisations*subDim*SizeOfDouble);
+
+
+std::ofstream fileco;
+fileco.open("Coeff.txt");
+
+for (int i = 0; i < N_Realisations; i++)
+{
+	for (int j = 0; j < subDim; j++)
+	{
+		fileco << CoeffVector[i * subDim + j];
+		if (j != subDim - 1)
+			fileco << ",";
+	}
+	fileco << endl;
+}
+
+fileco.close();
+
+
+exit(0);
 
 ////////////Initialize Mode Vector - First subDim columns of Left Singular Vector//////////////////
 // double* ModeVector = new double[N_U* subDim]();

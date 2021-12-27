@@ -119,7 +119,7 @@ Here, we want \
 
 #### Input 
 ```CblasRowMajor``` \
-Indicates that the matrices are stored in row major order, with the elements of each row of the matrix stored contiguously as shown in the figure above. 
+Indicates that the matrices are stored in row major order, with the elements of each row of the matrix stored contiguously.
 
 ```CblasNoTrans``` \
 Enumeration type
@@ -174,7 +174,7 @@ beta \
 Real value used to scale matrix C (```RealizationVector```)
 ```beta = 0.0```
 
-C \ 
+C \
 Array used to store matrix C (```RealizationVector``` in our case)
 
 n
@@ -280,7 +280,7 @@ The leading dimension of the array U.\
 #### Output
 ```Sg[i], 0<=i<N_U``` \
 ```L, N_U x N_U``` \
-++++++++++++++++++++++++++++++++++++++++++++++++++++++
+________________________________________________________
 
 #### If number of degrees of freedom is greater than number of realisations 
 [Back to SVD of perturbation matrix](#svd-of-perturbation-matrix) \
@@ -369,11 +369,87 @@ The leading dimension of the array U.\
 
 
 #### Output
-```Sg[i], 0<=i<N_U``` \
-```L, N_U x N_U``` \
+```Sg[i], 0<=i<N_Realisations``` \
+```L, N_U x N_Realisations``` 
 
 ________________________________________________________
 
 ### Calculation of Projection Matrix
 [Back to Contents](#contents)
 
+#### Purpose
+The dgemm routine calculates the product of double precision matrices \
+ ```C = alpha*(A x B) + k*C```\
+Here, we want \
+``` ProjectionVector = PerturbationVector^T x L ```
+
+#### Code snippet
+```cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,m, n, k, alpha, A, k, B, n, beta, C, n);```
+
+#### Input 
+```CblasRowMajor``` \
+Indicates that the matrices are stored in row major order, with the elements of each row of the matrix stored contiguously.
+
+```CblasTrans``` \
+Enumeration type
+indicating that the matrix ```Perturbation Vector``` should be transposed before multiplication. 
+
+```CblasNoTrans``` \
+Enumeration type indicating that ```L``` 
+should not be transposed or conjugate transposed before multiplication. 
+
+```m, n, k```
+Integers indicating the size of the matrices:
+
+A
+: m
+rows by k
+columns\
+B
+: k
+rows by n
+columns\
+C
+: m
+rows by n
+columns\
+Here, ```A = PerturbationVector^T```, ```B=L```, ```C = ProjectionVector```, hence \
+```m = N_Realisations``` \
+```n = minDim``` \
+```k = N_U``` 
+
+alpha
+Real value used to scale the product of matrices A
+and B.\
+```alpha = 1.0``` 
+
+A \
+Array used to store matrix A (```PerturbationVector``` transposed using CblasTrans in our case)
+
+k \
+Leading dimension of array A (```PerturbationVector^T```)
+, or the number of elements between successive rows (for row major storage)
+in memory. \
+```k = N_U```
+
+B \
+Array used to store matrix B (```L``` in our case)
+
+n \
+Leading dimension of array B (```L```)
+, or the number of elements between successive rows (for row major storage)
+in memory. \
+```n = minDim```
+
+beta \
+Real value used to scale matrix C (```ProjectionVector```)
+```beta = 0.0```
+
+C \
+Array used to store matrix C (```ProjectionVector``` in our case)
+
+n
+Leading dimension of array C
+, or the number of elements between successive rows (for row major storage)
+in memory.
+```n = minDim```
