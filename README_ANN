@@ -3,7 +3,7 @@ If some of the fields are not provided by the user, a default value will be set
 The default values are assigned in src/ANN/ANNParamReader.C constructor
 
 ----------------------------------------------------------------------
-# ANN
+# ANNcblas_dgemm(CblasRowMajor,CblasTrans,CblasNoTrans,N_Realisations,minDim,N_U,1.0,PerturbationVector,N_Realisations,L,minDim,0.0,ProjectionVector,minDim);
 ----------------------------------------------------------------------
 ANN_NHL: 2  #(Number of hidden layers >=0)
 
