@@ -384,7 +384,7 @@ Here, we want \
 ``` ProjectionVector = PerturbationVector^T x L ```
 
 #### Code snippet
-```cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,m, n, k, alpha, A, k, B, n, beta, C, n);```
+```cblas_dgemm(CblasRowMajor,CblasTrans,CblasNoTrans,N_Realisations,minDim,N_U,1.0,PerturbationVector,N_Realisations,L,minDim,0.0,ProjectionVector,minDim);```
 
 #### Input 
 ```CblasRowMajor``` \
@@ -427,10 +427,10 @@ A \
 Array used to store matrix A (```PerturbationVector``` transposed using CblasTrans in our case)
 
 k \
-Leading dimension of array A (```PerturbationVector^T```)
+Leading dimension of array A (```PerturbationVector```)
 , or the number of elements between successive rows (for row major storage)
 in memory. \
-```k = N_U```
+```k = N_Realisations```
 
 B \
 Array used to store matrix B (```L``` in our case)
@@ -453,3 +453,4 @@ Leading dimension of array C
 , or the number of elements between successive rows (for row major storage)
 in memory.
 ```n = minDim```
+_____________________________________________

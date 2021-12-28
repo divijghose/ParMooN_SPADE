@@ -575,9 +575,10 @@ filesg.close();
 
 /////Projection Matrix///////////
 ////////////////////////////////
+cout << " Min DIMENSION : "  << minDim <<endl;
 double* ProjectionVector = new double[N_Realisations * minDim]();
 cout << "PROJ VECTOR MULT START "<<endl;
-cblas_dgemm(CblasRowMajor,CblasTrans,CblasNoTrans,N_Realisations,minDim, N_U , 1.0, PerturbationVector,N_U,L,minDim,0.0,ProjectionVector,minDim);//error
+cblas_dgemm(CblasRowMajor,CblasTrans,CblasNoTrans,N_Realisations,minDim,N_U,1.0,PerturbationVector,N_Realisations,L,minDim,0.0,ProjectionVector,minDim);//error
 cout << "PROJ VECTOR MULT DONE "<< endl;
 
 
@@ -605,8 +606,12 @@ fileproj.close();
 
 /// Initialize Coefficient Matrix - First subDim columns of Projection Matrix ////////////////////
 double* CoeffVector = new double[N_Realisations * subDim]();
-memcpy(CoeffVector, ProjectionVector, N_Realisations*subDim*SizeOfDouble);
-
+// memcpy(CoeffVector, ProjectionVector, N_Realisations*subDim*SizeOfDouble);
+for (int i=0;i<N_Realisations;i++){
+	for (int j=0;j<subDim;j++){
+		CoeffVector[i*subDim+j] = ProjectionVector[i*minDim+j];
+	}
+}
 
 std::ofstream fileco;
 fileco.open("Coeff.txt");
@@ -625,61 +630,44 @@ for (int i = 0; i < N_Realisations; i++)
 fileco.close();
 
 
-exit(0);
+
 
 ////////////Initialize Mode Vector - First subDim columns of Left Singular Vector//////////////////
-// double* ModeVector = new double[N_U* subDim]();
+double* ModeVector = new double[N_U* subDim]();
 // memcpy(ModeVector, L, N_U*subDim*SizeOfDouble);
+for (int i=0;i<N_U;i++){
+	for (int j=0;j<subDim;j++){
+		ModeVector[i*subDim+j] = ProjectionVector[i*minDim+j];
+	}
+}
 
+std::ofstream filemode;
+filemode.open("Mode.txt");
+
+for (int i = 0; i < N_U; i++)
+{
+	for (int j = 0; j < subDim; j++)
+	{
+		filemode << CoeffVector[i * subDim + j];
+		if (j != subDim - 1)
+			filemode << ",";
+	}
+	filemode << endl;
+}
+
+filemode.close();
+
+exit(0);
 ////////////////////////////////////////////DO - Initialization Ends//////////////////////////////////////
 ///////================================================================================//////////////////
 
-// double* Cov = new double[subDim* subDim]();
-// cblas_dgemm(CblasColMajor,CblasTrans,CblasNoTrans,N_Realisations,subDim, subDim, (1.0/(N_Realisations-1)), CoeffVector,subDim,CoeffVector,subDim,0.0,Cov,subDim);
+double* Cov = new double[subDim* subDim]();
+cblas_dgemm(CblasColMajor,CblasTrans,CblasNoTrans,N_Realisations,subDim, subDim, (1.0/(N_Realisations-1)), CoeffVector,subDim,CoeffVector,subDim,0.0,Cov,subDim);
 
 // Assign the Cov Array to the global pointer - Tdatabase
-// TDatabase::ParamDB->COVARIANCE_MATRIX_DO = Cov;
+TDatabase::ParamDB->COVARIANCE_MATRIX_DO = Cov;
 
 
-
-///cblas_dgemm Usage///////////////////////////////////////////////////////////////////////////////////////
-//aplha(A*B) + beta(C)
-//1 - CblasColMajor/CblasRowMajor
-//2 - CblasTrans/CblasNoTrans - for A
-//3 - CblasTrans/CblasNoTrans - for B
-// cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
-//            m, n, k, alpha, A, k, B, n, beta, C, n);
-
-// The arguments provide options for how Intel MKL performs the operation. In this case:
-
-// CblasRowMajor
-//     Indicates that the matrices are stored in row major order, with the elements of each row of the matrix stored contiguously as shown in the figure above.
-// CblasNoTrans
-//     Enumeration type indicating that the matrices A and B should not be transposed or conjugate transposed before multiplication.
-// m, n, k
-//     Integers indicating the size of the matrices:
-//         A: m rows by k columns
-//         B: k rows by n columns
-//         C: m rows by n columns
-// alpha
-//     Real value used to scale the product of matrices A and B
-// A
-//     Array used to store matrix A
-// k
-//     Leading dimension of array A, or the number of elements between successive rows (for row major storage) in memory.
-//     In the case of this exercise the leading dimension is the same as the number of columns
-// B
-//     Array used to store matrix B
-// n
-//     Leading dimension of array B, or the number of elements between successive rows (for row major storage)
-//     in memory. In the case of this exercise the leading dimension is the same as the number of columns
-// beta
-//     Real value used to scale matrix C
-// C
-//     Array used to store matrix C
-// n
-//     Leading dimension of array C, or the number of elements between successive rows (for row major storage)
-//     in memory. In the case of this exercise the leading dimension is the same as the number of columns
 
 ////////////////////////////////////////////////////////////
 ///////Co-Skewness Matrix
