@@ -665,7 +665,7 @@ double* Cov = new double[subDim* subDim]();
 cblas_dgemm(CblasColMajor,CblasTrans,CblasNoTrans,N_Realisations,subDim, subDim, (1.0/(N_Realisations-1)), CoeffVector,subDim,CoeffVector,subDim,0.0,Cov,subDim);
 
 // Assign the Cov Array to the global pointer - Tdatabase
-TDatabase::ParamDB->COVARIANCE_MATRIX_DO = Cov;
+// TDatabase::ParamDB->COVARIANCE_MATRIX_DO = Cov;
 
 
 

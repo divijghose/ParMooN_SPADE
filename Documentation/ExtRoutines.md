@@ -1,7 +1,7 @@
 # BLAS and LAPACK routines used in the code 
 
 ## Contents
-1. [Monte Carlo realization generation](/ExtRoutines.md#monte-carlo-realization-generation) <br>
+1. [Monte Carlo realization generation](/ExtRoutines#monte-carlo-realization-generation) <br>
 a. [SVD of Covariance Matrix](#svd-of-covariance-matrix)<br>
 b. [Multiplication of truncated left singular value matrix with standard deviation matrix](#multiplication-of-truncated-left-singular-value-matrix-with-standard-deviation-matrix)
 2. [DO Initialization](#do-initialization) <br>

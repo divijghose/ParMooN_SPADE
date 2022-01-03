@@ -1,0 +1,57 @@
+\hypertarget{md_Variables_autotoc_md20}{}\doxysection{Generation of Monte Carlo realizations}\label{md_Variables_autotoc_md20}
+\hypertarget{md_Variables_autotoc_md21}{}\doxysubsection{From Database (changes to $<$tt$>$\+Database.\+h$<$/tt$>$, $<$tt$>$\+Database.\+C$<$/tt$>$ and $<$tt$>$\+Read\+Param.\+C$<$/tt$>$)}\label{md_Variables_autotoc_md21}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{N\_Realisations```\}}
+\DoxyCodeLine{``` LengthScale```  -\/ Length Scale for correlation function, read from ReadIn File \(\backslash\)}
+\DoxyCodeLine{``` Eigen Precent``` -\/ Cut-\/off percentage for singular values, read from ReadIn file \(\backslash\)}
+\DoxyCodeLine{``` E ``` -\/ Scaling factor for standard deviation (bump)function\(\backslash\)}
+\DoxyCodeLine{``` disp ``` -\/ Displacement of center of standard deviation (bump) function }
+\DoxyCodeLine{``` power ``` -\/ Power of standard deviation (bump) function (flatness of bump) \(\backslash\)}
+\DoxyCodeLine{}
+\DoxyCodeLine{\#\#\# Declared in code}
+\DoxyCodeLine{```N\_U``` -\/ Velocity degree of freedom }
+\DoxyCodeLine{```N\_P``` -\/ Pressure degree of freedom }
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\#\#\# Calculated }
+\DoxyCodeLine{``` C ``` -\/ Covariance Matrix, size ```N\_U x N\_U```, stored in **row major format** \(\backslash\)}
+\DoxyCodeLine{``` C1 ``` -\/ Correlation Matrix, size ```N\_U x N\_U```, stored in **row major format** \(\backslash\)}
+\DoxyCodeLine{``` C = U x S x Vt``` is the singular value decomposition (LAPACK, row major form) of covariance matrix with,\(\backslash\) }
+\DoxyCodeLine{}
+\DoxyCodeLine{```S``` consists of ```N\_U``` singular values \(\backslash\)}
+\DoxyCodeLine{```U``` is the left singular matrix, dimension ```N\_U x N\_U```, in row major form \& \(\backslash\)}
+\DoxyCodeLine{```Vt``` is the right singular matrix, dimension ```N\_U x N\_U```, in row major form }
+\DoxyCodeLine{}
+\DoxyCodeLine{Considering only the ```modDim``` singular values which retain ```SVPercent``` or more of the energy, we get the truncated singular matrix ```Ut``` with dimension ```N\_U x modDim}
+
+\end{DoxyCode}
+
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{Z```\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{```RealizationVector``` is product of ```Ut``` and ```Z``` with dimension ```N\_U x N\_Realisations```, i.e. each column is a realization for ```N\_U``` degress of freedom}
+\DoxyCodeLine{}
+\DoxyCodeLine{\# DO Initialization }
+\DoxyCodeLine{\#\# Variables }
+\DoxyCodeLine{\#\#\# From Database (changes to ```Database.h```, ```Database.C``` and ```ReadParam.C```)}
+\DoxyCodeLine{```SVPercent``` -\/ Cut-\/off percentage for singular values of perturbation matrix ```PerturbationVector```, read from ReadIn file }
+\DoxyCodeLine{}
+\DoxyCodeLine{\#\#\# Calculated}
+\DoxyCodeLine{```MeanVector``` = Mean of all realizations for a given DOF, calculated from ```RealizationVector```. Since ```RealizationVector``` is in row major format, mean for ith DOF is mean of ith block of length ```N\_Realisations```.\(\backslash\)}
+\DoxyCodeLine{ ```MeanVector``` is stored in \_\_row major format\_\_. Size ```N\_U x 1}
+
+\end{DoxyCode}
+
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{PerturbationVector```\}}
+\DoxyCodeLine{```PerturbationVector``` is stored in \_\_row major format\_\_. Size ```N\_U x N\_Realisations}
+
+\end{DoxyCode}
+ 

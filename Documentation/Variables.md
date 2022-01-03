@@ -1,7 +1,7 @@
-# ParMooN SPADE
 
-# Generation of Monte Carlo realizations 
-## Variables 
+
+# Variables 
+## Generation of Monte Carlo realizations 
 ### From Database (changes to ```Database.h```, ```Database.C``` and ```ReadParam.C```)
 ```N_Realisations```  - Number of Realizations, read from ReadIn file \
 ``` LengthScale```  - Length Scale for correlation function, read from ReadIn File \

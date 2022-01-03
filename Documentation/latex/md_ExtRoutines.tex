@@ -1,0 +1,493 @@
+\hypertarget{md_ExtRoutines_autotoc_md1}{}\doxysection{Contents}\label{md_ExtRoutines_autotoc_md1}
+
+\begin{DoxyEnumerate}
+\item \href{/ExtRoutines.md\#monte-carlo-realization-generation}{\texttt{ Monte Carlo realization generation}} ~\newline
+ a. SVD of Covariance Matrix~\newline
+ b. Multiplication of truncated left singular value matrix with standard deviation matrix
+\item DO Initialization ~\newline
+ a. SVD of perturbation matrix ~\newline
+ b. Calculation of Projection Matrix
+\end{DoxyEnumerate}\hypertarget{md_ExtRoutines_autotoc_md2}{}\doxysection{Monte Carlo Realization generation}\label{md_ExtRoutines_autotoc_md2}
+Back to Contents\hypertarget{md_ExtRoutines_autotoc_md3}{}\doxysubsection{SVD of Covariance matrix}\label{md_ExtRoutines_autotoc_md3}
+Back to Contents \hypertarget{md_ExtRoutines_autotoc_md4}{}\doxysubsubsection{Code Snippet}\label{md_ExtRoutines_autotoc_md4}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{double superb[std::min(N\_U, N\_U) -\/ 1];}
+\DoxyCodeLine{}
+\DoxyCodeLine{double *S = new double[N\_U];}
+\DoxyCodeLine{double *U = new double[N\_U * N\_U];}
+\DoxyCodeLine{double *Vt = new double[N\_U * N\_U];}
+\DoxyCodeLine{}
+\DoxyCodeLine{info = LAPACKE\_dgesvd(LAPACK\_ROW\_MAJOR, 'A', 'A', m1, n, C, lda,S, U, ldu, Vt, ldvt, superb);}
+\DoxyCodeLine{}
+\DoxyCodeLine{cout << endl}
+\DoxyCodeLine{        << endl;}
+\DoxyCodeLine{}
+\DoxyCodeLine{if (info > 0)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    printf("{}The algorithm computing SVD failed to converge.\(\backslash\)n"{});}
+\DoxyCodeLine{    exit(1);}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{cout << "{} SVD COMPUTED"{} << endl;}
+
+\end{DoxyCode}
+\hypertarget{md_ExtRoutines_autotoc_md5}{}\doxysubsubsection{Purpose}\label{md_ExtRoutines_autotoc_md5}
+DGESVD computes the singular value decomposition (SVD) of a real 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ vectors. The SVD is written}
+\DoxyCodeLine{}
+\DoxyCodeLine{      C = U * S * Vt}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{ \_\_Note that the routine returns V**T, not V.\_\_}
+\DoxyCodeLine{}
+\DoxyCodeLine{\#\#\#\# Input}
+\DoxyCodeLine{```MATRIX\_LAYOUT}
+
+\end{DoxyCode}
+ indicates whether the input and output matrices are stored in row major order or column major order, where\+:\textbackslash{} matrix\+\_\+layout = {\ttfamily LAPACK\+\_\+\+ROW\+\_\+\+MAJOR}, the matrices are stored in row major order.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{JOBU```\}}
+\DoxyCodeLine{Specifies options for computing all or part of the matrix\(\backslash\)}
+\DoxyCodeLine{U := ```'A'```:  all M columns of U are returned in array}
+\DoxyCodeLine{}
+\DoxyCodeLine{```JOBVT``` is CHARACTER*1 \(\backslash\)}
+\DoxyCodeLine{Specifies options for computing all or part of the matrix\(\backslash\)}
+\DoxyCodeLine{VT := ```'A'```:  all N rows of V**T are returned in the array VT;}
+\DoxyCodeLine{}
+\DoxyCodeLine{```M``` is INTEGER \(\backslash\)}
+\DoxyCodeLine{The number of rows of the input matrix ```C``` (Covariance Matrix). \(\backslash\)}
+\DoxyCodeLine{```m1 = N\_U```.}
+\DoxyCodeLine{}
+\DoxyCodeLine{```N``` is INTEGER \(\backslash\)}
+\DoxyCodeLine{The number of columns of the input matrix  ```C``` (Covariance Matrix). \(\backslash\)}
+\DoxyCodeLine{```n = N\_U```.}
+\DoxyCodeLine{}
+\DoxyCodeLine{A is DOUBLE PRECISION array, dimension (LDA,N), in our case ```C``` (Covariance Matrix)\(\backslash\)}
+\DoxyCodeLine{On entry, the M-\/by-\/N matrix ```C```. \(\backslash\)}
+\DoxyCodeLine{On exit, }
+\DoxyCodeLine{if ```JOBU != 'O'``` and ```JOBVT != 'O'```, the contents of ```C}
+
+\end{DoxyCode}
+ are destroyed.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{LDA```\}}
+\DoxyCodeLine{The leading dimension of the array ```C```. \(\backslash\)}
+\DoxyCodeLine{LDA >= max(1,M)\(\backslash\)}
+\DoxyCodeLine{```lda = N\_U}
+
+\end{DoxyCode}
+
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{S```\}}
+\DoxyCodeLine{The singular values of A, sorted so that S(i) >= S(i+1).}
+\DoxyCodeLine{}
+\DoxyCodeLine{```U ``` is DOUBLE PRECISION array, dimension ```LDU x N\_U``` \(\backslash\)}
+\DoxyCodeLine{If ```JOBU = 'A'```, U contains the M-\/by-\/M orthogonal matrix U;}
+\DoxyCodeLine{}
+\DoxyCodeLine{```LDU``` is INTEGER \(\backslash\)}
+\DoxyCodeLine{The leading dimension of the array U.\(\backslash\)}
+\DoxyCodeLine{```ldu = N\_U}
+
+\end{DoxyCode}
+
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{Vt```\}}
+\DoxyCodeLine{If JOBVT = 'A', ```Vt``` contains the ```N\_U x N\_U``` orthogonal matrix V**T}
+\DoxyCodeLine{}
+\DoxyCodeLine{```LDVT``` is INTEGER \(\backslash\)}
+\DoxyCodeLine{The leading dimension of the array VT. \(\backslash\)}
+\DoxyCodeLine{```ldvt = N\_U}
+
+\end{DoxyCode}
+\hypertarget{md_ExtRoutines_autotoc_md6}{}\doxysubsubsection{Output}\label{md_ExtRoutines_autotoc_md6}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{S[i],\}}
+\DoxyCodeLine{```U, N\_U x N\_U``` \(\backslash\)}
+\DoxyCodeLine{```Vt, N\_U x N\_U}
+
+\end{DoxyCode}
+
+
+\DoxyHorRuler{0}
+ \hypertarget{md_ExtRoutines_autotoc_md7}{}\doxysubsection{Multiplication of truncated left singular value matrix with standard deviation matrix}\label{md_ExtRoutines_autotoc_md7}
+Back to Contents\hypertarget{md_ExtRoutines_autotoc_md8}{}\doxysubsubsection{Purpose}\label{md_ExtRoutines_autotoc_md8}
+The dgemm routine calculates the product of double precision matrices \textbackslash{} 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{Here, we want \(\backslash\)}
+\DoxyCodeLine{``` RealizationVector = Ut x Z }
+
+\end{DoxyCode}
+\hypertarget{md_ExtRoutines_autotoc_md9}{}\doxysubsubsection{Code snippet}\label{md_ExtRoutines_autotoc_md9}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{cblas\_dgemm(CblasRowMajor,\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\#\#\#\# Input }
+\DoxyCodeLine{```CblasRowMajor``` \(\backslash\)}
+\DoxyCodeLine{Indicates that the matrices are stored in row major order, with the elements of each row of the matrix stored contiguously.}
+\DoxyCodeLine{}
+\DoxyCodeLine{```CblasNoTrans``` \(\backslash\)}
+\DoxyCodeLine{Enumeration type}
+\DoxyCodeLine{indicating that the matrices A}
+\DoxyCodeLine{and B}
+\DoxyCodeLine{should not be transposed or conjugate transposed before multiplication. }
+\DoxyCodeLine{}
+\DoxyCodeLine{m, n, k}
+\DoxyCodeLine{Integers indicating the size of the matrices:}
+\DoxyCodeLine{}
+\DoxyCodeLine{A}
+\DoxyCodeLine{: m}
+\DoxyCodeLine{rows by k}
+\DoxyCodeLine{columns\(\backslash\)}
+\DoxyCodeLine{B}
+\DoxyCodeLine{: k}
+\DoxyCodeLine{rows by n}
+\DoxyCodeLine{columns\(\backslash\)}
+\DoxyCodeLine{C}
+\DoxyCodeLine{: m}
+\DoxyCodeLine{rows by n}
+\DoxyCodeLine{columns\(\backslash\)}
+\DoxyCodeLine{Here, ```A = Ut```, ```B=Z```, ```C = RealizationVector```, hence \(\backslash\)}
+\DoxyCodeLine{```m = N\_U``` \(\backslash\)}
+\DoxyCodeLine{```n = N\_Realisations``` \(\backslash\)}
+\DoxyCodeLine{```k = modDim}
+
+\end{DoxyCode}
+
+
+alpha Real value used to scale the product of matrices A and B.\textbackslash{} 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{A \(\backslash\)}
+\DoxyCodeLine{Array used to store matrix A (```Ut``` in our case)}
+\DoxyCodeLine{}
+\DoxyCodeLine{k \(\backslash\)}
+\DoxyCodeLine{Leading dimension of array A (```Ut```)}
+\DoxyCodeLine{, or the number of elements between successive rows (for row major storage)}
+\DoxyCodeLine{in memory. \(\backslash\)}
+\DoxyCodeLine{```k = modDim}
+
+\end{DoxyCode}
+
+
+B \textbackslash{} Array used to store matrix B ({\ttfamily Z} in our case)
+
+n \textbackslash{} Leading dimension of array B ({\ttfamily Z}) , or the number of elements between successive rows (for row major storage) in memory. \textbackslash{} 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{beta \(\backslash\)}
+\DoxyCodeLine{Real value used to scale matrix C (```RealizationVector```)}
+\DoxyCodeLine{```beta = 0.0}
+
+\end{DoxyCode}
+
+
+C \textbackslash{} Array used to store matrix C ({\ttfamily Realization\+Vector} in our case)
+
+n Leading dimension of array C , or the number of elements between successive rows (for row major storage) in memory. 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_}
+\DoxyCodeLine{\#\# DO Initialization}
+\DoxyCodeLine{[Back to Contents](\#contents)}
+\DoxyCodeLine{\#\#\# SVD of perturbation matrix}
+\DoxyCodeLine{[Back to Contents](\#contents)}
+\DoxyCodeLine{1. [If N\_Realisations > N\_U](\#if-\/number-\/of-\/realisations-\/is-\/greater-\/than-\/number-\/of-\/degrees-\/of-\/freedom)}
+\DoxyCodeLine{2. [If N\_U > N\_Realisations](\#if-\/number-\/of-\/degrees-\/of-\/freedom-\/is-\/greater-\/than-\/number-\/of-\/realisations)}
+\DoxyCodeLine{}
+\DoxyCodeLine{\#\#\#\# If number of realisations is greater than number of degrees of freedom }
+\DoxyCodeLine{[Back to SVD of perturbation matrix](\#svd-\/of-\/perturbation-\/matrix) \(\backslash\)}
+\DoxyCodeLine{```min(N\_R,N\_U) =  N\_U}
+
+\end{DoxyCode}
+
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{//Here, minDim = N\_U}
+\DoxyCodeLine{MKL\_INT mDO = N\_U, nDO = N\_Realisations, ldaDO = N\_Realisations, lduDO = minDim, ldvtDO = N\_Realisations, infoDO;}
+\DoxyCodeLine{double superbDO[minDim-\/1];}
+\DoxyCodeLine{}
+\DoxyCodeLine{double* PerturbationVectorCopy = new double[N\_U * N\_Realisations]();}
+\DoxyCodeLine{memcpy(PerturbationVectorCopy,PerturbationVector,N\_U*N\_Realisations*SizeOfDouble);}
+\DoxyCodeLine{}
+\DoxyCodeLine{double* Sg = new double[minDim];}
+\DoxyCodeLine{double* L = new double[N\_U*minDim];}
+\DoxyCodeLine{double* Rt = new double[minDim*N\_Realisations];}
+\DoxyCodeLine{}
+\DoxyCodeLine{infoDO = LAPACKE\_dgesvd( LAPACK\_ROW\_MAJOR, 'S', 'N', mDO, nDO, PerturbationVectorCopy, ldaDO,}
+\DoxyCodeLine{                    Sg, L, lduDO, Rt, ldvtDO, superbDO );}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{if( infoDO > 0 ) \{}
+\DoxyCodeLine{    printf( "{}The algorithm computing SVD for DO failed to converge.\(\backslash\)n"{} );}
+\DoxyCodeLine{    exit( 1 );}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{cout << "{} DO SVD COMPUTED "{} <<endl;}
+
+\end{DoxyCode}
+\hypertarget{md_ExtRoutines_autotoc_md10}{}\doxysubsubsection{Purpose}\label{md_ExtRoutines_autotoc_md10}
+DGESVD computes the singular value decomposition (SVD) of a real 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ vectors. The SVD is written}
+\DoxyCodeLine{}
+\DoxyCodeLine{      PerturbationVector = L * Sg * Rt}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{ \_\_Note that the routine returns R**T, not R.\_\_}
+\DoxyCodeLine{}
+\DoxyCodeLine{\#\#\#\# Input}
+\DoxyCodeLine{```MATRIX\_LAYOUT}
+
+\end{DoxyCode}
+ indicates whether the input and output matrices are stored in row major order or column major order, where\+:\textbackslash{} matrix\+\_\+layout = {\ttfamily LAPACK\+\_\+\+ROW\+\_\+\+MAJOR}, the matrices are stored in row major order.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{JOBU```\}}
+\DoxyCodeLine{Specifies options for computing all or part of the matrix \(\backslash\)}
+\DoxyCodeLine{L := ```'S'```:  the first ```min(N\_U,N\_Realisation)``` columns of U (the left singular matrix)\(\backslash\)}
+\DoxyCodeLine{\_\_Here we are assuming ```N\_Realisations > N\_U```, hence U will have dimension ```N\_U x N\_U```\_\_}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{```JOBVT``` is CHARACTER*1 \(\backslash\)}
+\DoxyCodeLine{Specifies options for computing all or part of the matrix\(\backslash\)}
+\DoxyCodeLine{VT := ```'N'```: no rows of V**T (no right singular vectors) are computed.\(\backslash\)}
+\DoxyCodeLine{}
+\DoxyCodeLine{```M``` is INTEGER \(\backslash\)}
+\DoxyCodeLine{The number of rows of the input matrix ```PerturbationVectorCopy``` (Copy of ```PerturbationVector```). \(\backslash\)}
+\DoxyCodeLine{```mDO = N\_U```.}
+\DoxyCodeLine{}
+\DoxyCodeLine{```N``` is INTEGER \(\backslash\)}
+\DoxyCodeLine{The number of columns of the input matrix  ```PerturbationVectorCopy``` (Copy of ```PerturbationVector```). \(\backslash\)}
+\DoxyCodeLine{```nDO = N\_Realisations```.}
+\DoxyCodeLine{}
+\DoxyCodeLine{A is DOUBLE PRECISION array, dimension (LDA,N), in our case ```PerturbationVectorCopy``` (Copy of ```PerturbationVector```)\(\backslash\)}
+\DoxyCodeLine{On entry, the M-\/by-\/N matrix ```PerturbationVectorCopy```. \(\backslash\)}
+\DoxyCodeLine{On exit, }
+\DoxyCodeLine{if ```JOBU != 'O'``` and ```JOBVT != 'O'```, the contents of ```PerturbationVectorCopy}
+
+\end{DoxyCode}
+ are destroyed.(Hence we are using {\ttfamily Perturbation\+Vector\+Copy} and not {\ttfamily Perturbation\+Vector})
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{LDA```\}}
+\DoxyCodeLine{The leading dimension of the array ```PerturbationVectorCopy```. \(\backslash\)}
+\DoxyCodeLine{LDA >= max(1,M)\(\backslash\)}
+\DoxyCodeLine{```lda = N\_Realisations``` \(\backslash\)}
+\DoxyCodeLine{**Assumption of ```N\_Realisations > N\_U``` also applies here**}
+\DoxyCodeLine{}
+\DoxyCodeLine{```Sg``` is DOUBLE PRECISION array, dimension (min(M,N))= ```N\_U```.  }
+\DoxyCodeLine{The singular values of A, sorted so that S(i) >= S(i+1).}
+\DoxyCodeLine{}
+\DoxyCodeLine{```U ``` is DOUBLE PRECISION array, dimension ```LDU x N\_U``` \(\backslash\)      }
+\DoxyCodeLine{If JOBU = 'S', U contains the first min(m,n) columns of U}
+\DoxyCodeLine{(the left singular vectors, stored columnwise)}
+\DoxyCodeLine{          }
+\DoxyCodeLine{```LDU``` is INTEGER \(\backslash\)}
+\DoxyCodeLine{The leading dimension of the array U.\(\backslash\)}
+\DoxyCodeLine{```ldu = N\_U}
+
+\end{DoxyCode}
+\hypertarget{md_ExtRoutines_autotoc_md11}{}\doxysubsubsection{Output}\label{md_ExtRoutines_autotoc_md11}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{Sg[i],\}}
+\DoxyCodeLine{```L, N\_U x N\_U``` \(\backslash\)}
+\DoxyCodeLine{\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_}
+\DoxyCodeLine{}
+\DoxyCodeLine{\#\#\#\# If number of degrees of freedom is greater than number of realisations }
+\DoxyCodeLine{[Back to SVD of perturbation matrix](\#svd-\/of-\/perturbation-\/matrix) \(\backslash\)}
+\DoxyCodeLine{```min(N\_R,N\_U) =  N\_Realisations}
+
+\end{DoxyCode}
+
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{//Here, minDim = N\_Realisations}
+\DoxyCodeLine{MKL\_INT mDO = N\_U, nDO = N\_Realisations, ldaDO = N\_Realisations, lduDO = minDim, ldvtDO = N\_Realisations, infoDO;}
+\DoxyCodeLine{double superbDO[minDim-\/1];}
+\DoxyCodeLine{}
+\DoxyCodeLine{double* PerturbationVectorCopy = new double[N\_U * N\_Realisations]();}
+\DoxyCodeLine{memcpy(PerturbationVectorCopy,PerturbationVector,N\_U*N\_Realisations*SizeOfDouble);}
+\DoxyCodeLine{}
+\DoxyCodeLine{double* Sg = new double[minDim];}
+\DoxyCodeLine{double* L = new double[N\_U*minDim];}
+\DoxyCodeLine{double* Rt = new double[minDim*N\_Realisations];}
+\DoxyCodeLine{}
+\DoxyCodeLine{infoDO = LAPACKE\_dgesvd( LAPACK\_ROW\_MAJOR, 'S', 'N', mDO, nDO, PerturbationVectorCopy, ldaDO,}
+\DoxyCodeLine{                    Sg, L, lduDO, Rt, ldvtDO, superbDO );}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{if( infoDO > 0 ) \{}
+\DoxyCodeLine{    printf( "{}The algorithm computing SVD for DO failed to converge.\(\backslash\)n"{} );}
+\DoxyCodeLine{    exit( 1 );}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{cout << "{} DO SVD COMPUTED "{} <<endl;}
+
+\end{DoxyCode}
+\hypertarget{md_ExtRoutines_autotoc_md12}{}\doxysubsubsection{Purpose}\label{md_ExtRoutines_autotoc_md12}
+DGESVD computes the singular value decomposition (SVD) of a real 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ vectors. The SVD is written}
+\DoxyCodeLine{}
+\DoxyCodeLine{      PerturbationVector = L * Sg * Rt}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{ \_\_Note that the routine returns R**T, not R.\_\_}
+\DoxyCodeLine{}
+\DoxyCodeLine{\#\#\#\# Input}
+\DoxyCodeLine{```MATRIX\_LAYOUT}
+
+\end{DoxyCode}
+ indicates whether the input and output matrices are stored in row major order or column major order, where\+:\textbackslash{} matrix\+\_\+layout = {\ttfamily LAPACK\+\_\+\+ROW\+\_\+\+MAJOR}, the matrices are stored in row major order.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{JOBU```\}}
+\DoxyCodeLine{Specifies options for computing all or part of the matrix \(\backslash\)}
+\DoxyCodeLine{L := ```'S'```:  the first ```min(N\_U,N\_Realisation)``` columns of U (the left singular matrix)\(\backslash\)}
+\DoxyCodeLine{\_\_Here we are assuming ```N\_U > N\_Realisations```, hence U will have dimension ```N\_U x N\_Realisations```\_\_}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{```JOBVT``` is CHARACTER*1 \(\backslash\)}
+\DoxyCodeLine{Specifies options for computing all or part of the matrix\(\backslash\)}
+\DoxyCodeLine{VT := ```'N'```: no rows of V**T (no right singular vectors) are computed.\(\backslash\)}
+\DoxyCodeLine{}
+\DoxyCodeLine{```M``` is INTEGER \(\backslash\)}
+\DoxyCodeLine{The number of rows of the input matrix ```PerturbationVectorCopy``` (Copy of ```PerturbationVector```). \(\backslash\)}
+\DoxyCodeLine{```mDO = N\_U```.}
+\DoxyCodeLine{}
+\DoxyCodeLine{```N``` is INTEGER \(\backslash\)}
+\DoxyCodeLine{The number of columns of the input matrix  ```PerturbationVectorCopy``` (Copy of ```PerturbationVector```). \(\backslash\)}
+\DoxyCodeLine{```nDO = N\_Realisations```.}
+\DoxyCodeLine{}
+\DoxyCodeLine{A is DOUBLE PRECISION array, dimension (LDA,N), in our case ```PerturbationVectorCopy``` (Copy of ```PerturbationVector```)\(\backslash\)}
+\DoxyCodeLine{On entry, the M-\/by-\/N matrix ```PerturbationVectorCopy```. \(\backslash\)}
+\DoxyCodeLine{On exit, }
+\DoxyCodeLine{if ```JOBU != 'O'``` and ```JOBVT != 'O'```, the contents of ```PerturbationVectorCopy}
+
+\end{DoxyCode}
+ are destroyed.(Hence we are using {\ttfamily Perturbation\+Vector\+Copy} and not {\ttfamily Perturbation\+Vector})
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{LDA```\}}
+\DoxyCodeLine{The leading dimension of the array ```PerturbationVectorCopy```. \(\backslash\)}
+\DoxyCodeLine{LDA >= max(1,M)\(\backslash\)}
+\DoxyCodeLine{```lda = N\_Realisations``` \(\backslash\)}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{```Sg``` is DOUBLE PRECISION array, dimension (min(M,N))= ```N\_Realisations```.  }
+\DoxyCodeLine{The singular values of A, sorted so that S(i) >= S(i+1).}
+\DoxyCodeLine{}
+\DoxyCodeLine{```U ``` is DOUBLE PRECISION array, dimension ```LDU x N\_U``` \(\backslash\)      }
+\DoxyCodeLine{If JOBU = 'S', U contains the first min(m,n) columns of U}
+\DoxyCodeLine{(the left singular vectors, stored columnwise)}
+\DoxyCodeLine{          }
+\DoxyCodeLine{```LDU``` is INTEGER \(\backslash\)}
+\DoxyCodeLine{The leading dimension of the array U.\(\backslash\)}
+\DoxyCodeLine{```ldu = N\_Realisations}
+
+\end{DoxyCode}
+\hypertarget{md_ExtRoutines_autotoc_md13}{}\doxysubsubsection{Output}\label{md_ExtRoutines_autotoc_md13}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{Sg[i],\}}
+\DoxyCodeLine{```L, N\_U x N\_Realisations}
+
+\end{DoxyCode}
+
+
+\DoxyHorRuler{0}
+\hypertarget{md_ExtRoutines_autotoc_md14}{}\doxysubsection{Calculation of Projection Matrix}\label{md_ExtRoutines_autotoc_md14}
+Back to Contents\hypertarget{md_ExtRoutines_autotoc_md15}{}\doxysubsubsection{Purpose}\label{md_ExtRoutines_autotoc_md15}
+The dgemm routine calculates the product of double precision matrices \textbackslash{} 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{Here, we want \(\backslash\)}
+\DoxyCodeLine{``` ProjectionVector = PerturbationVector\string^T x L }
+
+\end{DoxyCode}
+\hypertarget{md_ExtRoutines_autotoc_md16}{}\doxysubsubsection{Code snippet}\label{md_ExtRoutines_autotoc_md16}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{cblas\_dgemm(CblasRowMajor,CblasTrans,CblasNoTrans,N\_Realisations,minDim,N\_U,1.0,PerturbationVector,N\_Realisations,L,minDim,0.0,ProjectionVector,minDim);```\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\#\#\#\# Input }
+\DoxyCodeLine{```CblasRowMajor``` \(\backslash\)}
+\DoxyCodeLine{Indicates that the matrices are stored in row major order, with the elements of each row of the matrix stored contiguously.}
+\DoxyCodeLine{}
+\DoxyCodeLine{```CblasTrans``` \(\backslash\)}
+\DoxyCodeLine{Enumeration type}
+\DoxyCodeLine{indicating that the matrix ```Perturbation Vector``` should be transposed before multiplication. }
+\DoxyCodeLine{}
+\DoxyCodeLine{```CblasNoTrans``` \(\backslash\)}
+\DoxyCodeLine{Enumeration type indicating that ```L}
+
+\end{DoxyCode}
+ should not be transposed or conjugate transposed before multiplication.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{Integers indicating the size of the matrices:}
+\DoxyCodeLine{}
+\DoxyCodeLine{A}
+\DoxyCodeLine{: m}
+\DoxyCodeLine{rows by k}
+\DoxyCodeLine{columns\(\backslash\)}
+\DoxyCodeLine{B}
+\DoxyCodeLine{: k}
+\DoxyCodeLine{rows by n}
+\DoxyCodeLine{columns\(\backslash\)}
+\DoxyCodeLine{C}
+\DoxyCodeLine{: m}
+\DoxyCodeLine{rows by n}
+\DoxyCodeLine{columns\(\backslash\)}
+\DoxyCodeLine{Here, ```A = PerturbationVector\string^T```, ```B=L```, ```C = ProjectionVector```, hence \(\backslash\)}
+\DoxyCodeLine{```m = N\_Realisations``` \(\backslash\)}
+\DoxyCodeLine{```n = minDim``` \(\backslash\)}
+\DoxyCodeLine{```k = N\_U}
+
+\end{DoxyCode}
+
+
+alpha Real value used to scale the product of matrices A and B.\textbackslash{} 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{A \(\backslash\)}
+\DoxyCodeLine{Array used to store matrix A (```PerturbationVector``` transposed using CblasTrans in our case)}
+\DoxyCodeLine{}
+\DoxyCodeLine{k \(\backslash\)}
+\DoxyCodeLine{Leading dimension of array A (```PerturbationVector```)}
+\DoxyCodeLine{, or the number of elements between successive rows (for row major storage)}
+\DoxyCodeLine{in memory. \(\backslash\)}
+\DoxyCodeLine{```k = N\_Realisations}
+
+\end{DoxyCode}
+
+
+B \textbackslash{} Array used to store matrix B ({\ttfamily L} in our case)
+
+n \textbackslash{} Leading dimension of array B ({\ttfamily L}) , or the number of elements between successive rows (for row major storage) in memory. \textbackslash{} 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{beta \(\backslash\)}
+\DoxyCodeLine{Real value used to scale matrix C (```ProjectionVector```)}
+\DoxyCodeLine{```beta = 0.0}
+
+\end{DoxyCode}
+
+
+C \textbackslash{} Array used to store matrix C ({\ttfamily Projection\+Vector} in our case)
+
+n Leading dimension of array C , or the number of elements between successive rows (for row major storage) in memory. {\ttfamily n = min\+Dim} 
