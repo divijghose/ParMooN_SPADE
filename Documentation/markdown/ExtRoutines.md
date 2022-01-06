@@ -1,7 +1,7 @@
 # BLAS and LAPACK routines used in the code 
 
-## Contents ## {#btc}
-1. [Monte Carlo realization generation](#mcrg) <br>
+## Contents
+1. [Monte Carlo realization generation](#monte-carlo-realization-generation) <br>
 a. [SVD of Covariance Matrix](#svd-of-covariance-matrix)<br>
 b. [Multiplication of truncated left singular value matrix with standard deviation matrix](#multiplication-of-truncated-left-singular-value-matrix-with-standard-deviation-matrix)
 2. [DO Initialization](#do-initialization) <br>
@@ -10,11 +10,11 @@ b. [Calculation of Projection Matrix](#calculation-of-projection-matrix)
 
 
 
-## Monte Carlo Realization generation ## {#mcrg}
-[Back to Contents](#btc)
+## Monte Carlo Realization generation 
+[Back to Contents](#contents)
 
 ### SVD of Covariance matrix 
-[Back to Contents](#btc)
+[Back to Contents](#contents)
 #### Code Snippet
 
 ```MKL_INT m1 = N_U, n = N_U, lda = N_U, ldu = N_U, ldvt = N_U, info;
@@ -106,7 +106,7 @@ The leading dimension of the array VT. \
 
 _____________________________________________________
 ### Multiplication of truncated left singular value matrix with standard deviation matrix
-[Back to Contents](#btc)
+[Back to Contents](#contents)
 
 #### Purpose
 The dgemm routine calculates the product of double precision matrices \
@@ -185,9 +185,9 @@ in memory.
 
 ________________________________________________________
 ## DO Initialization
-[Back to Contents](#btc)
+[Back to Contents](#contents)
 ### SVD of perturbation matrix
-[Back to Contents](#btc)
+[Back to Contents](#contents)
 1. [If N_Realisations > N_U](#if-number-of-realisations-is-greater-than-number-of-degrees-of-freedom)
 2. [If N_U > N_Realisations](#if-number-of-degrees-of-freedom-is-greater-than-number-of-realisations)
 
@@ -375,7 +375,7 @@ The leading dimension of the array U.\
 ________________________________________________________
 
 ### Calculation of Projection Matrix
-[Back to Contents](#btc)
+[Back to Contents](#contents)
 
 #### Purpose
 The dgemm routine calculates the product of double precision matrices \

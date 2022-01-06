@@ -66,23 +66,23 @@ $(function() {
   <div class="headertitle"><div class="title">BLAS and LAPACK routines used in the code </div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h1><a class="anchor" id="btc"></a>
+<div class="textblock"><h1><a class="anchor" id="autotoc_md1"></a>
 Contents</h1>
 <ol type="1">
-<li><a class="el" href="md_ExtRoutines.html#mcrg">Monte Carlo realization generation</a> <br  />
+<li>Monte Carlo realization generation <br  />
  a. SVD of Covariance Matrix<br  />
  b. Multiplication of truncated left singular value matrix with standard deviation matrix</li>
 <li>DO Initialization <br  />
  a. SVD of perturbation matrix <br  />
  b. Calculation of Projection Matrix</li>
 </ol>
-<h1><a class="anchor" id="mcrg"></a>
+<h1><a class="anchor" id="autotoc_md2"></a>
 Monte Carlo Realization generation</h1>
-<p ><a class="el" href="md_ExtRoutines.html#btc">Back to Contents</a></p>
-<h2><a class="anchor" id="autotoc_md1"></a>
+<p >Back to Contents</p>
+<h2><a class="anchor" id="autotoc_md3"></a>
 SVD of Covariance matrix</h2>
-<p ><a class="el" href="md_ExtRoutines.html#btc">Back to Contents</a> </p>
-<h3><a class="anchor" id="autotoc_md2"></a>
+<p >Back to Contents </p>
+<h3><a class="anchor" id="autotoc_md4"></a>
 Code Snippet</h3>
 <div class="fragment"><div class="line">double superb[std::min(N_U, N_U) - 1];</div>
 <div class="line"> </div>
@@ -101,7 +101,7 @@ Code Snippet</h3>
 <div class="line">    exit(1);</div>
 <div class="line">}</div>
 <div class="line">cout &lt;&lt; &quot; SVD COMPUTED&quot; &lt;&lt; endl;</div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md3"></a>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md5"></a>
 Purpose</h3>
 <p >DGESVD computes the singular value decomposition (SVD) of a real </p><div class="fragment"><div class="line"> vectors. The SVD is written</div>
 <div class="line"> </div>
@@ -154,20 +154,20 @@ Purpose</h3>
 <div class="line">```LDVT``` is INTEGER \</div>
 <div class="line">The leading dimension of the array VT. \</div>
 <div class="line">```ldvt = N_U</div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md4"></a>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md6"></a>
 Output</h3>
 <div class="fragment"><div class="line"> {S[i],}</div>
 <div class="line">```U, N_U x N_U``` \</div>
 <div class="line">```Vt, N_U x N_U</div>
 </div><!-- fragment --><hr  />
- <h2><a class="anchor" id="autotoc_md5"></a>
+ <h2><a class="anchor" id="autotoc_md7"></a>
 Multiplication of truncated left singular value matrix with standard deviation matrix</h2>
-<p ><a class="el" href="md_ExtRoutines.html#btc">Back to Contents</a></p>
-<h3><a class="anchor" id="autotoc_md6"></a>
+<p >Back to Contents</p>
+<h3><a class="anchor" id="autotoc_md8"></a>
 Purpose</h3>
 <p >The dgemm routine calculates the product of double precision matrices \ </p><div class="fragment"><div class="line">Here, we want \</div>
 <div class="line">``` RealizationVector = Ut x Z </div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md7"></a>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md9"></a>
 Code snippet</h3>
 <div class="fragment"><div class="line"> {cblas_dgemm(CblasRowMajor,}</div>
 <div class="line"> </div>
@@ -215,9 +215,9 @@ Code snippet</h3>
 </div><!-- fragment --><p >C \ Array used to store matrix C (<code>RealizationVector</code> in our case)</p>
 <p >n Leading dimension of array C , or the number of elements between successive rows (for row major storage) in memory. </p><div class="fragment"><div class="line">________________________________________________________</div>
 <div class="line">## DO Initialization</div>
-<div class="line">[Back to Contents](#btc)</div>
+<div class="line">[Back to Contents](#contents)</div>
 <div class="line">### SVD of perturbation matrix</div>
-<div class="line">[Back to Contents](#btc)</div>
+<div class="line">[Back to Contents](#contents)</div>
 <div class="line">1. [If N_Realisations &gt; N_U](#if-number-of-realisations-is-greater-than-number-of-degrees-of-freedom)</div>
 <div class="line">2. [If N_U &gt; N_Realisations](#if-number-of-degrees-of-freedom-is-greater-than-number-of-realisations)</div>
 <div class="line"> </div>
@@ -244,7 +244,7 @@ Code snippet</h3>
 <div class="line">    exit( 1 );</div>
 <div class="line">}</div>
 <div class="line">cout &lt;&lt; &quot; DO SVD COMPUTED &quot; &lt;&lt;endl;</div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md8"></a>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md10"></a>
 Purpose</h3>
 <p >DGESVD computes the singular value decomposition (SVD) of a real </p><div class="fragment"><div class="line"> vectors. The SVD is written</div>
 <div class="line"> </div>
@@ -296,7 +296,7 @@ Purpose</h3>
 <div class="line">```LDU``` is INTEGER \</div>
 <div class="line">The leading dimension of the array U.\</div>
 <div class="line">```ldu = N_U</div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md9"></a>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md11"></a>
 Output</h3>
 <div class="fragment"><div class="line"> {Sg[i],}</div>
 <div class="line">```L, N_U x N_U``` \</div>
@@ -325,7 +325,7 @@ Output</h3>
 <div class="line">    exit( 1 );</div>
 <div class="line">}</div>
 <div class="line">cout &lt;&lt; &quot; DO SVD COMPUTED &quot; &lt;&lt;endl;</div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md10"></a>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md12"></a>
 Purpose</h3>
 <p >DGESVD computes the singular value decomposition (SVD) of a real </p><div class="fragment"><div class="line"> vectors. The SVD is written</div>
 <div class="line"> </div>
@@ -377,19 +377,19 @@ Purpose</h3>
 <div class="line">```LDU``` is INTEGER \</div>
 <div class="line">The leading dimension of the array U.\</div>
 <div class="line">```ldu = N_Realisations</div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md11"></a>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md13"></a>
 Output</h3>
 <div class="fragment"><div class="line"> {Sg[i],}</div>
 <div class="line">```L, N_U x N_Realisations</div>
 </div><!-- fragment --><hr  />
-<h2><a class="anchor" id="autotoc_md12"></a>
+<h2><a class="anchor" id="autotoc_md14"></a>
 Calculation of Projection Matrix</h2>
-<p ><a class="el" href="md_ExtRoutines.html#btc">Back to Contents</a></p>
-<h3><a class="anchor" id="autotoc_md13"></a>
+<p >Back to Contents</p>
+<h3><a class="anchor" id="autotoc_md15"></a>
 Purpose</h3>
 <p >The dgemm routine calculates the product of double precision matrices \ </p><div class="fragment"><div class="line">Here, we want \</div>
 <div class="line">``` ProjectionVector = PerturbationVector^T x L </div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md14"></a>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md16"></a>
 Code snippet</h3>
 <div class="fragment"><div class="line"> {cblas_dgemm(CblasRowMajor,CblasTrans,CblasNoTrans,N_Realisations,minDim,N_U,1.0,PerturbationVector,N_Realisations,L,minDim,0.0,ProjectionVector,minDim);```}</div>
 <div class="line"> </div>

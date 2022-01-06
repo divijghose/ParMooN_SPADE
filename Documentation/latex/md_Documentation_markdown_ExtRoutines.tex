@@ -1,15 +1,15 @@
-\hypertarget{md_ExtRoutines_btc}{}\doxysection{Contents}\label{md_ExtRoutines_btc}
+\hypertarget{md_Documentation_markdown_ExtRoutines_autotoc_md1}{}\doxysection{Contents}\label{md_Documentation_markdown_ExtRoutines_autotoc_md1}
 
 \begin{DoxyEnumerate}
-\item \mbox{\hyperlink{md_ExtRoutines_mcrg}{Monte Carlo realization generation}} ~\newline
+\item Monte Carlo realization generation ~\newline
  a. SVD of Covariance Matrix~\newline
  b. Multiplication of truncated left singular value matrix with standard deviation matrix
 \item DO Initialization ~\newline
  a. SVD of perturbation matrix ~\newline
  b. Calculation of Projection Matrix
-\end{DoxyEnumerate}\hypertarget{md_ExtRoutines_mcrg}{}\doxysection{Monte Carlo Realization generation}\label{md_ExtRoutines_mcrg}
-\mbox{\hyperlink{md_ExtRoutines_btc}{Back to Contents}}\hypertarget{md_ExtRoutines_autotoc_md1}{}\doxysubsection{SVD of Covariance matrix}\label{md_ExtRoutines_autotoc_md1}
-\mbox{\hyperlink{md_ExtRoutines_btc}{Back to Contents}} \hypertarget{md_ExtRoutines_autotoc_md2}{}\doxysubsubsection{Code Snippet}\label{md_ExtRoutines_autotoc_md2}
+\end{DoxyEnumerate}\hypertarget{md_Documentation_markdown_ExtRoutines_autotoc_md2}{}\doxysection{Monte Carlo Realization generation}\label{md_Documentation_markdown_ExtRoutines_autotoc_md2}
+Back to Contents\hypertarget{md_Documentation_markdown_ExtRoutines_autotoc_md3}{}\doxysubsection{SVD of Covariance matrix}\label{md_Documentation_markdown_ExtRoutines_autotoc_md3}
+Back to Contents \hypertarget{md_Documentation_markdown_ExtRoutines_autotoc_md4}{}\doxysubsubsection{Code Snippet}\label{md_Documentation_markdown_ExtRoutines_autotoc_md4}
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{double superb[std::min(N\_U, N\_U) -\/ 1];}
@@ -31,7 +31,7 @@
 \DoxyCodeLine{cout << "{} SVD COMPUTED"{} << endl;}
 
 \end{DoxyCode}
-\hypertarget{md_ExtRoutines_autotoc_md3}{}\doxysubsubsection{Purpose}\label{md_ExtRoutines_autotoc_md3}
+\hypertarget{md_Documentation_markdown_ExtRoutines_autotoc_md5}{}\doxysubsubsection{Purpose}\label{md_Documentation_markdown_ExtRoutines_autotoc_md5}
 DGESVD computes the singular value decomposition (SVD) of a real 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{ vectors. The SVD is written}
@@ -109,7 +109,7 @@ DGESVD computes the singular value decomposition (SVD) of a real
 \DoxyCodeLine{```ldvt = N\_U}
 
 \end{DoxyCode}
-\hypertarget{md_ExtRoutines_autotoc_md4}{}\doxysubsubsection{Output}\label{md_ExtRoutines_autotoc_md4}
+\hypertarget{md_Documentation_markdown_ExtRoutines_autotoc_md6}{}\doxysubsubsection{Output}\label{md_Documentation_markdown_ExtRoutines_autotoc_md6}
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{ \{S[i],\}}
@@ -120,15 +120,15 @@ DGESVD computes the singular value decomposition (SVD) of a real
 
 
 \DoxyHorRuler{0}
- \hypertarget{md_ExtRoutines_autotoc_md5}{}\doxysubsection{Multiplication of truncated left singular value matrix with standard deviation matrix}\label{md_ExtRoutines_autotoc_md5}
-\mbox{\hyperlink{md_ExtRoutines_btc}{Back to Contents}}\hypertarget{md_ExtRoutines_autotoc_md6}{}\doxysubsubsection{Purpose}\label{md_ExtRoutines_autotoc_md6}
+ \hypertarget{md_Documentation_markdown_ExtRoutines_autotoc_md7}{}\doxysubsection{Multiplication of truncated left singular value matrix with standard deviation matrix}\label{md_Documentation_markdown_ExtRoutines_autotoc_md7}
+Back to Contents\hypertarget{md_Documentation_markdown_ExtRoutines_autotoc_md8}{}\doxysubsubsection{Purpose}\label{md_Documentation_markdown_ExtRoutines_autotoc_md8}
 The dgemm routine calculates the product of double precision matrices \textbackslash{} 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{Here, we want \(\backslash\)}
 \DoxyCodeLine{``` RealizationVector = Ut x Z }
 
 \end{DoxyCode}
-\hypertarget{md_ExtRoutines_autotoc_md7}{}\doxysubsubsection{Code snippet}\label{md_ExtRoutines_autotoc_md7}
+\hypertarget{md_Documentation_markdown_ExtRoutines_autotoc_md9}{}\doxysubsubsection{Code snippet}\label{md_Documentation_markdown_ExtRoutines_autotoc_md9}
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{ \{cblas\_dgemm(CblasRowMajor,\}}
@@ -197,9 +197,9 @@ n Leading dimension of array C , or the number of elements between successive ro
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_}
 \DoxyCodeLine{\#\# DO Initialization}
-\DoxyCodeLine{[Back to Contents](\#btc)}
+\DoxyCodeLine{[Back to Contents](\#contents)}
 \DoxyCodeLine{\#\#\# SVD of perturbation matrix}
-\DoxyCodeLine{[Back to Contents](\#btc)}
+\DoxyCodeLine{[Back to Contents](\#contents)}
 \DoxyCodeLine{1. [If N\_Realisations > N\_U](\#if-\/number-\/of-\/realisations-\/is-\/greater-\/than-\/number-\/of-\/degrees-\/of-\/freedom)}
 \DoxyCodeLine{2. [If N\_U > N\_Realisations](\#if-\/number-\/of-\/degrees-\/of-\/freedom-\/is-\/greater-\/than-\/number-\/of-\/realisations)}
 \DoxyCodeLine{}
@@ -234,7 +234,7 @@ n Leading dimension of array C , or the number of elements between successive ro
 \DoxyCodeLine{cout << "{} DO SVD COMPUTED "{} <<endl;}
 
 \end{DoxyCode}
-\hypertarget{md_ExtRoutines_autotoc_md8}{}\doxysubsubsection{Purpose}\label{md_ExtRoutines_autotoc_md8}
+\hypertarget{md_Documentation_markdown_ExtRoutines_autotoc_md10}{}\doxysubsubsection{Purpose}\label{md_Documentation_markdown_ExtRoutines_autotoc_md10}
 DGESVD computes the singular value decomposition (SVD) of a real 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{ vectors. The SVD is written}
@@ -299,7 +299,7 @@ DGESVD computes the singular value decomposition (SVD) of a real
 \DoxyCodeLine{```ldu = N\_U}
 
 \end{DoxyCode}
-\hypertarget{md_ExtRoutines_autotoc_md9}{}\doxysubsubsection{Output}\label{md_ExtRoutines_autotoc_md9}
+\hypertarget{md_Documentation_markdown_ExtRoutines_autotoc_md11}{}\doxysubsubsection{Output}\label{md_Documentation_markdown_ExtRoutines_autotoc_md11}
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{ \{Sg[i],\}}
@@ -337,7 +337,7 @@ DGESVD computes the singular value decomposition (SVD) of a real
 \DoxyCodeLine{cout << "{} DO SVD COMPUTED "{} <<endl;}
 
 \end{DoxyCode}
-\hypertarget{md_ExtRoutines_autotoc_md10}{}\doxysubsubsection{Purpose}\label{md_ExtRoutines_autotoc_md10}
+\hypertarget{md_Documentation_markdown_ExtRoutines_autotoc_md12}{}\doxysubsubsection{Purpose}\label{md_Documentation_markdown_ExtRoutines_autotoc_md12}
 DGESVD computes the singular value decomposition (SVD) of a real 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{ vectors. The SVD is written}
@@ -402,7 +402,7 @@ DGESVD computes the singular value decomposition (SVD) of a real
 \DoxyCodeLine{```ldu = N\_Realisations}
 
 \end{DoxyCode}
-\hypertarget{md_ExtRoutines_autotoc_md11}{}\doxysubsubsection{Output}\label{md_ExtRoutines_autotoc_md11}
+\hypertarget{md_Documentation_markdown_ExtRoutines_autotoc_md13}{}\doxysubsubsection{Output}\label{md_Documentation_markdown_ExtRoutines_autotoc_md13}
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{ \{Sg[i],\}}
@@ -412,15 +412,15 @@ DGESVD computes the singular value decomposition (SVD) of a real
 
 
 \DoxyHorRuler{0}
-\hypertarget{md_ExtRoutines_autotoc_md12}{}\doxysubsection{Calculation of Projection Matrix}\label{md_ExtRoutines_autotoc_md12}
-\mbox{\hyperlink{md_ExtRoutines_btc}{Back to Contents}}\hypertarget{md_ExtRoutines_autotoc_md13}{}\doxysubsubsection{Purpose}\label{md_ExtRoutines_autotoc_md13}
+\hypertarget{md_Documentation_markdown_ExtRoutines_autotoc_md14}{}\doxysubsection{Calculation of Projection Matrix}\label{md_Documentation_markdown_ExtRoutines_autotoc_md14}
+Back to Contents\hypertarget{md_Documentation_markdown_ExtRoutines_autotoc_md15}{}\doxysubsubsection{Purpose}\label{md_Documentation_markdown_ExtRoutines_autotoc_md15}
 The dgemm routine calculates the product of double precision matrices \textbackslash{} 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{Here, we want \(\backslash\)}
 \DoxyCodeLine{``` ProjectionVector = PerturbationVector\string^T x L }
 
 \end{DoxyCode}
-\hypertarget{md_ExtRoutines_autotoc_md14}{}\doxysubsubsection{Code snippet}\label{md_ExtRoutines_autotoc_md14}
+\hypertarget{md_Documentation_markdown_ExtRoutines_autotoc_md16}{}\doxysubsubsection{Code snippet}\label{md_Documentation_markdown_ExtRoutines_autotoc_md16}
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{ \{cblas\_dgemm(CblasRowMajor,CblasTrans,CblasNoTrans,N\_Realisations,minDim,N\_U,1.0,PerturbationVector,N\_Realisations,L,minDim,0.0,ProjectionVector,minDim);```\}}
