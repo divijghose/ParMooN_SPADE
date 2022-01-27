@@ -234,7 +234,7 @@ struct TParaDB
   double SOLD_PARAMETER_SCALING_FACTOR;
 
   //======================================================================
-  // ******** Parameters for Monte Carlo Runs *********//
+  // ******** Parameters for Monte Carlo Runs *********// (Added by Divij)
   //======================================================================
   int REALIZATIONS;
   double LENGTHSCALE;
@@ -245,6 +245,12 @@ struct TParaDB
   double stddev_denom;
   double stddev_disp;
   double stddev_power;
+
+  //======================================================================
+  // ******** Parameters for Dynamically Orthogonal Solver Runs *********// (Added by Divij)
+  //======================================================================
+  double* COVARIANCE_MATRIX_DO;
+
 
   //======================================================================
   /** parameters for vectorial FE (Raviart-Thomas, Brezzi-Douglas-Marini) */

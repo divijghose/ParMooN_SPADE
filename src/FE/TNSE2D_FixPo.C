@@ -4345,7 +4345,7 @@ double ***LocMatrices, double **LocRhs)
   {
     test00 = Orig0[i];
 
-    Rhs1[i] += Mult*test00*c1;
+    Rhs1[i] += Mult*test00*c1;     
     Rhs2[i] += Mult*test00*c2;
     //cout <<  Rhs1[i] << " " <<  Rhs2[i] << " ";
   }                              // endfor i

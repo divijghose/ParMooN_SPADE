@@ -664,7 +664,7 @@ void TDatabase::SetDefaultParameters()
   ParamDB->SC_STEP_LENGTH_CONTROL_FINE_SCALAR = 0;
   ParamDB->SC_STEP_LENGTH_CONTROL_ALL_SCALAR = 1;
 
-  /////************Default Monte Carlo Parameters******/////
+  /////************Default Monte Carlo Parameters******///// (Added by Divij)
   ParamDB->REALIZATIONS = 5;
   ParamDB->LENGTHSCALE = 10;
   ParamDB->EIGENPERCENT = 0.80;

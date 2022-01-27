@@ -657,20 +657,19 @@ for (int i = 0; i < N_U; i++)
 
 filemode.close();
 
-exit(0);
+
 ////////////////////////////////////////////DO - Initialization Ends//////////////////////////////////////
 ///////================================================================================//////////////////
 
-double* Cov = new double[subDim* subDim]();
-cblas_dgemm(CblasColMajor,CblasTrans,CblasNoTrans,N_Realisations,subDim, subDim, (1.0/(N_Realisations-1)), CoeffVector,subDim,CoeffVector,subDim,0.0,Cov,subDim);
 
-// Assign the Cov Array to the global pointer - Tdatabase
+
+//===== Need to make a DO header file =====//
+// void calcCov() {
+// 	double* Cov = new double[subDim* subDim]();
+// 	cblas_dgemm(CblasColMajor,CblasTrans,CblasNoTrans,N_Realisations,subDim, subDim, (1.0/(N_Realisations-1)), CoeffVector,subDim,CoeffVector,subDim,0.0,Cov,subDim);
+// // Assign the Cov Array to the global pointer - Tdatabase
 // TDatabase::ParamDB->COVARIANCE_MATRIX_DO = Cov;
-
-
-
-////////////////////////////////////////////////////////////
-///////Co-Skewness Matrix
+// }
 
 // double* M = new double[subDim*subDim*subDim]();
 // for(int i = 0; i < subDim; i++){
@@ -685,6 +684,35 @@ cblas_dgemm(CblasColMajor,CblasTrans,CblasNoTrans,N_Realisations,subDim, subDim,
 //     }
 //   }
 // }
+
+// ============ Include above in DO header file ====== //
+
+
+
+double* Cov = new double[subDim* subDim]();
+cblas_dgemm(CblasRowMajor,CblasTrans,CblasNoTrans,subDim,subDim, N_Realisations, (1.0/(N_Realisations-1)), CoeffVector,N_Realisations,CoeffVector,subDim,0.0,Cov,subDim);
+
+TDatabase::ParamDB->COVARIANCE_MATRIX_DO = Cov; // Added toi Database.h
+
+
+////////////////////////////////////////////////////////////
+///////Co-Skewness Matrix
+
+double* M = new double[subDim*subDim*subDim]();
+for(int i = 0; i < subDim; i++){
+  for(int j = 0; j < subDim; j++){
+    for(int k = 0; k < subDim; k++){
+      for(int p = 0; p < N_Realisations; p++){
+
+        M[subDim*subDim*k + subDim*i + j] += ((CoeffVector[subDim*p+i]*CoeffVector[subDim*p+i]*CoeffVector[subDim*p+i])/(N_Realisations-1));
+
+      }
+
+    }
+  }
+}
+
+
 
 
 
