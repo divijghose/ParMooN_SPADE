@@ -674,6 +674,9 @@ void TDatabase::SetDefaultParameters()
   ParamDB->stddev_denom = 0.03;
   ParamDB->stddev_disp = 0.3;
   ParamDB->stddev_power = 2;
+
+  /////************Default DO Parameters******///// (Added by Divij)
+  ParamDB->stddev_power = 5;
   
 
   // ******** parameters for saddle point system *********//

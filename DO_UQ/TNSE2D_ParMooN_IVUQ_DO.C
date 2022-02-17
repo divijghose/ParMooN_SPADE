@@ -687,32 +687,117 @@ filemode.close();
 
 // ============ Include above in DO header file ====== //
 
+ #include "DO_Functions.h"
+
+cout << " --- DO Functions Included ---" <<endl;
+
+// double* Cov = new double[subDim* subDim]();
+// cblas_dgemm(CblasRowMajor,CblasTrans,CblasNoTrans,subDim,subDim, N_Realisations, (1.0/(N_Realisations-1)), CoeffVector,N_Realisations,CoeffVector,subDim,0.0,Cov,subDim);
+
+TDatabase::ParamDB->COVARIANCE_MATRIX_DO = CalcCovarianceMatx(CoeffVector,N_Realisations,subDim); // Added to Database.h
 
 
-double* Cov = new double[subDim* subDim]();
-cblas_dgemm(CblasRowMajor,CblasTrans,CblasNoTrans,subDim,subDim, N_Realisations, (1.0/(N_Realisations-1)), CoeffVector,N_Realisations,CoeffVector,subDim,0.0,Cov,subDim);
+// ////////////////////////////////////////////////////////////
+// ///////Co-Skewness Matrix
 
-TDatabase::ParamDB->COVARIANCE_MATRIX_DO = Cov; // Added toi Database.h
+// double* M = new double[subDim*subDim*subDim]();
+// for(int i = 0; i < subDim; i++){
+//   for(int j = 0; j < subDim; j++){
+//     for(int k = 0; k < subDim; k++){
+//       for(int p = 0; p < N_Realisations; p++){
+
+//         M[subDim*subDim*k + subDim*i + j] += ((CoeffVector[subDim*p+i]*CoeffVector[subDim*p+i]*CoeffVector[subDim*p+i])/(N_Realisations-1));
+
+//       }
+
+//     }
+//   }
+// }
 
 
-////////////////////////////////////////////////////////////
-///////Co-Skewness Matrix
 
-double* M = new double[subDim*subDim*subDim]();
-for(int i = 0; i < subDim; i++){
-  for(int j = 0; j < subDim; j++){
-    for(int k = 0; k < subDim; k++){
-      for(int p = 0; p < N_Realisations; p++){
+//=========================================================================
+// Assign dimension values to Database
+//=========================================================================
+TDatabase::ParamDB->N_Subspace_Dim = subDim; // Added to Database.h
+TDatabase::ParamDB->REALIZATIONS = N_Realisations;
 
-        M[subDim*subDim*k + subDim*i + j] += ((CoeffVector[subDim*p+i]*CoeffVector[subDim*p+i]*CoeffVector[subDim*p+i])/(N_Realisations-1));
 
-      }
 
-    }
-  }
+
+//=========================================================================
+// Set up data structures for velocity and pressure 
+//=========================================================================
+double* MeanVectorComp1 = MeanVector;//Assign Calculated Mean vector to first component of mean velocity (u bar)
+double* MeanVectorComp2 = new double[N_U];
+memset(MeanVectorComp2, 0, N_U*SizeOfDouble); // Second component of mean velocity has been initialized to zero **Has to be changed if uncertainty exists in both components**
+
+double* ModeVectorComp1 = ModeVector; //Assign calculated Mode vector to mode of first component of velocity (u Tilde)
+double* ModeVectorComp2 = new double[N_U*subDim];
+memset(ModeVectorComp2, 0, N_U*subDim*SizeOfDouble); // Mode of second component of velocity is initialized to zero (v Tilde)** has to be changed if both components have uncertainty**
+
+//*Aggregrate array for velocity mode - Combining the two components of mode vector to form a VectFunction array
+//*Structure of Aggregate array = [[U_Tilde_1 transposed],[V_Tilde_! transposed],...,...,[U_Tilde_N_S transposed],[V_Tilde_N_S transposed]]
+double* TotalModeVector = new double[N_U*N_Realisations*2]();
+
+double* ModeVect1Col = RowtoColMaj(ModeVectorComp1,N_U,subDim);
+double* ModeVect2Col = RowtoColMaj(ModeVectorComp2,N_U,subDim);
+
+for(int i=0;i<subDim;i++){
+	memcpy(TotalModeVector+(2*i*N_U),ModeVect1Col+(n*N_U), N_U * SizeOfDouble);
+	memcpy(TotalModeVector+((2*i+1)*N_U),ModeVect2Col+(n*N_U), N_U * SizeOfDouble);
+
 }
 
 
+//======================================================================
+// ******************** Solve Mean Equation ********************
+//======================================================================
+
+
+//======================================================================
+// construct all finite element functions
+//======================================================================
+double *solMean, *rhsMean, *oldrhsMean;//,*defect, t1, t2, residual, impuls_residual;
+solMean = new double[N_TotalDOF];
+rhsMean = new double[N_TotalDOF];
+oldrhsMean = new double[N_TotalDOF];
+
+memset(solMean, 0, N_TotalDOF*SizeOfDouble);
+memset(rhsMean, 0, N_TotalDOF*SizeOfDouble);
+
+// TFESpace2D *Velocity_FeSpace, *Pressure_FeSpace, *fesp[2];
+
+//Initialize New VectFunctions and FEFunctions for Mean Vector Solution
+TFEVectFunct2D *VelocityMean;
+TFEFunction2D *u1Mean, *u2Mean, *PressureMean, *fefct[2];
+// TOutput2D *Output;
+TSystemTNSE2D *SystemMatrixMean;
+// TAuxParam2D *aux, *NSEaux_error;
+// MultiIndex2D AllDerivatives[3] = {D00, D10, D01};
+VelocityMean = new TFEVectFunct2D(Velocity_FeSpace, UString,  UString,  solMean, N_U, 2);
+u1Mean = VelocityMean->GetComponent(0);
+u2Mean = VelocityMean->GetComponent(1);
+PressureMean = new TFEFunction2D(Pressure_FeSpace, PString,  PString,  sol+2*N_U, N_P);
+
+
+//Interpolate the initial solution
+u1Mean->Interpolate(InitialU1);
+u2Mean->Interpolate(InitialU2);
+PressureMean->Interpolate(InitialP);   
+
+
+
+//======================================================================
+// SystemMatrix construction and solution
+//======================================================================
+
+SystemMatrixMean = new TSystemTNSE2D(Velocity_FeSpace, Pressure_FeSpace, VelocityMean, PressureMean, solMean, rhsMean, Disctype, NSEType, DIRECT
+#ifdef __PRIVATE__
+									 ,
+									 Projection_space, NULL, NULL
+#endif
+	);
 
 
 
@@ -736,7 +821,7 @@ for(int i = 0; i < subDim; i++){
 	fefct[0] = u1;
 	fefct[1] = u2;
 
-	switch (Disctype)
+	switch (Disctype) /// Shouldn't there be a switch case for Disctype = DO_Disctype
 	{
 	// turbulent viscosity must be computed
 	case SMAGORINSKY:
@@ -756,6 +841,8 @@ for(int i = 0; i < subDim; i++){
 							  TimeNSBeginParamVelo_GradVelo);
 
 		break;
+
+	
 
 	default:
 		// 2 parameters are needed for assembling (u1_old, u2_old)
