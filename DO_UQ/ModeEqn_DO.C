@@ -162,8 +162,8 @@ int main(int argc, char *argv[])
 	double residual;
 	double impuls_residual;
 
-    int N_S =  50; // Change
-    int N_R  = 100; //Change
+    int N_S =  50;
+    int N_R  = 100;
 
 
     // Declare the variables here 
@@ -349,34 +349,105 @@ int main(int argc, char *argv[])
 
         ////   ========================================== VELOCITY FE SPACE LOOP ========================================== /////
 
-        // `i` Loop is for the columns of the Co-efficient Matrix  
-        // This picks the ith column of coefficient matrix, which is of Size (N_R * 1)
-        // The total size of coeff(phi) is [N_R * N_S] 
+        // `i` Loop is for the columns of the Mode Matrix  
+        // This picks the ith column of Mode matrix, which is of Size (N_U * 1)
+        // The total size of Mode (U_tilde) is [N_U * N_S] 
         // Phi stored in Column major order (i.e) Each colums of phi matrix are laid flat and appended at end of prev col
-        /// Apply RowtoColMajor() on Phi (CoeffVector)
-        double* MeanVect1Col = RowtoColMaj(MeanVectorComp1,N_U,subDim);
-        double* MeanVect2Col = RowtoColMaj(MeanVectorComp2,N_U,subDim);
-        double Reinv=1/TDatabase::ParamDB->RE_NR;
+        //Apply RowtoColMajor() on Phi (CoeffVector)
+        //Make sure MeanVect1Col and MeanVect2Col and Reinv are already defined
+        
         for ( int i=0 ; i < N_S ; i++) //Change N_S to TDatabase::ParamDB->N_Subspace_Dim
         {
             // cout << "i : " << i <<endl;
             // Get the ith components of all the arrays
             double* localCoeff = ans + N_R*i;     // Answer vector
-            double* u_tilde_i  = ModeVect1Col + N_R*i;
-            double* v_tilde_i  = ModeVect2Col + N_R*i;
+            double* u_tilde_i  = ModeVect1Col + N_U*i;
+            double* v_tilde_i  = ModeVect2Col + N_U*i;
+
+            double val = 0;
+            //Begin Quadrature Integration for first three terms of Mode Equation
+            for (int quad_pt=0;quad_pt<N_Points2;quadPt++){//Quadrature Loop Begin
+                double Mult = Weights2[quadPt] * AbsDetjk[quadPt];
+                double* orgD00 = origvaluesD00[quadPt];
+                double* orgD10 = origvaluesD10[quadPt];
+                double* orgD01 = origvaluesD01[quadPt];
+                double* orgD20 = origvaluesD20[quadPt];
+                double* orgD02 = origvaluesD02[quadPt];
+                    for (int j=0;j<N_BaseFunct;j++){//Local DOF Loop Begin
+                        int GlobalDOF=DOF[j];
+
+                        //1/Re(DDx_u_tilde_i+DDy_u_tilde_i)
+                        val += Reinv*(u_tilde_i[GlobalDOF]*orgD20[j]+u_tilde_i[GlobalDOF]*orgD02[j]);
+                        
+                        double ubar = MeanVect1Col[GlobalDOF]*orgD00[j];
+                        double vbar = MeanVect2Col[GlobalDOF]*orgD00[j];
+                        
+                        double dx_ubar = MeanVect1Col[GlobalDOF]*orgD10[j];
+                        double dy_ubar = MeanVect1Col[GlobalDOF]*orgD01[j];
+
+                        double dx_utilde_i = u_tilde_i[GlobalDOF]*orgD10[j];
+                        double dy_utilde_i = u_tilde_i[GlobalDOF]*orgD01[j];
+                        
+                        //-(ubar*Dx_u_tilde_i + u_tilde_i*Dx_ubar+ vbar*Dy_u_tilde_i+v_tilde_i*Dy_ubar)
+                        val -= (ubar*dx_utilde_i + u_tilde_i[GlobalDOF]*orgD00[j]*dx_ubar + vbar*dy_utilde_i + v_tilde_i[GlobalDOF]*orgD00[j] );
+
+                        //add pressure term?
+
+                        
+
+
+                }//Local DOF Loop End
+            }//Quadrature Loop End
+            //Still Within i-loop, start a,b,c, loops for Repeated Sum 
+                for (int a=0; a<N_S;a++){//Change N_S to TDatabase::ParamDB->N_Subspace_Dim
+                    for(int b=0;b<N_S;b++){//Change N_S to TDatabase::ParamDB->N_Subspace_Dim
+                        for(int c=0;c<N_S;c++){//Change N_S to TDatabase::ParamDB->N_Subspace_Dim
+
+                            double* u_tilde_a = ModeVect1Col + N_U*a;
+                            double* u_tilde_b = ModeVect1Col + N_U*b;
+                            double* v_tilde_a = ModeVect2Col + N_U*a;
+                            // double* v_tilde_b = ModeVect2Col + N_U*b; Not required for solving first component
+
+                            //Begin Quadrature Integration for fourth term of Mode Equation
+                            for(int quadPt=0;quadPt<N_Points2;quadPt++){//Quadrature Loop Begin
+                                double Mult = Weights2[quadPt] * AbsDetjk[quadPt];
+                                double* orgD00 = origvaluesD00[quadPt];
+                                double* orgD10 = origvaluesD10[quadPt];
+                                double* orgD01 = origvaluesD01[quadPt];
+                                double* orgD20 = origvaluesD20[quadPt];
+                                double* orgD02 = origvaluesD02[quadPt];
+
+                            for(int j=0;j<N_BaseFunct;j++){//Local DOF Loop Begin
+                                int GlobalDOF = DOF[j];
+
+                                double utilde_a = u_tilde_a[GlobalDOF]*orgD00[j];//Find better way to differentiate between this variable name and the one declared at the start of the loop, also in Thivin's code
+                                double vtilde_a = v_tilde_a[GlobalDOF]*orgD00[j];
+
+                                double dx_utilde_b = u_tilde_b[GlobalDOF]*orgD10[j];
+                                double dy_utilde_b = u_tilde_b[GlobalDOF]*orgD01[j];
+
+                                val -= (utilde_a*dx_utilde_b+vtilde_a*dy_utilde_b)*(Cinv[N_S*i+c]*M[N_S*N_S*b+N_S*c+a]);//Cinv is covariance matrix and M is coskewness tensor, check the indices**
+
+                                
+                                }//Local DOF Loop End
+                            }//Quadrature Loop End
+                        }//c loop end
+                    }//b loop end
+                }//a loop end
 
             //`g` loop is for each component in the ith column of the Coefficient vector
-            // This has size of (N_R)
-            for (int g = 0 ; g < N_R ; g++)
+            // This has size of (N_U)
+            for (int g = 0 ; g < N_U ; g++)
             {
+                
                 // cout << "i : " << i << "   g : " << g  <<endl;
                 // This `a` loops runs for summations in the ODE terms
                 for ( int a=0 ; a < N_S ; a++)
                 {
                     // cout << "i : " << i  << "   g : " << g << "      a : " << a <<endl;
                     double* phi_a           = CoeffVector + N_R*a;
-                    double* u_tilde_a       = ModeVect1Col + N_U*a;
-                    double* v_tilde_a       = ModeVect2Col + N_U*a;
+                    double* u_tilde_a       = u_tilde + N_U*a;
+                    double* v_tilde_a       = v_tilde + N_U*a;
                     
                     double val = 0;
                     // Begin Quadrature Integration 
@@ -393,17 +464,17 @@ int main(int argc, char *argv[])
                         {
                             int GlobalDOF   = DOF[j];
                             // < DDx_u_tilde_a + DDy_u_tilde_a , u_tilde_i > 
-                            val += ((u_tilde_a[GlobalDOF] * orgD20[j]) + (u_tilde_a[GlobalDOF] * orgD02[j])) * u_tilde_i[GlobalDOF]*orgD00[j]*Reinv ;
+                            val += ((u_tilde_a[GlobalDOF] * orgD20[j]) + (u_tilde_a[GlobalDOF] * orgD02[j])) * u_tilde_i[GlobalDOF]*orgD00[j] ;
 
                             // < DDx_v_tilde_a + DDy_v_tilde_a , v_tilde_i > 
-                            val += ((v_tilde_a[GlobalDOF] * orgD20[j]) + (v_tilde_a[GlobalDOF] * orgD02[j])) * v_tilde_i[GlobalDOF]*orgD00[j]*Reinv ;
+                            val += ((v_tilde_a[GlobalDOF] * orgD20[j]) + (v_tilde_a[GlobalDOF] * orgD02[j])) * v_tilde_i[GlobalDOF]*orgD00[j] ;
 
                             // < ( u_bar*Dx_u_tilde_a + v_bar*Dy_u_tilde_a + u_tilde_a*Dx_u_bar + v_tilde_a*Dy_u_bar ) , u_tilde_i
-                            double ubar  = MeanVect1Col[GlobalDOF]*orgD00[j];
-                            double vbar  = MeanVect2Col[GlobalDOF]*orgD00[j];
+                            double ubar  = u_bar[GlobalDOF]*orgD00[j];
+                            double vbar  = v_bar[GlobalDOF]*orgD00[j];
 
-                            double dxubar = MeanVect1Col[GlobalDOF]*orgD10[j];
-                            double dyubar = MeanVect1Col[GlobalDOF]*orgD01[j];
+                            double dxubar = u_bar[GlobalDOF]*orgD10[j];
+                            double dyubar = u_bar[GlobalDOF]*orgD01[j];
 
                             double utilde_a = u_tilde_a[GlobalDOF]*orgD00[j];
                             double vtilde_a = v_tilde_a[GlobalDOF]*orgD00[j];
@@ -414,8 +485,8 @@ int main(int argc, char *argv[])
                             val += -(ubar*dx_utilde_a + vbar*dy_utilde_a + utilde_a*dxubar + vtilde_a*dyubar)*(u_tilde_i[GlobalDOF]*orgD00[j]);
 
                             // < ( v_bar*Dy_v_tilde_a + u_bar*Dx_v_tilde_a + v_tilde_a*Dy_v_bar + u_tilde_a*Dx_v_bar ) , u_tilde_i
-                            double dxvbar = MeanVect2Col[GlobalDOF]*orgD10[j];
-                            double dyvbar = MeanVect2Col[GlobalDOF]*orgD01[j];
+                            double dxvbar = v_bar[GlobalDOF]*orgD10[j];
+                            double dyvbar = v_bar[GlobalDOF]*orgD01[j];
 
                             double dx_vtilde_a  = v_tilde_a[GlobalDOF]*orgD10[j];
                             double dy_vtilde_a  = v_tilde_a[GlobalDOF]*orgD01[j];

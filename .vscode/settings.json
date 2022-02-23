@@ -131,7 +131,8 @@
         "TNSE2D_ParMooN_IVUQ_DO.C": "cpp",
         "CoeffEqn_DO.C": "cpp",
         "AuxParam2D.C": "cpp",
-        "Blas1.C": "cpp"
+        "Blas1.C": "cpp",
+        "ModeEqn_DO.C": "cpp"
     },
     "cmake.configureOnOpen": false
 }

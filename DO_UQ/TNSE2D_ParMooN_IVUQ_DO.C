@@ -613,6 +613,7 @@ for (int i=0;i<N_Realisations;i++){
 	}
 }
 
+
 std::ofstream fileco;
 fileco.open("Coeff.txt");
 
@@ -736,18 +737,24 @@ double* ModeVectorComp1 = ModeVector; //Assign calculated Mode vector to mode of
 double* ModeVectorComp2 = new double[N_U*subDim];
 memset(ModeVectorComp2, 0, N_U*subDim*SizeOfDouble); // Mode of second component of velocity is initialized to zero (v Tilde)** has to be changed if both components have uncertainty**
 
-//*Aggregrate array for velocity mode - Combining the two components of mode vector to form a VectFunction array
-//*Structure of Aggregate array = [[U_Tilde_1 transposed],[V_Tilde_! transposed],...,...,[U_Tilde_N_S transposed],[V_Tilde_N_S transposed]]
+//*Aggregate array for velocity mode - Combining the two components of mode vector to form a VectFunction array
+//*Structure of Aggregate array = [[U_Tilde_1 transposed],[V_Tilde_1 transposed],...,...,[U_Tilde_N_S transposed],[V_Tilde_N_S transposed]]
 double* TotalModeVector = new double[N_U*N_Realisations*2]();
 
+//Column Major forms of Mode Vector Components
 double* ModeVect1Col = RowtoColMaj(ModeVectorComp1,N_U,subDim);
 double* ModeVect2Col = RowtoColMaj(ModeVectorComp2,N_U,subDim);
 
+//Total Mode Vector in Column Major Form
 for(int i=0;i<subDim;i++){
 	memcpy(TotalModeVector+(2*i*N_U),ModeVect1Col+(n*N_U), N_U * SizeOfDouble);
 	memcpy(TotalModeVector+((2*i+1)*N_U),ModeVect2Col+(n*N_U), N_U * SizeOfDouble);
 
 }
+
+
+
+
 
 
 //======================================================================

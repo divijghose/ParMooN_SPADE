@@ -54,3 +54,37 @@ double* CalcCoskewnessMatx(double* Vector, int height, int width){
 
     return M;
 }
+
+lapack_int matInv(double *A, unsigned n)
+{
+    int ipiv[n+1];
+    lapack_int ret;
+
+    ret =  LAPACKE_dgetrf(LAPACK_COL_MAJOR,
+                          n,
+                          n,
+                          A,
+                          n,
+                          ipiv);
+
+    if (ret !=0)
+        return ret;
+
+
+    ret = LAPACKE_dgetri(LAPACK_COL_MAJOR,
+                       n,
+                       A,
+                       n,
+                       ipiv);
+    return ret;
+}
+
+double* InvertCov(double* Cov, int N){
+    double* CovInv = new double[N*N]();
+
+    memcpy(CovInv,Cov, N*N*SizeOfDouble);
+    matInv(CovInv,N);
+    return CovInv;
+    
+} //change this to read Cov from database
+
