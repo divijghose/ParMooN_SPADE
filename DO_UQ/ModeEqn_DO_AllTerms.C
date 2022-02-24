@@ -355,54 +355,49 @@ int main(int argc, char *argv[])
         // Phi stored in Column major order (i.e) Each colums of phi matrix are laid flat and appended at end of prev col
         //Apply RowtoColMajor() on Phi (CoeffVector)
         //Make sure MeanVect1Col and MeanVect2Col and Reinv are already defined
-        double* ansMode = new double[N_U*N_S];
-        for( int i = 0 ; i < N_R*N_S ; i++)   ansMode[i] = 1.0;
-
+        
         for ( int i=0 ; i < N_S ; i++) //Change N_S to TDatabase::ParamDB->N_Subspace_Dim
         {
-            double* localMode = ansMode + N_U*i; 
-            for(int g=0;g<N_U;g++){ 
-
             // cout << "i : " << i <<endl;
             // Get the ith components of all the arrays
-            // double* localCoeff = ans + N_R*i;     // Answer vector
+            double* localCoeff = ans + N_R*i;     // Answer vector
             double* u_tilde_i  = ModeVect1Col + N_U*i;
             double* v_tilde_i  = ModeVect2Col + N_U*i;
 
             double val = 0;
             //Begin Quadrature Integration for first three terms of Mode Equation
-            // for (int quadPt=0;quadPt<N_Points2;quadPt++){//Quadrature Loop Begin
-            //     double Mult = Weights2[quadPt] * AbsDetjk[quadPt];
-            //     double* orgD00 = origvaluesD00[quadPt];
-            //     double* orgD10 = origvaluesD10[quadPt];
-            //     double* orgD01 = origvaluesD01[quadPt];
-            //     double* orgD20 = origvaluesD20[quadPt];
-            //     double* orgD02 = origvaluesD02[quadPt];
-            //         for (int j=0;j<N_BaseFunct;j++){//Local DOF Loop Begin
-            //             int GlobalDOF=DOF[j];
+            for (int quad_pt=0;quad_pt<N_Points2;quadPt++){//Quadrature Loop Begin
+                double Mult = Weights2[quadPt] * AbsDetjk[quadPt];
+                double* orgD00 = origvaluesD00[quadPt];
+                double* orgD10 = origvaluesD10[quadPt];
+                double* orgD01 = origvaluesD01[quadPt];
+                double* orgD20 = origvaluesD20[quadPt];
+                double* orgD02 = origvaluesD02[quadPt];
+                    for (int j=0;j<N_BaseFunct;j++){//Local DOF Loop Begin
+                        int GlobalDOF=DOF[j];
 
-            //             //1/Re(DDx_u_tilde_i+DDy_u_tilde_i)
-            //             // val += Reinv*(u_tilde_i[GlobalDOF]*orgD20[j]+u_tilde_i[GlobalDOF]*orgD02[j]);
+                        //1/Re(DDx_u_tilde_i+DDy_u_tilde_i)
+                        val += Reinv*(u_tilde_i[GlobalDOF]*orgD20[j]+u_tilde_i[GlobalDOF]*orgD02[j]);
                         
-            //             double ubar = MeanVect1Col[GlobalDOF]*orgD00[j];
-            //             double vbar = MeanVect2Col[GlobalDOF]*orgD00[j];
+                        double ubar = MeanVect1Col[GlobalDOF]*orgD00[j];
+                        double vbar = MeanVect2Col[GlobalDOF]*orgD00[j];
                         
-            //             double dx_ubar = MeanVect1Col[GlobalDOF]*orgD10[j];
-            //             double dy_ubar = MeanVect1Col[GlobalDOF]*orgD01[j];
+                        double dx_ubar = MeanVect1Col[GlobalDOF]*orgD10[j];
+                        double dy_ubar = MeanVect1Col[GlobalDOF]*orgD01[j];
 
-            //             double dx_utilde_i = u_tilde_i[GlobalDOF]*orgD10[j];
-            //             double dy_utilde_i = u_tilde_i[GlobalDOF]*orgD01[j];
+                        double dx_utilde_i = u_tilde_i[GlobalDOF]*orgD10[j];
+                        double dy_utilde_i = u_tilde_i[GlobalDOF]*orgD01[j];
                         
-            //             //-(ubar*Dx_u_tilde_i + u_tilde_i*Dx_ubar+ vbar*Dy_u_tilde_i+v_tilde_i*Dy_ubar)
-            //             // val -= (ubar*dx_utilde_i + u_tilde_i[GlobalDOF]*orgD00[j]*dx_ubar + vbar*dy_utilde_i + v_tilde_i[GlobalDOF]*orgD00[j] );
+                        //-(ubar*Dx_u_tilde_i + u_tilde_i*Dx_ubar+ vbar*Dy_u_tilde_i+v_tilde_i*Dy_ubar)
+                        val -= (ubar*dx_utilde_i + u_tilde_i[GlobalDOF]*orgD00[j]*dx_ubar + vbar*dy_utilde_i + v_tilde_i[GlobalDOF]*orgD00[j] );
 
-            //             //add pressure term?
+                        //add pressure term?
 
                         
 
 
-            //     }//Local DOF Loop End
-            // }//Quadrature Loop End
+                }//Local DOF Loop End
+            }//Quadrature Loop End
             //Still Within i-loop, start a,b,c, loops for Repeated Sum 
                 for (int a=0; a<N_S;a++){//Change N_S to TDatabase::ParamDB->N_Subspace_Dim
                     for(int b=0;b<N_S;b++){//Change N_S to TDatabase::ParamDB->N_Subspace_Dim
@@ -436,7 +431,6 @@ int main(int argc, char *argv[])
 
                                 
                                 }//Local DOF Loop End
-                                val*=Mult;
                             }//Quadrature Loop End
 
                             for(int p=0;p<N_S;p++){//p loop for outer product
@@ -492,7 +486,7 @@ int main(int argc, char *argv[])
 
 
                                     }//Local DOF Loop end
-                                        val+=Mult;
+
                                 }//Quadrature Loop End
 
                                 
@@ -501,8 +495,6 @@ int main(int argc, char *argv[])
                         }//c loop end
                     }//b loop end
                 }//a loop end
-                    localMode[g] += val; 
-            }//g loop end
 
             //`g` loop is for each component in the ith column of the Coefficient vector
             // This has size of (N_U)
