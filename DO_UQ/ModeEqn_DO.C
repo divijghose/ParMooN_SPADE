@@ -426,11 +426,72 @@ int main(int argc, char *argv[])
                                 double dx_utilde_b = u_tilde_b[GlobalDOF]*orgD10[j];
                                 double dy_utilde_b = u_tilde_b[GlobalDOF]*orgD01[j];
 
+                                //-Cinv_phi_i,phi_c*M_phi_c,phi_a,phi_b *(u_tilde_a*Dx_u_tilde_b+v_tilde_a * Dy_u_tilde_b)
                                 val -= (utilde_a*dx_utilde_b+vtilde_a*dy_utilde_b)*(Cinv[N_S*i+c]*M[N_S*N_S*b+N_S*c+a]);//Cinv is covariance matrix and M is coskewness tensor, check the indices**
 
                                 
                                 }//Local DOF Loop End
                             }//Quadrature Loop End
+
+                            for(int p=0;p<N_S;p++){//p loop for outer product
+                                
+                                double* u_tilde_p = ModeVect1Col + N_U*p;
+                                double valp = 0;
+
+                                //Quadrature Integration
+                                for(int quadPt=0;quadPt<N_Points2;quadPt++){//Quadrature Loop begin
+                                    double Mult = Weights2[quadPt] * AbsDetjk[quadPt];
+                                    double* orgD00 = origvaluesD00[quadPt];
+                                    double* orgD10 = origvaluesD10[quadPt];
+                                    double* orgD01 = origvaluesD01[quadPt];
+                                    double* orgD20 = origvaluesD20[quadPt];
+                                    double* orgD02 = origvaluesD02[quadPt];
+                                        for(int j=0;j<N_BaseFunct;j++){//Local DOF Loop begin
+
+                                            int GlobalDOF = DOF[j];
+                                            double utilde_p = u_tilde_p[GlobalDOF]*orgD00[j];//need to distinguish this from variable declared in outer loop
+                                            double ubar = MeanVect1Col[GlobalDOF]*orgD00[j];
+                                            double vbar = MeanVect2Col[GlobalDOF]*orgD00[j];
+                                            
+                                            double dx_ubar = MeanVect1Col[GlobalDOF]*orgD10[j];
+                                            double dy_ubar = MeanVect1Col[GlobalDOF]*orgD01[j];
+
+                                            double dx_utilde_i = u_tilde_i[GlobalDOF]*orgD10[j];
+                                            double dy_utilde_i = u_tilde_i[GlobalDOF]*orgD01[j];
+
+                                            double utilde_a = u_tilde_a[GlobalDOF]*orgD00[j];//Find better way to differentiate between this variable name and the one declared at the start of the loop, also in Thivin's code
+                                            double vtilde_a = v_tilde_a[GlobalDOF]*orgD00[j];
+
+                                            double dx_utilde_b = u_tilde_b[GlobalDOF]*orgD10[j];
+                                            double dy_utilde_b = u_tilde_b[GlobalDOF]*orgD01[j];
+
+                                            //<1/Re(DDx_u_tilde_i+DDy_u_tilde_i),u_tilde_p>
+                                            valp += Reinv*(u_tilde_i[GlobalDOF]*orgD20[j]+u_tilde_i[GlobalDOF]*orgD02[j])*utilde_p;
+
+
+
+                                            //<-(u_bar*Dx_u_tilde_i+u_tilde_i*Dx_u_bar+v_bar*Dy_u_tilde_i+v_tilde_i*Dy_u_bar),u_tilde_p>
+                                            valp -= (ubar*dx_utilde_i+u_tilde_i[GlobalDOF]*orgD00[j]*dx_ubar+vbar*dy_utilde_i+v_tilde_i[GlobalDOF]*orgD00[j]*dy_ubar)*utilde_p;
+
+                                            //
+                                            valp -= (Cinv[N_S*i+c]*M[N_S*N_S*b+N_S*c+a])*(utilde_a*dx_utilde_b+vtilde_a*dy_utilde_b)*utilde_p;
+
+                                            //<...>u_tilde_p
+                                            val -= valp*utilde_p;
+
+
+                                            
+
+
+
+
+                                    }//Local DOF Loop end
+
+                                }//Quadrature Loop End
+
+                                
+                            }//p loop end
+                            
                         }//c loop end
                     }//b loop end
                 }//a loop end
