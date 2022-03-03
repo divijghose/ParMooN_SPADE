@@ -133,7 +133,9 @@
         "AuxParam2D.C": "cpp",
         "Blas1.C": "cpp",
         "ModeEqn_DO.C": "cpp",
-        "ModeEqn_DO_AllTerms.C": "cpp"
+        "ModeEqn_DO_AllTerms.C": "cpp",
+        "TNSE2D_ParMooN_IVUQ_DO_ Test.C": "cpp",
+        "TCD1D_ParMooN.C": "cpp"
     },
     "cmake.configureOnOpen": false
 }

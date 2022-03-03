@@ -386,7 +386,7 @@ for(int i = 0; i < subDim; i++){
 	// U   [ u1 u2 ]
 	// Vect Function  = (U,N_U,2);
 	// Here , the second component of velocity is not not being initialised, we will make it to zero
-	// The second compinent of modeVector -- modevector_2 
+	// The second component of modeVector -- modevector_2 
 
 	// Initialize mode vector_2 with zeros  ( The second component of velocity )
 	double* ModeVector_2 = new double[N_U* subDim]();

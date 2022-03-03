@@ -192,6 +192,9 @@ int main(int argc, char *argv[])
     double* covariance = new double[N_S*N_S];
     for( int i = 0 ; i < N_S*N_S ; i++)   covariance[i] = 1.0;
 
+    double* rhsMode = new double[N_U*N_S];
+    for( int i = 0 ; i < N_U*N_S ; i++)   rhsMode[i] = 0.0; //Store values for assembled rhs in mode equation for each N_U DOF of each N_S mode, stored in col-major 
+
     TFEVectFunct2D* p_tilde_vectFunction = new TFEVectFunct2D(Pressure_FeSpace,PString,PString,p_tilde,N_P,N_S);
     TFEVectFunct2D* u_tildeVectfunction = new TFEVectFunct2D(Velocity_FeSpace,UString,UString,u_tilde,N_U,N_S);
     TFEVectFunct2D* v_tildeVectfunction = new TFEVectFunct2D(Velocity_FeSpace,UString,UString,v_tilde,N_U,N_S);
@@ -355,21 +358,24 @@ int main(int argc, char *argv[])
         // Phi stored in Column major order (i.e) Each colums of phi matrix are laid flat and appended at end of prev col
         //Apply RowtoColMajor() on Phi (CoeffVector)
         //Make sure MeanVect1Col and MeanVect2Col and Reinv are already defined
-        double* ansMode = new double[N_U*N_S];
-        for( int i = 0 ; i < N_R*N_S ; i++)   ansMode[i] = 1.0;
+        // double* ansMode = new double[N_U*N_S];
+        // for( int i = 0 ; i < N_R*N_S ; i++)   ansMode[i] = 1.0;
 
         for ( int i=0 ; i < N_S ; i++) //Change N_S to TDatabase::ParamDB->N_Subspace_Dim
         {
-            double* localMode = ansMode + N_U*i; 
-            for(int g=0;g<N_U;g++){ 
+            double* u_tilde_i  = ModeVect1Col + N_U*i;
+            double* v_tilde_i  = ModeVect2Col + N_U*i;
+            // double* localMode = ansMode + N_U*i; 
+            // for(int g=0;g<N_BaseFunct;g++){ 
+            //     int DOFGlobal = DOF[g];
+            //     rhsMode[N_U*i+DOFGlobal]=0;
 
             // cout << "i : " << i <<endl;
             // Get the ith components of all the arrays
             // double* localCoeff = ans + N_R*i;     // Answer vector
-            double* u_tilde_i  = ModeVect1Col + N_U*i;
-            double* v_tilde_i  = ModeVect2Col + N_U*i;
+                
 
-            double val = 0;
+                // double val = 0; 
             //Begin Quadrature Integration for first three terms of Mode Equation
             // for (int quadPt=0;quadPt<N_Points2;quadPt++){//Quadrature Loop Begin
             //     double Mult = Weights2[quadPt] * AbsDetjk[quadPt];
@@ -424,7 +430,7 @@ int main(int argc, char *argv[])
 
                             for(int j=0;j<N_BaseFunct;j++){//Local DOF Loop Begin
                                 int GlobalDOF = DOF[j];
-
+                                double val = 0;
                                 double utilde_a = u_tilde_a[GlobalDOF]*orgD00[j];//Find better way to differentiate between this variable name and the one declared at the start of the loop, also in Thivin's code
                                 double vtilde_a = v_tilde_a[GlobalDOF]*orgD00[j];
 
@@ -434,13 +440,13 @@ int main(int argc, char *argv[])
                                 //-Cinv_phi_i,phi_c*M_phi_c,phi_a,phi_b *(u_tilde_a*Dx_u_tilde_b+v_tilde_a * Dy_u_tilde_b)
                                 val -= (utilde_a*dx_utilde_b+vtilde_a*dy_utilde_b)*(Cinv[N_S*i+c]*M[N_S*N_S*b+N_S*c+a]);//Cinv is covariance matrix and M is coskewness tensor, check the indices**
 
-                                
+                                rhsMode[N_U*i+GlobalDOF] += val;
                                 }//Local DOF Loop End
-                                val*=Mult;
+                                
                             }//Quadrature Loop End
 
                             for(int p=0;p<N_S;p++){//p loop for outer product
-                                
+                                double val = 0;
                                 double* u_tilde_p = ModeVect1Col + N_U*p;
                                 double valp = 0;
 
@@ -484,6 +490,8 @@ int main(int argc, char *argv[])
 
                                             //<...>u_tilde_p
                                             val -= valp*utilde_p;
+                                            rhsMode[N_U*i+GlobalDOF] += val;
+
 
 
                                             
@@ -501,8 +509,8 @@ int main(int argc, char *argv[])
                         }//c loop end
                     }//b loop end
                 }//a loop end
-                    localMode[g] += val; 
-            }//g loop end
+                    
+            // }//g loop end
 
             //`g` loop is for each component in the ith column of the Coefficient vector
             // This has size of (N_U)
