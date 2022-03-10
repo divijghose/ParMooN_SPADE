@@ -135,7 +135,8 @@
         "ModeEqn_DO.C": "cpp",
         "ModeEqn_DO_AllTerms.C": "cpp",
         "TNSE2D_ParMooN_IVUQ_DO_ Test.C": "cpp",
-        "TCD1D_ParMooN.C": "cpp"
+        "TCD1D_ParMooN.C": "cpp",
+        "TCD2D_ParMooN_IVUQ_DO_Test.C": "cpp"
     },
     "cmake.configureOnOpen": false
 }

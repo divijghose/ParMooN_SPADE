@@ -1,5 +1,7 @@
 // ======================================================================
-// instationary problem
+// Example File for Monte-Carlo Time Dependent Convection-Diffusion Problem
+// Features included in this example file :
+// 1. 
 // ======================================================================
 
 #include <MacroCell.h>

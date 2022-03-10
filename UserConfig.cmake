@@ -12,16 +12,23 @@ set(AParMooN_GEO "2D" CACHE STRING "Change AParMooN_GEO, to select the Dimensio 
 # set(AParMooN_GEO "2D" CACHE STRING "Change AParMooN_GEO, to select the Dimension of the problem")
 
 #...................................................................................................................................................
+######################################### Selection of main program start ######################################3
 # select this line accordingly to include your main program
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/CD2D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model") 
-set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/TNSE2D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model") 
+### 2 Dimensional Problems ###
+
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/CD2D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model") #Steady State Convection-Diffusion Equation
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/TNSE2D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model") #Time-dependent Navier-Stokes' Equation
 # set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/TCD2D_ParMooN_ALE.C" CACHE STRING "Enter to select the Main file of the model") 
-# set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/NSE2D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model")
+# set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/NSE2D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model")#Steady State Navier-Stokes' Equation
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/TNSE2D_IVUQ_SPADE.C" CACHE STRING "Enter to select the Main file of the model")
+
+### 3 Dimensional Problems ###
 # set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/3DPrograms/CD3D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model")
 # set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/3DPrograms/TCD3D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model")
 # set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/3DPrograms/NSE3D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model")
 # set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/3DPrograms/TNSE3D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model")
+
+
 # set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Main_Users/Thivin/2D_Programs/deepikaji.cpp" CACHE STRING "Enter to select the Main file of the model")
 # set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Main_Users/Thivin/TNSE3D/thivin_TNSE3D.cpp" CACHE STRING "Enter to select the Main file of the model")
 # set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Main_Users/Thivin/Sample_mesh_move_2d.cpp" CACHE STRING "Enter to select the Main file of the model")
@@ -30,7 +37,7 @@ set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/TNSE2D_ParMooN.C" CACHE STR
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/1DPrograms/CD1D_ParMooN_ANN.C" CACHE STRING "Enter to select the Main file of the model") 
 
 ##### Monte Carlo Programs#####
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TCD2D_ParMooN_MC.C" CACHE STRING "Enter to select the Main file of the model")
+set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TCD2D_ParMooN_MC.C" CACHE STRING "Enter to select the Main file of the model")
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TNSE2D_ParMooN_IVUQ_MC.C" CACHE STRING "Enter to select the Main file of the model")
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TNSE2D_ParMooN_RE_NR_MC.C" CACHE STRING "Enter to select the Main file of the model")
 
@@ -40,7 +47,9 @@ set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/TNSE2D_ParMooN.C" CACHE STR
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TNSE2D_ParMooN_IVUQ_DO.C" CACHE STRING "Enter to select the Main file of the model")
 
 
-###############################
+############################### Selection of main program done ################################################
+
+
 
 # selection of architect type (LINUX64 MAC64 INTEL64 TYRONE64 CRAY64)
 set(AParMooN_ARCH "LINUX64" CACHE STRING "select the machine type")
@@ -56,7 +65,7 @@ set(AParMooN_MPI_IMPLEMENTATION "INTELMPI" CACHE STRING "select the MPI Implemen
 # set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/aletnse3d" CACHE STRING "select the model")
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/TCD2D_MC" CACHE STRING "select the model")
 # set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/NSE2D" CACHE STRING "select the model")
-set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/TNSE2D" CACHE STRING "select the model")
+#set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/TNSE2D" CACHE STRING "select the model")
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/CD2D" CACHE STRING "select the model")
 # set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/TCD3D" CACHE STRING "select the model")
 # set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/NSE3D" CACHE STRING "select the model")
@@ -69,7 +78,7 @@ set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/TNSE2D" CACH
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/cd1dANN" CACHE STRING "select the model")
 
 ####### Monte-Carlo Output Folders ##########
-#set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/Monte_Carlo/TCD2D_MC" CACHE STRING "select the model")
+set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/Monte_Carlo/TCD2D_MC" CACHE STRING "select the model")
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/Monte_Carlo/TNSE2D_IVUQ_MC" CACHE STRING "select the model")
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/Monte_Carlo/TNSE2D_PUQ_MC" CACHE STRING "select the model")
 

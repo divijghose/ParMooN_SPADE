@@ -1,10 +1,14 @@
 // =======================================================================
 //
-// Purpose:     main program for scalar equations with new kernels of ParMooN
+// Purpose:     Main program for scalar equations with new kernels of ParMooN. 
+//              Features included in this main program - 
+//              1. Monte Carlo Realization Generation for scalar quantity of interest
+//              2. Initialization of Mean, Modes and Coefficients for solution of Dynamically Orthogonal System of Equations
+//              3. <fill>
 //
-// Author:      Sashikumaar Ganesan
+// Authors:      Sashikumaar Ganesan, Divij Ghose, Thivin Anandh
 //
-// History:     Implementation started on 08.08.2014
+// History:     Implementation started on 10.03.2022
 
 // =======================================================================
 
@@ -315,6 +319,7 @@ int main(int argc, char *argv[])
     fileo_r.close();
 
     // exit(0);
+    ////////////////////////////////////////////////////// SVD ////////////////////////////////////////////
     // Declare SVD parameters
     MKL_INT m1 = N_DOF, n = N_DOF, lda = N_DOF, ldu = N_DOF, ldvt = N_DOF, info;
     double superb[std::min(N_DOF,N_DOF)-1];
@@ -349,10 +354,11 @@ int main(int argc, char *argv[])
     
     int modDim = energyVal+1;
        
-    double* Ut = new double[N_DOF*modDim]();
+    double* Ut = new double[N_DO
+    F*modDim]();
     double* Z  = new double[N_Realisations*modDim]();
 
-    double* SolutionVector = new double[N_DOF * N_Realisations]();
+    double* RealizationVector = new double[N_DOF * N_Realisations]();
 
     // -------------- Generate Random Number Based on Normal Distribution -------------------------//
     int k=0;
@@ -393,17 +399,115 @@ int main(int argc, char *argv[])
 
     cout << " N_Realisations : " << N_Realisations <<endl;
     cout << " MULT START "<<endl;
-    cblas_dgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans,N_DOF,N_Realisations, modDim , 1.0, Ut,modDim,Z,N_Realisations,0.0,SolutionVector,N_Realisations);
+    cblas_dgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans,N_DOF,N_Realisations, modDim , 1.0, Ut,modDim,Z,N_Realisations,0.0,RealizationVector,N_Realisations);
     cout << " MULT DONE "<<endl;
     // printMatrix(SolutionVector, N_DOF,N_Realisations);
 
     // mkl_dimatcopy('R','T', N_DOF,N_Realisations,1.0,SolutionVector,N_DOF,N_Realisations);
-    cout << " COPY DONE "<<endl;
+    // cout << " COPY DONE "<<endl;
 
     cout << " REALISATIONS COMPUTED " <<endl;
 
     /////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
 
+    ////////////////////////////////////// -------- START OF DO INITIALIZATION ------------ ////////////////////////////////////////////////////////////////
+
+    double* MeanVector = new double[N_DOF * 1](); //overline{C}_{dof} = \sum_{i=1}^{N_Realisations}(C^{i}_{dof})/N_Realisations
+    for(int i=0; i<N_DOF; ++i) {
+    for(int j = 0; j < N_Realisations; ++j){
+                MeanVector[i] +=  (RealizationVector[i*N_Realisations+j]/N_Realisations);
+            }
+    }
+
+    double* PerturbationVector = new double[N_DOF * N_Realisations](); // \hat{C}^{i}_{dof} = C^{i}_{dof} - \overline{C}_{dof}
+    for(int i = 0; i < N_DOF; ++i){
+    for(int j = 0; j < N_Realisations; ++j){
+        PerturbationVector[i*N_Realisations+j] = RealizationVector[i*N_Realisations+j] - MeanVector[i];
+    }
+    }
+
+//================================================================================================
+/////////////////////////////DO - Initialization SVD//////////////////////////////////////////////
+//================================================================================================
+// Declare SVD parameters
+int minDim = std::min(N_DOF,N_Realisations);
+MKL_INT mDO = N_DOF, nDO = N_Realisations, ldaDO = N_Realisations, lduDO = minDim, ldvtDO = N_Realisations, infoDO;
+double superbDO[minDim-1];
+
+double* PerturbationVectorCopy = new double[N_DOF * N_Realisations]();
+memcpy(PerturbationVectorCopy,PerturbationVector,N_DOF*N_Realisations*SizeOfDouble);
+
+double* Sg = new double[minDim];
+double* L = new double[N_DOF*minDim];
+double* Rt = new double[minDim*N_Realisations];
+
+infoDO = LAPACKE_dgesvd( LAPACK_ROW_MAJOR, 'S', 'N', mDO, nDO, PerturbationVectorCopy, ldaDO,
+					Sg, L, lduDO, Rt, ldvtDO, superbDO );
+
+
+if( infoDO > 0 ) {
+	printf( "The algorithm computing SVD for DO failed to converge.\n" );
+	exit( 1 );
+}
+cout << " DO SVD COMPUTED " <<endl;
+
+//////////////////////////////////////////// DO - SVD End/////////////////////////////// 
+
+///////DO - Subspace dimension calculation /////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+double SVPercent = TDatabase::ParamDB->SVPERCENT;
+int s = 0;
+double valDO = 0.0;
+double sumSingularValDO = 0.0;
+for( int i=0;i<minDim;i++) {
+    sumSingularValDO += Sg[i];
+}
+while( valDO/sumSingularValDO < SVPercent)
+{
+    valDO += Sg[s];
+    s++;
+}
+
+cout << " SUBSPACE DIMENSION : "  << s+1 <<endl;
+
+int subDim = s+1;
+////////Subspace dimension calculated//////////////////
+
+/////Projection Matrix///////////
+////////////////////////////////
+cout << " Min DIMENSION : "  << minDim <<endl;
+double* ProjectionVector = new double[N_Realisations * minDim]();
+cout << "PROJ VECTOR MULT START "<<endl;
+cblas_dgemm(CblasRowMajor,CblasTrans,CblasNoTrans,N_Realisations,minDim,N_DOF,1.0,PerturbationVector,N_Realisations,L,minDim,0.0,ProjectionVector,minDim);
+cout << "PROJ VECTOR MULT DONE "<< endl;
+
+/// Initialize Coefficient Matrix - First subDim columns of Projection Matrix ////////////////////
+double* CoeffVector = new double[N_Realisations * subDim]();
+// memcpy(CoeffVector, ProjectionVector, N_Realisations*subDim*SizeOfDouble); //For ColMajor storage
+for (int i=0;i<N_Realisations;i++){
+	for (int j=0;j<subDim;j++){
+		CoeffVector[i*subDim+j] = ProjectionVector[i*minDim+j];
+	}
+}
+
+////////////Initialize Mode Vector - First subDim columns of Left Singular Vector//////////////////
+double* ModeVector = new double[N_DOF* subDim]();
+// memcpy(ModeVector, L, N_DOF*subDim*SizeOfDouble);//For ColMajor storage
+for (int i=0;i<N_DOF;i++){
+	for (int j=0;j<subDim;j++){
+		ModeVector[i*subDim+j] = ProjectionVector[i*minDim+j];
+	}
+}
+
+////////////////////////////////////////////DO - Initialization Ends//////////////////////////////////////
+///////================================================================================//////////////////
+
+ #include "DO_Functions.h"
+
+cout << " --- DO Functions Included ---" <<endl;
+////////////////////////////
+
+// TDatabase::ParamDB->COVARIANCE_MATRIX_DO = CalcCovarianceMatx(CoeffVector,N_Realisations,subDim);//Not needed for linear advection
 
 
     // -------- Output parameters------------//
