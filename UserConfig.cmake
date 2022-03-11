@@ -37,14 +37,15 @@ set(AParMooN_GEO "2D" CACHE STRING "Change AParMooN_GEO, to select the Dimensio 
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/1DPrograms/CD1D_ParMooN_ANN.C" CACHE STRING "Enter to select the Main file of the model") 
 
 ##### Monte Carlo Programs#####
-set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TCD2D_ParMooN_MC.C" CACHE STRING "Enter to select the Main file of the model")
+
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TCD2D_ParMooN_MC.C" CACHE STRING "Enter to select the Main file of the model")
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TNSE2D_ParMooN_IVUQ_MC.C" CACHE STRING "Enter to select the Main file of the model")
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TNSE2D_ParMooN_RE_NR_MC.C" CACHE STRING "Enter to select the Main file of the model")
 
 ##### DO Programs#####
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TCD2D_ParMooN_MC.C" CACHE STRING "Enter to select the Main file of the model")
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TNSE2D_ParMooN_IVUQ_MC.C" CACHE STRING "Enter to select the Main file of the model")
+
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TNSE2D_ParMooN_IVUQ_DO.C" CACHE STRING "Enter to select the Main file of the model")
+set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TCD2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model")
 
 
 ############################### Selection of main program done ################################################
@@ -59,7 +60,9 @@ set(AParMooN_PARALLEL_TYPE "SEQUENTIAL" CACHE STRING "select the parallel type")
 
 #  selection of program type (MPICH OPENMPI INTELMPI CRAYMPI MACMPI)
 set(AParMooN_MPI_IMPLEMENTATION "INTELMPI" CACHE STRING "select the MPI Implementation type")
- 
+
+
+############################### Selection of output folder start ################################################
 # set the path to save the exe file ....................................................................................
 #.......................................................................................................................
 # set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/aletnse3d" CACHE STRING "select the model")
@@ -78,14 +81,15 @@ set(AParMooN_MPI_IMPLEMENTATION "INTELMPI" CACHE STRING "select the MPI Implemen
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/cd1dANN" CACHE STRING "select the model")
 
 ####### Monte-Carlo Output Folders ##########
-set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/Monte_Carlo/TCD2D_MC" CACHE STRING "select the model")
+#set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/Monte_Carlo/TCD2D_MC" CACHE STRING "select the model")
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/Monte_Carlo/TNSE2D_IVUQ_MC" CACHE STRING "select the model")
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/Monte_Carlo/TNSE2D_PUQ_MC" CACHE STRING "select the model")
 
 ####### DO Output Folders ##########
-#set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/Monte_Carlo/TCD2D_MC" CACHE STRING "select the model")
-#set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/Monte_Carlo/TNSE2D_IVUQ_MC" CACHE STRING "select the model")
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TNSE2D_IVUQ_DO" CACHE STRING "select the model")
+set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TCD2D_IVUQ_DO" CACHE STRING "select the model")
+
+############################### Selection of output folder done ################################################
 #--------------------------------------------------------------------------------------------------------------------
 set(USE_PARMOON_DEFINE -D__PRIVATE__)
 
