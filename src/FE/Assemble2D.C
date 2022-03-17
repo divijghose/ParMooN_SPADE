@@ -2347,6 +2347,7 @@ TFEFunction2D *u1, TFEFunction2D *u2)
   double friction_power = TDatabase::ParamDB->FRICTION_POWER;
   double penetration_constant = TDatabase::ParamDB->PENETRATION_CONSTANT;
   double penetration_power = TDatabase::ParamDB->PENETRATION_POWER;
+  cout << " FRICTION TYPE : " << TDatabase::ParamDB->FRICTION_TYPE <<endl;
   int friction_type = TDatabase::ParamDB->FRICTION_TYPE;
   double RE_NR, tangential_velo, U0, denominator;
   double delta, r_axial, beta_h;
@@ -2866,7 +2867,8 @@ TFEFunction2D *u1, TFEFunction2D *u2)
                     break;
     
                 default:
-                 Error("Slip with friction Type not maching !!!!!!!!!!" << endl);
+                 Error(" Slip with friction Type not maching !!!!!!!!!! - " << friction_type << endl);
+
                  Error("file: " << __FILE__ << " line " << __LINE__ << endl);
                  exit(-1);  
 

@@ -32,7 +32,8 @@
 // =======================================================================
 // include current example
 // =======================================================================
-#include "../Examples/TNSE_2D/DrivenCavity.h" //   in unit square
+// #include "../Examples/TNSE_2D/DrivenCavity.h" //   in unit square
+   #include "../Examples/TNSE_2D/Channel.h"
 // #include "../Examples/TNSE_2D/Bsp3.h" // smooth sol in unit square
 // #include "../Examples_All/TNSE_2D/Benchmark2.h"  
 // #include "../Examples/TNSE_2D/SinCos.h" // smooth sol in unit square

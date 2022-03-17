@@ -136,7 +136,10 @@
         "ModeEqn_DO_AllTerms.C": "cpp",
         "TNSE2D_ParMooN_IVUQ_DO_ Test.C": "cpp",
         "TCD1D_ParMooN.C": "cpp",
-        "TCD2D_ParMooN_IVUQ_DO_Test.C": "cpp"
+        "TCD2D_ParMooN_IVUQ_DO_Test.C": "cpp",
+        "SystemTCD2D.C": "cpp",
+        "Blas2.C": "cpp",
+        "Assemble2D.C": "cpp"
     },
     "cmake.configureOnOpen": false
 }

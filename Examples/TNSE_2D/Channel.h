@@ -33,6 +33,24 @@ void ExampleFile()
 #include <TriaAffin.h>
 #include <TriaIsoparametric.h>
 
+
+// ========================================================================
+// initial solution
+// ========================================================================
+void InitialU1(double x, double y, double *values)
+{
+  values[0] = 0;
+}
+
+void InitialU2(double x, double y, double *values)
+{
+  values[0] = 0;
+}
+
+void InitialP(double x, double y, double *values)
+{
+  values[0] = 0;
+}
 // ========================================================================
 // exact solution
 // ========================================================================
@@ -67,31 +85,42 @@ void BoundCondition(int i, double t, BoundCond &cond)
 {
        switch(i)
   {
-    case 2:
-    case 1:
-      case 3:
-      cond = DIRICHLET;
-	break;
-      case 0: 
-// 	cond = DIRICHLET;
+    
+     case 0: case 2:
       cond = SLIP_FRICTION_PENETRATION_RESISTANCE;
-      TDatabase::ParamDB->INTERNAL_SLIP_WITH_FRICTION=1;
-      break;
+      TDatabase::ParamDB->INTERNAL_SLIP_WITH_FRICTION = 1;
+    break;
+    case 3: //case 2: case 0:
+      cond = DIRICHLET;
+      //TDatabase::ParamDB->INTERNAL_SLIP_WITH_FRICTION=0;
+	  break;
+    case 1: 
+	    cond = NEUMANN;
+    break;
   }
+  TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE = 0;
 }
 
 void U1BoundValue(int BdComp, double Param, double &value)
 {
+  // Param = Param + 0.5;
   
   switch(BdComp)
   {
-    case 0: value=0.0;
+    case 0: value=0.0; //bottom
             break;
-    case 1: value=1.5*(1.0 - (pow(0.5*Param,2))/0.25);
+   case 3: value= 1*(((Param)*(1-Param))/0.25); //1*(((Param)*(1-Param))/0.25);//1.5*(1.0 - (pow(0.5*Param,2))/0.25); // inlet
+// case 3:
+//     if(Param > 0.005 and Param < 0.995){
+//       value =5;
+//     }
+//     else
+//       value = 0;
+// value = 1;
             break;
-    case 2: value = 0;
+    case 2: value = 0;  //upper wall
             break;
-    case 3: value=1.5*(1.0 - (pow(0.5-(0.5*Param),2))/0.25) ;
+    case 1: value =0;  // outlet
             break;
 
     default: cout << "wrong boundary part number: " << BdComp << endl;

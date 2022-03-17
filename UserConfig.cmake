@@ -17,7 +17,9 @@ set(AParMooN_GEO "2D" CACHE STRING "Change AParMooN_GEO, to select the Dimensio 
 ### 2 Dimensional Problems ###
 
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/CD2D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model") #Steady State Convection-Diffusion Equation
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/TNSE2D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model") #Time-dependent Navier-Stokes' Equation
+
+set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/TNSE2D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model") #Time-dependent Navier-Stokes' Equation
+
 # set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/TCD2D_ParMooN_ALE.C" CACHE STRING "Enter to select the Main file of the model") 
 # set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/NSE2D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model")#Steady State Navier-Stokes' Equation
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/TNSE2D_IVUQ_SPADE.C" CACHE STRING "Enter to select the Main file of the model")
@@ -26,7 +28,7 @@ set(AParMooN_GEO "2D" CACHE STRING "Change AParMooN_GEO, to select the Dimensio 
 # set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/3DPrograms/CD3D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model")
 # set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/3DPrograms/TCD3D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model")
 # set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/3DPrograms/NSE3D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model")
-# set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/3DPrograms/TNSE3D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model")
+# set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/3DPrograms/TNSE2D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model")
 
 
 # set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Main_Users/Thivin/2D_Programs/deepikaji.cpp" CACHE STRING "Enter to select the Main file of the model")
@@ -45,7 +47,7 @@ set(AParMooN_GEO "2D" CACHE STRING "Change AParMooN_GEO, to select the Dimensio 
 ##### DO Programs#####
 
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TNSE2D_ParMooN_IVUQ_DO.C" CACHE STRING "Enter to select the Main file of the model")
-set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TCD2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model")
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TCD2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model")
 
 
 ############################### Selection of main program done ################################################
@@ -72,7 +74,9 @@ set(AParMooN_MPI_IMPLEMENTATION "INTELMPI" CACHE STRING "select the MPI Implemen
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/CD2D" CACHE STRING "select the model")
 # set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/TCD3D" CACHE STRING "select the model")
 # set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/NSE3D" CACHE STRING "select the model")
-# set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/TNSE3D" CACHE STRING "select the model")
+
+  set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/TNSE2D" CACHE STRING "select the model")
+
 # set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/thivin3d" CACHE STRING "select the model")
 # set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/mesh2d" CACHE STRING "select the model")
 # set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/deepikaji" CACHE STRING "select the model")
@@ -87,7 +91,7 @@ set(AParMooN_MPI_IMPLEMENTATION "INTELMPI" CACHE STRING "select the MPI Implemen
 
 ####### DO Output Folders ##########
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TNSE2D_IVUQ_DO" CACHE STRING "select the model")
-set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TCD2D_IVUQ_DO" CACHE STRING "select the model")
+#set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TCD2D_IVUQ_DO" CACHE STRING "select the model")
 
 ############################### Selection of output folder done ################################################
 #--------------------------------------------------------------------------------------------------------------------

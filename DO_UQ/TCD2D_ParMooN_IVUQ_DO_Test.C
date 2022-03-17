@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
         // Aux parameters - generates values like u,x u,y,  which are used for the construction of local matrices
     // NOTE : None of the values are generated from AUX in this routine , since the weak form of elasticity equation
     // does not need any special terms . So we will pass the AUX pointer as "NULL"  to the discrete form.
-    TAuxParam2D *aux;
+    // TAuxParam2D *aux;
 
     // Stores the Galerking Discrete Form
     TDiscreteForm2D *discreteform;
@@ -505,92 +505,92 @@ int main(int argc, char *argv[])
             }
     }
 
-//     double* PerturbationVector = new double[N_DOF * N_Realisations](); // \hat{C}^{i}_{dof} = C^{i}_{dof} - \overline{C}_{dof}
-//     for(int i = 0; i < N_DOF; ++i){
-//     for(int j = 0; j < N_Realisations; ++j){
-//         PerturbationVector[i*N_Realisations+j] = RealizationVector[i*N_Realisations+j] - MeanVector[i];
-//     }
-//     }
+    double* PerturbationVector = new double[N_DOF * N_Realisations](); // \hat{C}^{i}_{dof} = C^{i}_{dof} - \overline{C}_{dof}
+    for(int i = 0; i < N_DOF; ++i){
+    for(int j = 0; j < N_Realisations; ++j){
+        PerturbationVector[i*N_Realisations+j] = RealizationVector[i*N_Realisations+j] - MeanVector[i];
+    }
+    }
 
-// //================================================================================================
-// /////////////////////////////DO - Initialization SVD//////////////////////////////////////////////
-// //================================================================================================
-// // Declare SVD parameters
-// int minDim = std::min(N_DOF,N_Realisations);
-// MKL_INT mDO = N_DOF, nDO = N_Realisations, ldaDO = N_Realisations, lduDO = minDim, ldvtDO = N_Realisations, infoDO;
-// double superbDO[minDim-1];
+//================================================================================================
+/////////////////////////////DO - Initialization SVD//////////////////////////////////////////////
+//================================================================================================
+// Declare SVD parameters
+int minDim = std::min(N_DOF,N_Realisations);
+MKL_INT mDO = N_DOF, nDO = N_Realisations, ldaDO = N_Realisations, lduDO = minDim, ldvtDO = N_Realisations, infoDO;
+double superbDO[minDim-1];
 
-// double* PerturbationVectorCopy = new double[N_DOF * N_Realisations]();
-// memcpy(PerturbationVectorCopy,PerturbationVector,N_DOF*N_Realisations*SizeOfDouble);
+double* PerturbationVectorCopy = new double[N_DOF * N_Realisations]();
+memcpy(PerturbationVectorCopy,PerturbationVector,N_DOF*N_Realisations*SizeOfDouble);
 
-// double* Sg = new double[minDim];
-// double* L = new double[N_DOF*minDim];
-// double* Rt = new double[minDim*N_Realisations];
+double* Sg = new double[minDim];
+double* L = new double[N_DOF*minDim];
+double* Rt = new double[minDim*N_Realisations];
 
-// infoDO = LAPACKE_dgesvd( LAPACK_ROW_MAJOR, 'S', 'N', mDO, nDO, PerturbationVectorCopy, ldaDO,
-// 					Sg, L, lduDO, Rt, ldvtDO, superbDO );
+infoDO = LAPACKE_dgesvd( LAPACK_ROW_MAJOR, 'S', 'N', mDO, nDO, PerturbationVectorCopy, ldaDO,
+					Sg, L, lduDO, Rt, ldvtDO, superbDO );
 
 
-// if( infoDO > 0 ) {
-// 	printf( "The algorithm computing SVD for DO failed to converge.\n" );
-// 	exit( 1 );
-// }
-// cout << " DO SVD COMPUTED " <<endl;
+if( infoDO > 0 ) {
+	printf( "The algorithm computing SVD for DO failed to converge.\n" );
+	exit( 1 );
+}
+cout << " DO SVD COMPUTED " <<endl;
 
-// //////////////////////////////////////////// DO - SVD End/////////////////////////////// 
+//////////////////////////////////////////// DO - SVD End/////////////////////////////// 
 
-// ///////DO - Subspace dimension calculation /////////////////////////////////////////////////
-// ////////////////////////////////////////////////////////////////////////////////////////////
-// double SVPercent = TDatabase::ParamDB->SVPERCENT;
-// int s = 0;
-// double valDO = 0.0;
-// double sumSingularValDO = 0.0;
-// for( int i=0;i<minDim;i++) {
-//     sumSingularValDO += Sg[i];
-// }
-// while( valDO/sumSingularValDO < SVPercent)
-// {
-//     valDO += Sg[s];
-//     s++;
-// }
+///////DO - Subspace dimension calculation /////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+double SVPercent = TDatabase::ParamDB->SVPERCENT;
+int s = 0;
+double valDO = 0.0;
+double sumSingularValDO = 0.0;
+for( int i=0;i<minDim;i++) {
+    sumSingularValDO += Sg[i];
+}
+while( valDO/sumSingularValDO < SVPercent)
+{
+    valDO += Sg[s];
+    s++;
+}
 
-// cout << " SUBSPACE DIMENSION : "  << s+1 <<endl;
+cout << " SUBSPACE DIMENSION : "  << s+1 <<endl;
 
-// int subDim = s+1;
-// ////////Subspace dimension calculated//////////////////
+int subDim = s+1;
+////////Subspace dimension calculated//////////////////
 
-// /////Projection Matrix///////////
-// ////////////////////////////////
-// cout << " Min DIMENSION : "  << minDim <<endl;
-// double* ProjectionVector = new double[N_Realisations * minDim]();
-// cout << "PROJ VECTOR MULT START "<<endl;
-// cblas_dgemm(CblasRowMajor,CblasTrans,CblasNoTrans,N_Realisations,minDim,N_DOF,1.0,PerturbationVector,N_Realisations,L,minDim,0.0,ProjectionVector,minDim);
-// cout << "PROJ VECTOR MULT DONE "<< endl;
+/////Projection Matrix///////////
+////////////////////////////////
+cout << " Min DIMENSION : "  << minDim <<endl;
+double* ProjectionVector = new double[N_Realisations * minDim]();
+cout << "PROJ VECTOR MULT START "<<endl;
+cblas_dgemm(CblasRowMajor,CblasTrans,CblasNoTrans,N_Realisations,minDim,N_DOF,1.0,PerturbationVector,N_Realisations,L,minDim,0.0,ProjectionVector,minDim);
+cout << "PROJ VECTOR MULT DONE "<< endl;
 
-// /// Initialize Coefficient Matrix - First subDim columns of Projection Matrix ////////////////////
-// double* CoeffVector = new double[N_Realisations * subDim]();
-// // memcpy(CoeffVector, ProjectionVector, N_Realisations*subDim*SizeOfDouble); //For ColMajor storage
-// for (int i=0;i<N_Realisations;i++){
-// 	for (int j=0;j<subDim;j++){
-// 		CoeffVector[i*subDim+j] = ProjectionVector[i*minDim+j];
-// 	}
-// }
+/// Initialize Coefficient Matrix - First subDim columns of Projection Matrix ////////////////////
+double* CoeffVector = new double[N_Realisations * subDim]();
+// memcpy(CoeffVector, ProjectionVector, N_Realisations*subDim*SizeOfDouble); //For ColMajor storage
+for (int i=0;i<N_Realisations;i++){
+	for (int j=0;j<subDim;j++){
+		CoeffVector[i*subDim+j] = ProjectionVector[i*minDim+j];
+	}
+}
 
-// ////////////Initialize Mode Vector - First subDim columns of Left Singular Vector//////////////////
-// double* ModeVector = new double[N_DOF* subDim]();
-// // memcpy(ModeVector, L, N_DOF*subDim*SizeOfDouble);//For ColMajor storage
-// for (int i=0;i<N_DOF;i++){
-// 	for (int j=0;j<subDim;j++){
-// 		ModeVector[i*subDim+j] = ProjectionVector[i*minDim+j];
-// 	}
-// }
+////////////Initialize Mode Vector - First subDim columns of Left Singular Vector//////////////////
+double* ModeVector = new double[N_DOF* subDim]();
+// memcpy(ModeVector, L, N_DOF*subDim*SizeOfDouble);//For ColMajor storage
+for (int i=0;i<N_DOF;i++){
+	for (int j=0;j<subDim;j++){
+		ModeVector[i*subDim+j] = ProjectionVector[i*minDim+j];
+	}
+}
 
-////////////////////////////////////////////DO - Initialization Ends//////////////////////////////////////
-///////================================================================================//////////////////
+//////////////////////////////////////////DO - Initialization Ends//////////////////////////////////////
+/////================================================================================//////////////////
 
-//  #include "DO_Functions.h"
+ #include "DO_Functions.h"
 
-// cout << " --- DO Functions Included ---" <<endl;
+cout << " --- DO Functions Included ---" <<endl;
 ////////////////////////////
 
 
@@ -638,178 +638,180 @@ int main(int argc, char *argv[])
         solMeanMC[i]=0.0;
     }
     
-    for ( int RealNo=0 ; RealNo < N_Realisations; RealNo++)
-    {
-        // cout << " ============================================================================================================= " <<endl;
-        cout <<  " Real no " <<  RealNo  <<endl;
-        // cout << " ============================================================================================================= " <<endl;
+    // for ( int RealNo=0 ; RealNo < N_Realisations; RealNo++)
+    // {
+    //     // cout << " ============================================================================================================= " <<endl;
+    //     cout <<  " Real no " <<  RealNo  <<endl;
+    //     // cout << " ============================================================================================================= " <<endl;
 
 		
 		
 		
 		
-        // Scalar_FeFunction->Interpolate(InitialCondition);
-        std::string str= std::to_string(RealNo);
-        std::string filename = "Realization_Nr_" + std::to_string(RealNo);
-		VtkBaseName = const_cast<char *>(filename.c_str());
+    //     // Scalar_FeFunction->Interpolate(InitialCondition);
+    //     std::string str= std::to_string(RealNo);
+    //     std::string filename = "Realization_Nr_" + std::to_string(RealNo);
+	// 	VtkBaseName = const_cast<char *>(filename.c_str());
 
-        mkdir(filename.c_str(), 0777);
+    //     mkdir(filename.c_str(), 0777);
 
-        for ( int i=0 ; i < N_DOF; i++)
-            sol[mappingArray[i]] = RealizationVector[RealNo  +  N_Realisations * i];
+    //     for ( int i=0 ; i < N_DOF; i++)
+    //         sol[mappingArray[i]] = RealizationVector[RealNo  +  N_Realisations * i];
         
-        os.seekp(std::ios::beg);
-        if (img < 10)
-            os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
-        else if (img < 100)
-            os << filename.c_str() << "/" << VtkBaseName<< ".000" << img << ".vtk" << ends;
-        else if (img < 1000)
-            os << filename.c_str() << "/" << VtkBaseName<< ".00" << img << ".vtk" << ends;
-        else if (img < 10000)
-           os << filename.c_str() << "/" << VtkBaseName<< ".0" << img << ".vtk" << ends;
-        else
-            os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
-        Output->WriteVtk(os.str().c_str());
-        img++;
+    //     os.seekp(std::ios::beg);
+    //     if (img < 10)
+    //         os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
+    //     else if (img < 100)
+    //         os << filename.c_str() << "/" << VtkBaseName<< ".000" << img << ".vtk" << ends;
+    //     else if (img < 1000)
+    //         os << filename.c_str() << "/" << VtkBaseName<< ".00" << img << ".vtk" << ends;
+    //     else if (img < 10000)
+    //        os << filename.c_str() << "/" << VtkBaseName<< ".0" << img << ".vtk" << ends;
+    //     else
+    //         os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
+    //     Output->WriteVtk(os.str().c_str());
+    //     img++;
 
-        for ( int k = 0 ; k < N_samples;k++)
-        {
-            fileout << sol[indexArray[k]];
-            if(k != N_DOF - 1) fileout <<",";
-        }
-        fileout<<endl;
+    //     for ( int k = 0 ; k < N_samples;k++)
+    //     {
+    //         fileout << sol[indexArray[k]];
+    //         if(k != N_DOF - 1) fileout <<",";
+    //     }
+    //     fileout<<endl;
 
-        // assemble the system matrix with given aux, sol and rhs
-        // aux is used to pass  addition fe functions (eg. mesh velocity) that is nedded for assembling,
-        // otherwise, just pass with NULL
-        SystemMatrix->AssembleMRhs(NULL, sol, rhs);
+    //     // assemble the system matrix with given aux, sol and rhs
+    //     // aux is used to pass  addition fe functions (eg. mesh velocity) that is nedded for assembling,
+    //     // otherwise, just pass with NULL
+    //     SystemMatrix->AssembleMRhs(NULL, sol, rhs);
 
-        //======================================================================
-        // time disc loop
-        //======================================================================
-        // parameters for time stepping scheme
-        m = 0;
-        N_SubSteps = GetN_SubSteps();
-        end_time = TDatabase::TimeDB->ENDTIME;
+    //     //======================================================================
+    //     // time disc loop
+    //     //======================================================================
+    //     // parameters for time stepping scheme
+    //     m = 0;
+    //     N_SubSteps = GetN_SubSteps();
+    //     end_time = TDatabase::TimeDB->ENDTIME;
 
-        UpdateStiffnessMat = TRUE; //check BilinearCoeffs in example file
-        UpdateRhs = TRUE;           //check BilinearCoeffs in example file
-        ConvectionFirstTime = TRUE;
+    //     UpdateStiffnessMat = TRUE; //check BilinearCoeffs in example file
+    //     UpdateRhs = TRUE;           //check BilinearCoeffs in example file
+    //     ConvectionFirstTime = TRUE;
 
-        // time loop starts
-        while (TDatabase::TimeDB->CURRENTTIME < end_time)
-        {
-            m++;
-            TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
+    //     // time loop starts
+    //     while (TDatabase::TimeDB->CURRENTTIME < end_time)
+    //     {
+    //         m++;
+    //         TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
 
-            for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
-            {
-                SetTimeDiscParameters(1);
+    //         for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
+    //         {
+    //             SetTimeDiscParameters(1);
 
-                if (m == 1)
-                {
-                    // OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
-                    // OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
-                    // OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
-                    // OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
-                }
+    //             if (m == 1)
+    //             {
+    //                 // OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
+    //                 // OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
+    //                 // OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
+    //                 // OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
+    //             }
 
-                tau = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
-                TDatabase::TimeDB->CURRENTTIME += tau;
+    //             tau = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
+    //             TDatabase::TimeDB->CURRENTTIME += tau;
 
-                // OutPut(endl<< "CURRENT TIME: ");
-                // OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
+    //             // OutPut(endl<< "CURRENT TIME: ");
+    //             // OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
 
-                //copy rhs to oldrhs
-                memcpy(oldrhs, rhs, N_DOF * SizeOfDouble);
+    //             //copy rhs to oldrhs
+    //             memcpy(oldrhs, rhs, N_DOF * SizeOfDouble);
 
-                // unless the stiffness matrix or rhs change in time, it is enough to
-                // assemble only once at the begning
-                if (UpdateStiffnessMat || UpdateRhs || ConvectionFirstTime)
-                {
-                    SystemMatrix->AssembleARhs(NULL, sol, rhs);
+    //             // unless the stiffness matrix or rhs change in time, it is enough to
+    //             // assemble only once at the begning
+    //             if (UpdateStiffnessMat || UpdateRhs || ConvectionFirstTime)
+    //             {
+    //                 SystemMatrix->AssembleARhs(NULL, sol, rhs);
 
-                    // M:= M + (tau*THETA1)*A
-                    // rhs: =(tau*THETA4)*rhs +(tau*THETA3)*oldrhs +[M-(tau*THETA2)A]*oldsol
-                    // note! sol contains only the previous time step value, so just pass
-                    // sol for oldsol
-                    SystemMatrix->AssembleSystMat(oldrhs, sol, rhs, sol);
-                    ConvectionFirstTime = FALSE;
-                }
+    //                 // M:= M + (tau*THETA1)*A
+    //                 // rhs: =(tau*THETA4)*rhs +(tau*THETA3)*oldrhs +[M-(tau*THETA2)A]*oldsol
+    //                 // note! sol contains only the previous time step value, so just pass
+    //                 // sol for oldsol
+    //                 SystemMatrix->AssembleSystMat(oldrhs, sol, rhs, sol);
+    //                 ConvectionFirstTime = FALSE;
+    //             }
 
-                // solve the system matrix
-                SystemMatrix->Solve(sol, rhs);
+    //             // solve the system matrix
+    //             SystemMatrix->Solve(sol, rhs);
 
-                // restore the mass matrix for the next time step
-                // unless the stiffness matrix or rhs change in time, it is not necessary to assemble the system matrix in every time step
-                if (UpdateStiffnessMat || UpdateRhs)
-                {
-                    SystemMatrix->RestoreMassMat();
-                }
+    //             // restore the mass matrix for the next time step
+    //             // unless the stiffness matrix or rhs change in time, it is not necessary to assemble the system matrix in every time step
+    //             if (UpdateStiffnessMat || UpdateRhs)
+    //             {
+    //                 SystemMatrix->RestoreMassMat();
+    //             }
 
-                if (TDatabase::ParamDB->WRITE_VTK)
-                {
-                    os.seekp(std::ios::beg);
-                    if (img < 10)
-                        os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
-                    else if (img < 100)
-                        os << filename.c_str() << "/" << VtkBaseName << ".000" << img << ".vtk" << ends;
-                    else if (img < 1000)
-                        os << filename.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
-                    else if (img < 10000)
-                        os << filename.c_str() << "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
-                    else
-                        os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
-                    Output->WriteVtk(os.str().c_str());
-                    img++;
-                }
+    //             if (TDatabase::ParamDB->WRITE_VTK)
+    //             {
+    //                 os.seekp(std::ios::beg);
+    //                 if (img < 10)
+    //                     os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
+    //                 else if (img < 100)
+    //                     os << filename.c_str() << "/" << VtkBaseName << ".000" << img << ".vtk" << ends;
+    //                 else if (img < 1000)
+    //                     os << filename.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
+    //                 else if (img < 10000)
+    //                     os << filename.c_str() << "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
+    //                 else
+    //                     os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
+    //                 Output->WriteVtk(os.str().c_str());
+    //                 img++;
+    //             }
 
-            } // for(l=0;l< N_SubSteps;l++)
+    //         } // for(l=0;l< N_SubSteps;l++)
 
-        } // while(TDatabase::TimeDB->CURRENTTIME< end_time)
+    //     } // while(TDatabase::TimeDB->CURRENTTIME< end_time)
 
-        //======================================================================
-        // produce final outout
-        //======================================================================
+    //     //======================================================================
+    //     // produce final outout
+    //     //======================================================================
 
-        os.seekp(std::ios::beg);
-        if (img < 10)
-            os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
-        else if (img < 100)
-            os << filename.c_str() << "/" << VtkBaseName << ".000" << img << ".vtk" << ends;
-        else if (img < 1000)
-            os << filename.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
-        else if (img < 10000)
-            os << filename.c_str()<< "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
-        else
-            os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
-        Output->WriteVtk(os.str().c_str());
-        img++;
+    //     os.seekp(std::ios::beg);
+    //     if (img < 10)
+    //         os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
+    //     else if (img < 100)
+    //         os << filename.c_str() << "/" << VtkBaseName << ".000" << img << ".vtk" << ends;
+    //     else if (img < 1000)
+    //         os << filename.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
+    //     else if (img < 10000)
+    //         os << filename.c_str()<< "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
+    //     else
+    //         os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
+    //     Output->WriteVtk(os.str().c_str());
+    //     img++;
 
-        // cout << " Solution Norm After: " << Ddot(N_DOF,sol,sol) <<endl;
-        for(int i=0;i<N_DOF;i++){
-            solMeanMC[i]+=sol[i]/N_Realisations;
-        }
-        for ( int k = 0 ; k < N_samples;k++)
-        {
-            fileout_final << sol[indexArray[k]];
-            if(k != N_DOF - 1) fileout_final <<",";
-        }
-        fileout_final<<endl;
+    //     // cout << " Solution Norm After: " << Ddot(N_DOF,sol,sol) <<endl;
+    //     for(int i=0;i<N_DOF;i++){
+    //         solMeanMC[i]+=sol[i]/N_Realisations;
+    //     }
+    //     for ( int k = 0 ; k < N_samples;k++)
+    //     {
+    //         fileout_final << sol[indexArray[k]];
+    //         if(k != N_DOF - 1) fileout_final <<",";
+    //     }
+    //     fileout_final<<endl;
         
 
-        // set Current Time as Zero
-        TDatabase::TimeDB->CURRENTTIME = 0;
-        // delete SystemMatrix;
+    //     // set Current Time as Zero
+    //     TDatabase::TimeDB->CURRENTTIME = 0;
+    //     // delete SystemMatrix;
 
-    } // End Realization Loop
-    fileout.close();
+    // } // End Realization Loop
+    // fileout.close();
 ////// Mean Test ///////////////
 //Mean of solutions of Monte Carlo Realizations Must be equal to solution of Mean of Monte Carlo Realization
 ///////////////////////////////
     //======================================================================
     // Solve system for mean Cbar
     //======================================================================
+//////////////////////////////////////////////////////// Mean Equation Implementation Starts ////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     double* solMeanDO = new double[N_DOF];
     std::string str= std::to_string(N_Realisations);
     std::string filename = "Mean_NRealisations_" + std::to_string(N_Realisations);
@@ -964,15 +966,192 @@ int main(int argc, char *argv[])
         TDatabase::TimeDB->CURRENTTIME = 0;
         // delete SystemMatrix;
 
+//////////////////////////////////////////////////////// Mean Equation Implementation Ends ////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////// Mode Equation Implementation Starts ////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  
+    // CloseFiles();
+    // double l2 = 0.0;
+    // for(int i=0;i<N_DOF;i++){
+    //     l2+=(pow(solMeanDO[i]-solMeanMC[i],2));
+    // }
+    // l2 = sqrt(l2);
+    // cout<<"L2 Error = " << l2 << endl;
+
+    double* ModeVectorOld = new double[N_DOF*subDim];
+    // std::string str1= std::to_string(N_Realisations);
+    std::string filenameMode = "Mean_NRealisations_" + std::to_string(N_Realisations);
+    VtkBaseName = const_cast<char *>(filename.c_str());
+
+    mkdir(filename.c_str(), 0777);
+
+    for ( int i=0 ; i < N_DOF; i++)
+        sol[mappingArray[i]] = MeanVector[i];
+        
+    os.seekp(std::ios::beg);
+    if (img < 10)
+        os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
+    else if (img < 100)
+        os << filename.c_str() << "/" << VtkBaseName<< ".000" << img << ".vtk" << ends;
+    else if (img < 1000)
+        os << filename.c_str() << "/" << VtkBaseName<< ".00" << img << ".vtk" << ends;
+    else if (img < 10000)
+        os << filename.c_str() << "/" << VtkBaseName<< ".0" << img << ".vtk" << ends;
+    else
+        os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
+    Output->WriteVtk(os.str().c_str());
+    img++;
+
+        for ( int k = 0 ; k < N_samples;k++)
+        {
+            fileout << sol[indexArray[k]];
+            if(k != N_DOF - 1) fileout <<",";
+        }
+        fileout<<endl;
+
+        // assemble the system matrix with given aux, sol and rhs
+        // aux is used to pass  addition fe functions (eg. mesh velocity) that is nedded for assembling,
+        // otherwise, just pass with NULL
+        SystemMatrix->AssembleMRhs(NULL, sol, rhs);
+
+        //======================================================================
+        // time disc loop
+        //======================================================================
+        // parameters for time stepping scheme
+        m = 0;
+        N_SubSteps = GetN_SubSteps();
+        end_time = TDatabase::TimeDB->ENDTIME;
+
+        UpdateStiffnessMat = TRUE; //check BilinearCoeffs in example file
+        UpdateRhs = TRUE;           //check BilinearCoeffs in example file
+        ConvectionFirstTime = TRUE;
+
+        // time loop starts
+        while (TDatabase::TimeDB->CURRENTTIME < end_time)
+        {
+            m++;
+            TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
+
+            for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
+            {
+                SetTimeDiscParameters(1);
+
+                if (m == 1)
+                {
+                    // OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
+                    // OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
+                    // OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
+                    // OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
+                }
+
+                tau = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
+                TDatabase::TimeDB->CURRENTTIME += tau;
+
+                // OutPut(endl<< "CURRENT TIME: ");
+                // OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
+                //********************************-------------------------------------------Update Mode Equation Code Here -----------------------------------******************
+                for(int modeNo=0;modeNo<subDim;modeNo++){
+                    for(int dof=0;dof<N_DOF;dof++){
+                        sol[mappingArray[i]] = ModeVector[subDim*i+modeNo];
+                        }
+                    
+
+                
 
 
-    CloseFiles();
-    double l2 = 0.0;
-    for(int i=0;i<N_DOF;i++){
-        l2+=(pow(solMeanDO[i]-solMeanMC[i],2));
-    }
-    l2 = sqrt(l2);
-    cout<<"L2 Error = " << l2 << endl;
+
+
+
+                //********************************-------------------------------------------Update Mode Equation Code Here -----------------------------------******************
+
+
+                //copy rhs to oldrhs
+                        memcpy(oldrhs, rhs, N_DOF * SizeOfDouble);
+
+                // unless the stiffness matrix or rhs change in time, it is enough to
+                // assemble only once at the begning
+                        if (UpdateStiffnessMat || UpdateRhs || ConvectionFirstTime)
+                        {
+                            SystemMatrix->AssembleARhs(NULL, sol, rhs);
+
+                            // M:= M + (tau*THETA1)*A
+                            // rhs: =(tau*THETA4)*rhs +(tau*THETA3)*oldrhs +[M-(tau*THETA2)A]*oldsol
+                            // note! sol contains only the previous time step value, so just pass
+                            // sol for oldsol
+                            SystemMatrix->AssembleSystMat(oldrhs, sol, rhs, sol);
+                            ConvectionFirstTime = FALSE;
+                        }
+
+                // solve the system matrix
+                            SystemMatrix->Solve(sol, rhs);
+
+                // restore the mass matrix for the next time step
+                // unless the stiffness matrix or rhs change in time, it is not necessary to assemble the system matrix in every time step
+                            if (UpdateStiffnessMat || UpdateRhs)
+                            {
+                                SystemMatrix->RestoreMassMat();
+                            }
+
+                            if (TDatabase::ParamDB->WRITE_VTK)
+                            {
+                                os.seekp(std::ios::beg);
+                                if (img < 10)
+                                    os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
+                                else if (img < 100)
+                                    os << filename.c_str() << "/" << VtkBaseName << ".000" << img << ".vtk" << ends;
+                                else if (img < 1000)
+                                    os << filename.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
+                                else if (img < 10000)
+                                    os << filename.c_str() << "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
+                                else
+                                    os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
+                                Output->WriteVtk(os.str().c_str());
+                                img++;
+                                }
+
+                } // Mode Iteration Loop
+                
+
+            } // for(l=0;l< N_SubSteps;l++)
+
+         // while(TDatabase::TimeDB->CURRENTTIME< end_time) loop ends 
+
+        //======================================================================
+        // produce final output
+        //======================================================================
+
+        os.seekp(std::ios::beg);
+        if (img < 10)
+            os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
+        else if (img < 100)
+            os << filename.c_str() << "/" << VtkBaseName << ".000" << img << ".vtk" << ends;
+        else if (img < 1000)
+            os << filename.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
+        else if (img < 10000)
+            os << filename.c_str()<< "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
+        else
+            os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
+        Output->WriteVtk(os.str().c_str());
+        img++;
+
+        // cout << " Solution Norm After: " << Ddot(N_DOF,sol,sol) <<endl;
+        for(int i=0;i<N_DOF;i++){
+            solMeanDO[i]=sol[i];
+        }
+        for ( int k = 0 ; k < N_samples;k++)
+        {
+            fileout_final << sol[indexArray[k]];
+            if(k != N_DOF - 1) fileout_final <<",";
+        }
+        fileout_final<<endl;
+        
+
+        // set Current Time as Zero
+        TDatabase::TimeDB->CURRENTTIME = 0;
+        // delete SystemMatrix;
+
 
     return 0;
 } // end main
