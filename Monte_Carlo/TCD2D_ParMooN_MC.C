@@ -353,6 +353,7 @@ int main(int argc, char *argv[])
     double* Z  = new double[N_Realisations*modDim]();
 
     double* SolutionVector = new double[N_DOF * N_Realisations]();
+    double* RealizationVector = new double[N_DOF * N_Realisations]();
 
     // -------------- Generate Random Number Based on Normal Distribution -------------------------//
     int k=0;
@@ -403,6 +404,11 @@ int main(int argc, char *argv[])
     cout << " REALISATIONS COMPUTED " <<endl;
 
     /////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
+    for(int i=0;i<N_DOF;i++){
+        for(int j=0;j<N_Realisations;j++){
+            RealizationVector[mappingArray[i]+N_DOF*j]=SolutionVector[j+N_Realisations*i];
+        }
+    }
 
 
 
@@ -461,7 +467,8 @@ int main(int argc, char *argv[])
         mkdir(filename.c_str(), 0777);
 
         for ( int i=0 ; i < N_DOF; i++)
-            sol[mappingArray[i]] = SolutionVector[RealNo  +  N_Realisations * i];
+            // sol[mappingArray[i]] = SolutionVector[RealNo  +  N_Realisations * i];
+            sol[i] = RealizationVector[RealNo*N_DOF+i];
         
         os.seekp(std::ios::beg);
         if (img < 10)

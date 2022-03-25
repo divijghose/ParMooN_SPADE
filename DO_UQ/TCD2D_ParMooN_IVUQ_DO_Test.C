@@ -12,52 +12,43 @@
 
 // =======================================================================
 
-#include <Domain.h>//
-#include <Database.h>//
-#include <SystemTCD2D.h>//
-#include <SystemTCD2D_ALE.h>//
-#include <FEDatabase2D.h>//
-#include <FESpace2D.h>//
-#include <SquareStructure2D.h>//
-#include <Structure2D.h>//
-#include <QuadAffin.h>//
-#include <DirectSolver.h>//
-#include <Assemble2D.h>//
-#include <Output2D.h>//
-#include <LinAlg.h>//
-#include <CD2DErrorEstimator.h>//
-#include <MainUtilities.h>//
-#include <TimeDiscRout.h>//
+#include <Domain.h>
+#include <Database.h>
+#include <SystemTCD2D.h>
+#include <SystemTCD2D_ALE.h>
+#include <FEDatabase2D.h>
+#include <FESpace2D.h>
+#include <SquareStructure2D.h>
+#include <Structure2D.h>
+#include <QuadAffin.h>
+#include <DirectSolver.h>
+#include <Assemble2D.h>
+#include <Output2D.h>
+#include <LinAlg.h>
+#include <CD2DErrorEstimator.h>
+#include <MainUtilities.h>
+#include <TimeDiscRout.h>
 #include<fstream>
 #include<string> 
-#include <string.h>//
-#include <sstream>//
-#include <MooNMD_Io.h>//
-#include <stdlib.h>//
-#include <math.h>//
-#include <sys/stat.h>//
-#include <sys/types.h>//
-#include <mkl.h>//
-#include<cmath>//
-#include<random>//
+#include <string.h>
+#include <sstream>
+#include <MooNMD_Io.h>
+#include <stdlib.h>
+#include <math.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <mkl.h>
+#include<cmath>
+#include<random>
+#include <FEVectFunct2D.h>
 
-//Added from linearAdvection_DO.C//
-#include <ConvDiff.h>
-#include <ConvDiff2D.h>
-#include <IsoBoundEdge.h>
-#include <FEFunction2D.h>
-#include<DiscreteForm2D.h>
-#include <BoundEdge.h>
-#include <IsoBoundEdge.h>
-
-//
 
 
 // =======================================================================
 // include current example
 // =======================================================================
 // #include "../Examples/TCD_2D/exp.h"
-#include "../Examples/Monte_Carlo/Advection.h"
+#include "../Examples/DO_UQ/linear_advection_do_test.h"
 // #include "../Examples/TCD_2D/SinCos1.h"
 // #include "../Examples_All/TCD_2D/Time3.h"
 // #include "../Examples/TCD_2D/exp_0.h"
@@ -73,27 +64,36 @@ int main(int argc, char *argv[])
     int i, j, l, m, N_SubSteps, ORDER, N_Cells, N_DOF, img = 1, N_G;
     int N_Active;
 
-    double *sol, *rhs, *oldrhs, t1, t2, errors[5], Linfty;
+    double *sol, * rhs, *oldrhs, t1, t2, errors[5], Linfty;
     double tau, end_time, *defect, olderror, olderror1, hmin, hmax;
+
+    double *solMean, *rhsMean, *old_rhsMean;
 
     bool UpdateStiffnessMat, UpdateRhs, ConvectionFirstTime;
     char *VtkBaseName;
+    char *VtkBaseNameMean;
+    char *VtkBaseNameMode;
+
     const char vtkdir[] = "VTK";
 
     TDomain *Domain;
     TDatabase *Database = new TDatabase();
     TFEDatabase2D *FEDatabase = new TFEDatabase2D();
     TCollection *coll;
-    TFESpace2D *Scalar_FeSpace, *fesp[1], *ferhs[1],*fespace;
+    TFESpace2D *Scalar_FeSpace, *fesp[1];
+    TFEFunction2D *Scalar_FeFunction_Mean;
     TFEFunction2D *Scalar_FeFunction;
     TOutput2D *Output;
+    TOutput2D *OutputMean;
+    TOutput2D *OutputMode;
     TSystemTCD2D *SystemMatrix;
     TAuxParam2D *aux;
     MultiIndex2D AllDerivatives[3] = {D00, D10, D01};
 
     std::ostringstream os;
-    os << " ";
-
+    os << " ";//rename as os_mean?
+    std::ostringstream os_mode;
+	os_mode << " ";
     // ======================================================================
     // set the database values and generate mesh
     // ======================================================================
@@ -120,10 +120,10 @@ int main(int argc, char *argv[])
         Domain->GmshGen(TDatabase::ParamDB->GEOFILE);
         OutPut("GMSH used for meshing !!!" << endl);
     }                                            //gmsh mesh
-    else if (TDatabase::ParamDB->MESH_TYPE == 2) //triangle mesh
+    else if (TDatabase::ParamDB->MESH_TYPE == 2) // ngle mesh
     {
         OutPut("Triangle.h used for meshing !!!" << endl);
-        TriaReMeshGen(Domain);
+        // TriaReMeshGen(Domain);
     }
     else
     {
@@ -146,6 +146,15 @@ int main(int argc, char *argv[])
 
     // create output directory, if not already existing
     mkdir(vtkdir, 0777);
+    const char modedir[] = "Modes";
+    const char meandir[] = "Mean";
+    const char coeffdir[] = "Coefficients";
+    const char mcdir[] = "MonteCarlo";
+
+    mkdir(meandir, 0777);
+    mkdir(modedir, 0777);
+    mkdir(coeffdir, 0777);
+    mkdir(mcdir, 0777);
 
     //=========================================================================
     // construct all finite element spaces
@@ -165,94 +174,6 @@ int main(int argc, char *argv[])
     N_Active = Scalar_FeSpace->GetActiveBound();
     OutPut("dof all      : " << setw(10) << N_DOF << endl);
     OutPut("dof active   : " << setw(10) << N_Active << endl);
-
-    //======================================================================
-    // construct all finite element functions
-    //======================================================================
-    sol = new double[N_DOF];
-    rhs = new double[N_DOF];
-    oldrhs = new double[N_DOF];
-
-    memset(sol, 0, N_DOF * SizeOfDouble);
-    memset(rhs, 0, N_DOF * SizeOfDouble);
-
-    Scalar_FeFunction = new TFEFunction2D(Scalar_FeSpace, (char *)"sol", (char *)"sol", sol, N_DOF);
-
-    //======================================================================
-    // linearAdvection_DO.C FE Additions
-    //======================================================================
-        // Aux parameters - generates values like u,x u,y,  which are used for the construction of local matrices
-    // NOTE : None of the values are generated from AUX in this routine , since the weak form of elasticity equation
-    // does not need any special terms . So we will pass the AUX pointer as "NULL"  to the discrete form.
-    // TAuxParam2D *aux;
-
-    // Stores the Galerking Discrete Form
-    TDiscreteForm2D *discreteform;
-
-    // fespace = new TFESpace2D(coll, (char *)"name", (char *)"description", BoundCondition, ORDER, NULL);
-    //Use Scalar_FeSpace 
-
-
-     /* ------------------------------- start of DISCRETE FORM ---------------------------- */
-    // N_Terms  -  Number of terms and derivatives needed , in this case N , Nx, Ny
-    int N_Terms = 3;
-    // Spacenumbers -- array of values which denotes the SPACE numbers that eac terms mentioned above belongs to
-    int *SpacesNumbers = new int[N_Terms]();
-    // Number of block matrices needed to create our final stiffness matrix
-    // For NSE 2d it will be 4 A matrices and 2 B matrices
-    int N_Matrices = 1;
-    // The number of components in the RHS of the matrix
-    int N_RHS = 1;
-    // The row space and column space of the each matrix being constructed
-    int *rowspace = new int[N_Matrices]();
-    int *columnspace = new int[N_Matrices]();
-    int *rhsspace = new int[N_RHS]();
-
-    /* ------------------------------- start of DISCRETE FORM ---------------------------- */
-
-    // discreteform = new TDiscreteForm2D(UString, UString, N_Terms, AllDerivatives, SpacesNumbers, N_Matrices, N_RHS,
-    //                                    rowspace, columnspace, rhsspace, HemkerAssembly, BilinearCoeffs, NULL);
-
-    /** constructor with assembling using parameters */
-    /* ------------------------------- end of DISCRETE FORM ---------------------------- */
-
-    /*------------------ Start of MATRICES ----------------- */
-    // Matrix - structure declaration for square matrices
-    // This is a module which converts gives an interface between normal matrices and the matrices
-    // stored in the CSR format //
-    TSquareStructure2D *sqstructure = new TSquareStructure2D(fespace);
-    sqstructure->Sort();
-
-    // Once the strucute of the matrix is finalised for a particular FE space
-    // assign a matrix for that particular structure
-    double *RHS[1];
-    TSquareMatrix2D *sqmatrixA11, *SQMATRICES[4];
-    sqmatrixA11 = new TSquareMatrix2D(sqstructure);
-
-    SQMATRICES[0] = sqmatrixA11;
-
-    RHS[0] = rhs;
-
-    /*------------------ End  of MATRICES ----------------- */
-
-    /*------------------ Start of BOUNDARY CONDITIONS and values----------------- */
-    BoundCondFunct2D *BoundaryConditions_Neumann[1];
-    BoundValueFunct2D *BoundaryValues_Neumann[1], *BoundaryValues_Iter2[2];
-
-    BoundaryConditions_Neumann[0] = BoundCondition;
-
-    // Assigning the boundary  value function pointers to the above declared pointers
-    BoundaryValues_Neumann[0] = BoundValue;
-
-    /*------------------ [End] of BOUNDARY CONDITIONS and values----------------- */
-    
-    fesp[0] = Scalar_FeSpace;
-    ferhs[0] = Scalar_FeSpace;
-    TAuxParam2D* aux1 = new TAuxParam2D(1, 0, 0, 0, fesp, NULL, NULL, NULL, NULL, 0, NULL);
-
-    Assemble2D(1, fesp, 1, SQMATRICES, 0, NULL, 1, RHS, ferhs, discreteform, BoundaryConditions_Neumann,
-               BoundaryValues_Neumann, aux1);
-
 
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -426,6 +347,8 @@ int main(int argc, char *argv[])
     }
    cout << " REALISATIONS COMPUTED " <<endl;
     int energyVal = 0;
+    int temp = 0;
+
 
     double sumSingularVal = 0;
     for( int i=0;i<N_DOF;i++) sumSingularVal += S[i];
@@ -434,17 +357,20 @@ int main(int argc, char *argv[])
     for( energyVal =0 ; energyVal< N_DOF; energyVal++)
     {
         val += S[energyVal];
-        if(val/sumSingularVal > 0.8) break;
+        temp++;
+        if(val/sumSingularVal > 0.99) break;
     }
 
-    cout << " MODES : "  << energyVal+1 <<endl;
+    cout << " MODES : "  << temp+1 <<endl;
     
-    int modDim = energyVal+1;
+    int modDim = temp+1;
        
     double* Ut = new double[N_DOF*modDim]();
     double* Z  = new double[N_Realisations*modDim]();
 
     double* RealizationVector = new double[N_DOF * N_Realisations]();
+    double* RealizationVectorTemp = new double[N_DOF * N_Realisations]();
+
 
     // -------------- Generate Random Number Based on Normal Distribution -------------------------//
     int k=0;
@@ -493,6 +419,14 @@ int main(int argc, char *argv[])
     // cout << " COPY DONE "<<endl;
 
     cout << " REALISATIONS COMPUTED " <<endl;
+
+    for(int i=0;i<N_DOF;i++){
+        for(int j=0;j<N_Realisations;j++){
+            RealizationVectorTemp[mappingArray[i]*N_Realisations+j]=RealizationVector[j+N_Realisations*i];
+        }
+    }
+
+  memcpy(RealizationVector,RealizationVectorTemp,N_DOF*N_Realisations*SizeOfDouble);
 
     /////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
 
@@ -569,36 +503,528 @@ cout << "PROJ VECTOR MULT DONE "<< endl;
 
 /// Initialize Coefficient Matrix - First subDim columns of Projection Matrix ////////////////////
 double* CoeffVector = new double[N_Realisations * subDim]();
-// memcpy(CoeffVector, ProjectionVector, N_Realisations*subDim*SizeOfDouble); //For ColMajor storage
-for (int i=0;i<N_Realisations;i++){
-	for (int j=0;j<subDim;j++){
-		CoeffVector[i*subDim+j] = ProjectionVector[i*minDim+j];
-	}
+// memcpy(CoeffVector, ProjectionVector, N_Realisations*subDim*SizeOfDouble); //For ColMajor storage -wrong!!
+// for (int i=0;i<N_Realisations;i++){
+// 	for (int j=0;j<subDim;j++){
+// 		CoeffVector[i*subDim+j] = ProjectionVector[i*minDim+j];
+// 	}
+// }
+for(int i=0;i<N_Realisations;i++){
+    for(int j=0;j<subDim;j++){
+        CoeffVector[j*N_Realisations+i] = ProjectionVector[i*minDim+j]; // CoeffVector in Col Major form 
+    }
 }
 
 ////////////Initialize Mode Vector - First subDim columns of Left Singular Vector//////////////////
 double* ModeVector = new double[N_DOF* subDim]();
 // memcpy(ModeVector, L, N_DOF*subDim*SizeOfDouble);//For ColMajor storage
-for (int i=0;i<N_DOF;i++){
-	for (int j=0;j<subDim;j++){
-		ModeVector[i*subDim+j] = ProjectionVector[i*minDim+j];
-	}
+// for (int i=0;i<N_DOF;i++){
+// 	for (int j=0;j<subDim;j++){
+// 		ModeVector[i*subDim+j] = ProjectionVector[i*minDim+j];
+// 	}
+// }
+for(int i=0;i<N_DOF;i++){
+    for(int j=0;j<subDim;j++){
+        ModeVector[j*N_DOF+i] = L[i*minDim+j]; // ModeVector in Col Major form 
+    }
 }
 
-//////////////////////////////////////////DO - Initialization Ends//////////////////////////////////////
-/////================================================================================//////////////////
-
- #include "DO_Functions.h"
-
-cout << " --- DO Functions Included ---" <<endl;
-////////////////////////////
+////////////////////////////////////////////DO - Initialization Ends//////////////////////////////////////
+///////================================================================================//////////////////
 
 
+
+
+
+
+//======================================================================
+// construct all finite element functions
+//======================================================================
+sol = new double[N_DOF];
+rhs = new double[N_DOF];
+oldrhs = new double[N_DOF];
+
+memset(sol, 0, N_DOF * SizeOfDouble);
+memset(rhs, 0, N_DOF * SizeOfDouble);
+memset(oldrhs, 0, N_DOF * SizeOfDouble);
+
+solMean = new double[N_DOF];
+rhsMean = new double[N_DOF];
+old_rhsMean = new double[N_DOF];
+
+memset(solMean, 0, N_DOF * SizeOfDouble);
+memset(rhsMean, 0, N_DOF * SizeOfDouble);
+memset(old_rhsMean, 0, N_DOF * SizeOfDouble);
+
+Scalar_FeFunction_Mean = new TFEFunction2D(Scalar_FeSpace, (char *)"C_Mean", (char *)"sol", solMean, N_DOF);
+
+Scalar_FeFunction_Mean->Interpolate(InitialCondition);
+for(int i=0;i<N_DOF;i++){
+    // solMean[mappingArray[i]]=MeanVector[i];
+    solMean[i]=MeanVector[i];
+}
 
 // TDatabase::ParamDB->COVARIANCE_MATRIX_DO = CalcCovarianceMatx(CoeffVector,N_Realisations,subDim);//Not needed for linear advection
 
+	//======================================================================
+	// /DO - SystemMatrix construction and solution
+	//======================================================================
+	// Disc type: GALERKIN (or) SDFEM  (or) UPWIND (or) SUPG (or) LOCAL_PROJECTION
+	// Solver: AMG_SOLVE (or) GMG  (or) DIRECT
+	TSystemTCD2D* SystemMatrix_Mean = new TSystemTCD2D(Scalar_FeSpace, GALERKIN, DIRECT);
+    TSystemTCD2D* SystemMatrix_Mode =  new TSystemTCD2D(Scalar_FeSpace, GALERKIN, DIRECT);
 
-    // -------- Output parameters------------//
+	// initilize the system matrix with the functions defined in Example file
+	SystemMatrix_Mean->Init(DO_Mean_Equation_Coefficients, BoundCondition, BoundValue);
+	SystemMatrix_Mode->Init(DO_Mode_Equation_Coefficients, BoundCondition, BoundValue);
+
+    // 
+
+	   // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
+    //------------------------------------------ MEAN EQUATION SETUP -----------------------------------------------------//
+    // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
+
+    int N_terms_Mean = 3;  // Number of Shape function derivatives required ( in this case 3, N, NX, NY )
+    MultiIndex2D Derivatives_MatrixARhs_Mean[3] = { D00, D10, D01};
+    int SpacesNumbers_MatrixARhs_Mean[3] = { 0, 0, 0  };
+    int N_Matrices_MatrixARhs_Mean = 1;
+    int RowSpace_MatrixARhs_Mean[1] = { 0 };
+    int ColumnSpace_MatrixARhs_Mean[1] = { 0 };
+    int N_Rhs_MatrixARhs_Mean = 1;
+    int RhsSpace_MatrixARhs_Mean[1] = { 0 };
+
+
+    SystemMatrix_Mean->Init_WithDiscreteform(DO_Mean_Equation_Coefficients,BoundCondition, BoundValue,"DO_LINEAR_MEAN", "DO_LINEAR_MEAN",
+                                                N_terms_Mean, Derivatives_MatrixARhs_Mean, SpacesNumbers_MatrixARhs_Mean,
+                                                N_Matrices_MatrixARhs_Mean, N_Rhs_MatrixARhs_Mean,
+                                                RowSpace_MatrixARhs_Mean,ColumnSpace_MatrixARhs_Mean, RhsSpace_MatrixARhs_Mean,
+                                                DO_Mean_Equation_Assembly, DO_Mean_Equation_Coefficients,
+											NULL);
+
+    // Aux Setup for the RHS -- There is no Aux for the Mean equation, So set the values as NULL
+    fesp[0] = Scalar_FeSpace;
+    aux = new TAuxParam2D(1, 0, 0, 0, fesp, NULL, NULL, NULL, NULL, 0, NULL);
+
+    /* -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-
+    --------------------------------------[[[ END  ]]] MEAN EQUATION SETUP -----------------------------------------------------
+     -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0- */
+//xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+	 // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
+    //------------------------------------------ CO EFFICIENT EQUATION SETUP -----------------------------------------------------//
+    // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
+
+	TFEVectFunct2D* FeVector_Coefficient = new TFEVectFunct2D(Scalar_FeSpace, (char *)"sol", (char *)"sol",CoeffVector, N_Realisations, subDim);
+
+		 // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
+    //------------------------------------------ CO EFFICIENT EQUATION SETUP END -------------------------------------------------------//
+    // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
+
+
+	// Aux Setup for the RHS -- There is no Aux for the Mean equation, So set the values as NULL
+    fesp[0] = Scalar_FeSpace;
+    aux = new TAuxParam2D(1, 0, 0, 0, fesp, NULL, NULL, NULL, NULL, 0, NULL);
+	//xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+	 // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
+    //-------------------------------------- MODE EQUATION SETUP -----------------------------------------------------//
+    // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
+	 int N_terms_Mode = 3;  // Number of Shape function derivatives required ( in this case 3, N, NX, NY )
+    MultiIndex2D Derivatives_MatrixARhs_Mode[3] = { D00, D10, D01};
+    int SpacesNumbers_MatrixARhs_Mode[3] = { 0, 0, 0  };
+    int N_Matrices_MatrixARhs_Mode = 1;
+    int RowSpace_MatrixARhs_Mode[1] = { 0 };
+    int ColumnSpace_MatrixARhs_Mode[1] = { 0 };
+    int N_Rhs_MatrixARhs_Mode = 1;
+    int RhsSpace_MatrixARhs_Mode[1] = { 0 };
+	SystemMatrix_Mode->Init_WithDiscreteform(DO_Mode_Equation_Coefficients,BoundCondition, BoundValue,"DO_LINEAR_Mode", "DO_LINEAR_Mode",
+                                                N_terms_Mode, Derivatives_MatrixARhs_Mode, SpacesNumbers_MatrixARhs_Mode,
+                                                N_Matrices_MatrixARhs_Mode, N_Rhs_MatrixARhs_Mode,
+                                                RowSpace_MatrixARhs_Mode,ColumnSpace_MatrixARhs_Mode, RhsSpace_MatrixARhs_Mode,
+                                                DO_Mode_Equation_Assembly, DO_Mode_Equation_Coefficients,
+                                                NULL);
+
+
+	double* solMode = new double[N_DOF* subDim]();
+	double* rhsMode = new double[N_DOF* subDim]();
+	double* old_rhsMode = new double[N_DOF]();
+
+    for(int j=0;j<subDim;j++){
+        for(int i =0; i<N_DOF;i++){
+            // solMode[j*N_DOF+mappingArray[i]] = ModeVector[j*N_DOF+i];
+            solMode[j*N_DOF+i] = ModeVector[j*N_DOF+i];
+
+        }
+    }
+
+
+
+
+// 	// double* ModeVector_OldRHS = new double[N_DOF]();
+	TFEVectFunct2D* FEFVector_Mode = new TFEVectFunct2D(Scalar_FeSpace, (char *)"C_Mode", (char *)"sol",solMode, N_DOF, subDim);
+
+// // Set up a FE VECT FUNCTION TO STORE ALL THE Components of CTilde  
+
+//     // TFEVectFunct2D* linModesFeVectFunct = 
+
+    int TimeLinear_FESpaces_DO = 1;
+	int TimeLinear_Fct_DO = 1; // \tilde(C)
+	int TimeLinear_ParamFct_DO = 1;
+	int TimeLinear_FEValues_DO = 3;
+	int TimeLinear_Params_DO = 3;
+	int TimeNSFEFctIndex_DO[3] = {0, 0, 0};  
+	MultiIndex2D TimeNSFEMultiIndex_DO[3] = {D00, D01, D10};
+	ParamFct *TimeNSFct_DO[1] 		= { DO_Mode_RHS_Aux_Param };
+	int TimeNSBeginParam_DO[1] 		= { 0 };
+
+    TFEFunction2D* fefct_RHS[4];
+	TFESpace2D* fesp_RHS[2];
+
+// ;
+//     // Set Up Aux  Param for the given MOde 
+//     // The mode equation needs the entire values of the C_tilde matrix array 
+//     // TAuxParam2D* aux_RHS_DO = new TAuxParam2D (	TimeLinear_FESpaces_DO, <FE VECT FUNCTION>, TimeLinear_ParamFct_DO,
+// 	// 											TimeLinear_FEValues_DO,
+// 	// 											fesp_RHS,
+// 	// 											TimeNSFct_DO,
+// 	// 											TimeNSFEMultiIndex_DO,
+// 	// 											TimeLinear_Params_DO, TimeNSBeginParam_DO);
+
+	TAuxParam2D* aux_RHS_DO = new TAuxParam2D(1, 0, 0, 0, fesp, NULL, NULL, NULL, NULL, 0, NULL);
+	  // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
+    //--------------------------------------[[[ END  ]]] MODE EQUATION SETUP -----------------------------------------------------//
+    // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
+// assemble the system matrix with given aux, sol and rhs
+	// aux is used to pass  addition fe functions (eg. mesh velocity) that is nedded for assembling,
+	// otherwise, just pass with NULL
+	SystemMatrix_Mean->AssembleMRhs(NULL, solMean, rhsMean);
+	
+	SystemMatrix_Mode->AssembleMRhs(NULL, solMode, rhsMode);
+
+
+
+
+	//xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+//======================================================================
+	// produce outout at t=0
+	//======================================================================
+	// VtkBaseName = TDatabase::ParamDB->VTKBASENAME;
+    std::string strMean= std::to_string(N_Realisations);
+    std::string filenameMean = "Mean_NRealisations_" + std::to_string(N_Realisations);
+    VtkBaseNameMean = const_cast<char *>(filenameMean.c_str());
+
+    std::string strMode= std::to_string(N_Realisations);
+    std::string filenameMode = "Mode_NRealisations_" + std::to_string(N_Realisations);
+    VtkBaseNameMode = const_cast<char *>(filenameMode.c_str());
+
+
+    std::string fileoutCoeff; 
+    std::string fileoutMean; 
+    std::string fileoutMode; 
+    std::string fileoutMC;    
+
+
+	OutputMean = new TOutput2D(2, 2, 1, 1, Domain);
+	OutputMean->AddFEFunction(Scalar_FeFunction_Mean);
+
+    OutputMode = new TOutput2D(2, 2, 1, 1, Domain);
+	OutputMode->AddFEVectFunct(FEFVector_Mode);
+
+
+	int meanimg = 0;
+	int modeimg = 0;
+
+
+	if (TDatabase::ParamDB->WRITE_VTK)
+	{
+		os.seekp(std::ios::beg);
+		if (meanimg < 10)
+			os << "VTK/" << VtkBaseNameMean << ".0000" << meanimg << ".vtk" << ends;
+		else if (meanimg < 100)
+			os << "VTK/" << VtkBaseNameMean << ".000" << meanimg << ".vtk" << ends;
+		else if (meanimg < 1000)
+			os << "VTK/" << VtkBaseNameMean << ".00" << meanimg << ".vtk" << ends;
+		else if (meanimg < 10000)
+			os << "VTK/" << VtkBaseNameMean << ".0" << meanimg << ".vtk" << ends;
+		else
+			os << "VTK/" << VtkBaseNameMean << "." << meanimg << ".vtk" << ends;
+		OutputMean->WriteVtk(os.str().c_str());
+		meanimg++;
+	}
+	
+	
+	 if(TDatabase::ParamDB->WRITE_VTK)
+     {
+      os.seekp(std::ios::beg);
+       if(modeimg<10) os <<  "VTK/"<<VtkBaseNameMode<<".0000"<<modeimg<<".vtk" << ends;
+         else if(modeimg<100) os <<  "VTK/"<<VtkBaseNameMode<<".000"<<modeimg<<".vtk" << ends;
+          else if(modeimg<1000) os <<  "VTK/"<<VtkBaseNameMode<<".00"<<modeimg<<".vtk" << ends;
+           else if(modeimg<10000) os <<  "VTK/"<<VtkBaseNameMode<<".0"<<modeimg<<".vtk" << ends;
+            else  os <<  "VTK/"<<VtkBaseNameMode<<"."<<modeimg<<".vtk" << ends;
+      OutputMode->WriteVtk(os.str().c_str());
+      modeimg++;
+     }     
+	//xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+	coll->GetHminHmax(&hmin, &hmax);
+	OutPut("h_min : " << hmin << " h_max : " << hmax << endl);
+
+	//======================================================================
+	// time disc loop
+	//======================================================================
+	// parameters for time stepping scheme
+	m = 0;
+	N_SubSteps = GetN_SubSteps();
+	end_time = TDatabase::TimeDB->ENDTIME;
+
+	UpdateStiffnessMat = FALSE; //check BilinearCoeffs in example file
+	UpdateRhs = FALSE;			//check BilinearCoeffs in example file
+	ConvectionFirstTime = TRUE;
+//xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+
+        //======================================================================
+        // time disc loop
+        //======================================================================
+        // parameters for time stepping scheme
+        m = 0;
+        N_SubSteps = GetN_SubSteps();
+        end_time = TDatabase::TimeDB->ENDTIME;
+
+        UpdateStiffnessMat = TRUE; //check BilinearCoeffs in example file
+        UpdateRhs = TRUE;           //check BilinearCoeffs in example file
+        ConvectionFirstTime = TRUE;
+
+        // time loop starts
+        while (TDatabase::TimeDB->CURRENTTIME < end_time)
+        {
+            m++;
+            TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
+
+            for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
+            {
+                SetTimeDiscParameters(1);
+
+                if (m == 1)
+                {
+                    // OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
+                    // OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
+                    // OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
+                    // OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
+                }
+
+                tau = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
+                TDatabase::TimeDB->CURRENTTIME += tau;
+
+                OutPut(endl<< "CURRENT TIME: ");
+                OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
+
+                // copy rhs to oldrhs
+                memcpy(old_rhsMean, rhsMean, N_DOF * SizeOfDouble);
+
+                // unless the stiffness matrix or rhs change in time, it is enough to
+                // assemble only once at the begning
+				SystemMatrix_Mean->AssembleARhs(NULL, solMean, rhsMean);
+          
+				for ( int subSpaceNum = 0 ; subSpaceNum < subDim; subSpaceNum++)
+			{
+                // solve the system matrix
+                DO_CoEfficient(Scalar_FeSpace, FEFVector_Mode ,FeVector_Coefficient, subDim, subSpaceNum,N_Realisations);
+				double* modeSolution_i = solMode + subSpaceNum*N_DOF; // This works for column major 
+				double* modeSolution_rhs = rhsMode + subSpaceNum*N_DOF; // This works for column major 
+				
+				memcpy(old_rhsMode, modeSolution_rhs, N_DOF * SizeOfDouble);
+				
+				SystemMatrix_Mode->AssembleARhs(NULL, modeSolution_i, modeSolution_rhs);
+				
+				// get the UPDATED RHS VALUE FROM FUNCTION
+				DO_Mode_RHS(Scalar_FeSpace,FEFVector_Mode, subDim, modeSolution_rhs,subSpaceNum);
+				
+				SystemMatrix_Mode->AssembleSystMat(old_rhsMode, modeSolution_i, modeSolution_rhs, modeSolution_i);
+				SystemMatrix_Mode->Solve(modeSolution_i, modeSolution_rhs);
+				SystemMatrix_Mode->RestoreMassMat();
+                
+                }//subSpaceNumLoop
+
+
+
+        fileoutCoeff= "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations)+"_t"+std::to_string(m);
+        std::ofstream fileCoeff;
+        fileCoeff.open(fileoutCoeff);
+
+        for (int i = 0; i < N_Realisations; i++)
+        {
+            for (int j = 0; j < subDim; j++)
+            {
+                fileCoeff << CoeffVector[j*subDim + i];
+                if (j != subDim - 1)
+                    fileCoeff << ",";
+            }
+            fileCoeff << endl;
+        }
+
+        fileCoeff.close();
+
+        fileoutMode= "Modes/Mode_NRealisations_" + std::to_string(N_Realisations)+"_t"+std::to_string(m);
+        std::ofstream fileMode;
+        fileMode.open(fileoutMode);
+
+        for (int i = 0; i < N_DOF; i++)
+        {
+            for (int j = 0; j < subDim; j++)
+            {
+                fileMode << solMode[j*subDim + i];
+                if (j != subDim - 1)
+                    fileMode << ",";
+            }
+            fileMode << endl;
+        }
+
+        fileMode.close();
+
+
+        fileoutMean= "Mean/Mean_NRealisations_" + std::to_string(N_Realisations)+"_t"+std::to_string(m);
+        std::ofstream fileMean;
+        fileMean.open(fileoutMean);
+
+        for (int i = 0; i < N_DOF; i++)
+        {
+            
+                fileMean << MeanVector[i]<<",";
+                fileMean << endl;
+        }
+
+        fileMean.close();
+
+				
+                
+            SystemMatrix_Mean->AssembleSystMat(old_rhsMean, solMean, rhsMean, solMean);
+            ////  -- 
+			SystemMatrix_Mean->Solve(solMean, rhsMean);
+			SystemMatrix_Mean->RestoreMassMat(); 
+
+
+
+
+                // restore the mass matrix for the next time step
+                // unless the stiffness matrix or rhs change in time, it is not necessary to assemble the system matrix in every time step
+             
+
+            } // for(l=0;l< N_SubSteps;l++)
+			//======================================================================
+		// produce outout
+		//======================================================================
+		if (m == 1 || m % TDatabase::TimeDB->STEPS_PER_IMAGE == 0)
+		{
+			if (TDatabase::ParamDB->WRITE_VTK)
+			{
+				os.seekp(std::ios::beg);
+				if (meanimg < 10)
+					os << "VTK/" << VtkBaseNameMean << ".0000" << meanimg << ".vtk" << ends;
+				else if (meanimg < 100)
+					os << "VTK/" << VtkBaseNameMean << ".000" << meanimg << ".vtk" << ends;
+				else if (meanimg < 1000)
+					os << "VTK/" << VtkBaseNameMean << ".00" << meanimg << ".vtk" << ends;
+				else if (meanimg < 10000)
+					os << "VTK/" << VtkBaseNameMean << ".0" << meanimg << ".vtk" << ends;
+				else
+					os << "VTK/" << VtkBaseNameMean << "." << meanimg << ".vtk" << ends;
+				OutputMean->WriteVtk(os.str().c_str());
+				meanimg++;
+			}
+
+			
+
+			if(TDatabase::ParamDB->WRITE_VTK)
+			{
+				os.seekp(std::ios::beg);
+				if(modeimg<10) os <<  "VTK/"<<VtkBaseNameMode<<".0000"<<modeimg<<".vtk" << ends;
+					else if(modeimg<100) os <<  "VTK/"<<VtkBaseNameMode<<".000"<<modeimg<<".vtk" << ends;
+					else if(modeimg<1000) os <<  "VTK/"<<VtkBaseNameMode<<".00"<<modeimg<<".vtk" << ends;
+					else if(modeimg<10000) os <<  "VTK/"<<VtkBaseNameMode<<".0"<<modeimg<<".vtk" << ends;
+						else  os <<  "VTK/"<<VtkBaseNameMode<<"."<<modeimg<<".vtk" << ends;
+				OutputMode->WriteVtk(os.str().c_str());
+				modeimg++;
+			} 
+
+
+		} //produce output loop end
+            //======================================================================
+		// measure errors to known solution
+		//======================================================================
+		if (TDatabase::ParamDB->MEASURE_ERRORS)
+		{
+            fesp[0] = Scalar_FeSpace;
+            aux = new TAuxParam2D(1, 0, 0, 0, fesp, NULL, NULL, NULL, NULL, 0, NULL);
+			Scalar_FeFunction_Mean->GetErrors(Exact, 3, AllDerivatives, 2, L2H1Errors, DO_Mean_Equation_Coefficients, aux, 1, fesp, errors);
+
+			OutPut("time: " << TDatabase::TimeDB->CURRENTTIME);
+			OutPut(" L2: " << errors[0]);
+			OutPut(" H1-semi: " << errors[1] << endl);
+
+			errors[3] += (errors[0] * errors[0] + olderror * olderror) * TDatabase::TimeDB->TIMESTEPLENGTH / 2.0;
+			olderror = errors[0];
+			OutPut(TDatabase::TimeDB->CURRENTTIME << " L2(0,T;L2) " << sqrt(errors[3]) << " ");
+
+			errors[4] += (errors[1] * errors[1] + olderror1 * olderror1) * TDatabase::TimeDB->TIMESTEPLENGTH / 2.0;
+			OutPut("L2(0,T;H1) " << sqrt(errors[4]) << endl);
+			olderror1 = errors[1];
+
+			if (Linfty < errors[0])
+				Linfty = errors[0];
+
+			OutPut("Linfty " << Linfty << endl);
+		} //  if(TDatabase::ParamDB->MEASURE_ERRORS)
+
+        } // while(TDatabase::TimeDB->CURRENTTIME< end_time)
+
+       //======================================================================
+	// produce final outout
+	//======================================================================
+
+    if (TDatabase::ParamDB->WRITE_VTK)
+			{
+				os.seekp(std::ios::beg);
+				if (meanimg < 10)
+					os << "VTK/" << VtkBaseNameMean << ".0000" << meanimg << ".vtk" << ends;
+				else if (meanimg < 100)
+					os << "VTK/" << VtkBaseNameMean << ".000" << meanimg << ".vtk" << ends;
+				else if (meanimg < 1000)
+					os << "VTK/" << VtkBaseNameMean << ".00" << meanimg << ".vtk" << ends;
+				else if (meanimg < 10000)
+					os << "VTK/" << VtkBaseNameMean << ".0" << meanimg << ".vtk" << ends;
+				else
+					os << "VTK/" << VtkBaseNameMean << "." << meanimg << ".vtk" << ends;
+				OutputMean->WriteVtk(os.str().c_str());
+				meanimg++;
+			}
+
+			
+
+			if(TDatabase::ParamDB->WRITE_VTK)
+			{
+				os.seekp(std::ios::beg);
+				if(modeimg<10) os <<  "VTK/"<<VtkBaseNameMode<<".0000"<<modeimg<<".vtk" << ends;
+					else if(modeimg<100) os <<  "VTK/"<<VtkBaseNameMode<<".000"<<modeimg<<".vtk" << ends;
+					else if(modeimg<1000) os <<  "VTK/"<<VtkBaseNameMode<<".00"<<modeimg<<".vtk" << ends;
+					else if(modeimg<10000) os <<  "VTK/"<<VtkBaseNameMode<<".0"<<modeimg<<".vtk" << ends;
+						else  os <<  "VTK/"<<VtkBaseNameMode<<"."<<modeimg<<".vtk" << ends;
+				OutputMode->WriteVtk(os.str().c_str());
+				modeimg++;
+			} 
+
+    cout <<"Subspace Dimension = " << subDim << endl;
+    CloseFiles();
+
+
+//////////////////////// Monte Carlo Runs /////////////////////////////////////////////
+    TDatabase::TimeDB->CURRENTTIME = 0;
+    sol = new double[N_DOF];
+    rhs = new double[N_DOF];
+    oldrhs = new double[N_DOF];
+
+    memset(sol, 0, N_DOF * SizeOfDouble);
+    memset(rhs, 0, N_DOF * SizeOfDouble);
+
+    Scalar_FeFunction = new TFEFunction2D(Scalar_FeSpace, (char *)"sol", (char *)"sol", sol, N_DOF);    
     VtkBaseName = TDatabase::ParamDB->VTKBASENAME;
     
     Output = new TOutput2D(2, 2, 1, 1, Domain);
@@ -633,194 +1059,28 @@ cout << " --- DO Functions Included ---" <<endl;
     for ( int i =0 ; i < N_samples;i++)
         indexArray[i] = rand() % N_DOF;
     
-    double* solMeanMC = new double[N_DOF];
-    for(int i=0;i<N_DOF;i++){
-        solMeanMC[i]=0.0;
-    }
-    
-    // for ( int RealNo=0 ; RealNo < N_Realisations; RealNo++)
-    // {
-    //     // cout << " ============================================================================================================= " <<endl;
-    //     cout <<  " Real no " <<  RealNo  <<endl;
-    //     // cout << " ============================================================================================================= " <<endl;
+
+
+    for ( int RealNo=0 ; RealNo < N_Realisations; RealNo++)
+    {
+        // cout << " ============================================================================================================= " <<endl;
+        cout <<  " Real no " <<  RealNo  <<endl;
+        // cout << " ============================================================================================================= " <<endl;
 
 		
 		
 		
 		
-    //     // Scalar_FeFunction->Interpolate(InitialCondition);
-    //     std::string str= std::to_string(RealNo);
-    //     std::string filename = "Realization_Nr_" + std::to_string(RealNo);
-	// 	VtkBaseName = const_cast<char *>(filename.c_str());
+        // Scalar_FeFunction->Interpolate(InitialCondition);
+        std::string str= std::to_string(RealNo);
+        std::string filename = "Realization_Nr_" + std::to_string(RealNo);
+		VtkBaseName = const_cast<char *>(filename.c_str());
+        img=0;
 
-    //     mkdir(filename.c_str(), 0777);
-
-    //     for ( int i=0 ; i < N_DOF; i++)
-    //         sol[mappingArray[i]] = RealizationVector[RealNo  +  N_Realisations * i];
-        
-    //     os.seekp(std::ios::beg);
-    //     if (img < 10)
-    //         os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
-    //     else if (img < 100)
-    //         os << filename.c_str() << "/" << VtkBaseName<< ".000" << img << ".vtk" << ends;
-    //     else if (img < 1000)
-    //         os << filename.c_str() << "/" << VtkBaseName<< ".00" << img << ".vtk" << ends;
-    //     else if (img < 10000)
-    //        os << filename.c_str() << "/" << VtkBaseName<< ".0" << img << ".vtk" << ends;
-    //     else
-    //         os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
-    //     Output->WriteVtk(os.str().c_str());
-    //     img++;
-
-    //     for ( int k = 0 ; k < N_samples;k++)
-    //     {
-    //         fileout << sol[indexArray[k]];
-    //         if(k != N_DOF - 1) fileout <<",";
-    //     }
-    //     fileout<<endl;
-
-    //     // assemble the system matrix with given aux, sol and rhs
-    //     // aux is used to pass  addition fe functions (eg. mesh velocity) that is nedded for assembling,
-    //     // otherwise, just pass with NULL
-    //     SystemMatrix->AssembleMRhs(NULL, sol, rhs);
-
-    //     //======================================================================
-    //     // time disc loop
-    //     //======================================================================
-    //     // parameters for time stepping scheme
-    //     m = 0;
-    //     N_SubSteps = GetN_SubSteps();
-    //     end_time = TDatabase::TimeDB->ENDTIME;
-
-    //     UpdateStiffnessMat = TRUE; //check BilinearCoeffs in example file
-    //     UpdateRhs = TRUE;           //check BilinearCoeffs in example file
-    //     ConvectionFirstTime = TRUE;
-
-    //     // time loop starts
-    //     while (TDatabase::TimeDB->CURRENTTIME < end_time)
-    //     {
-    //         m++;
-    //         TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
-
-    //         for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
-    //         {
-    //             SetTimeDiscParameters(1);
-
-    //             if (m == 1)
-    //             {
-    //                 // OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
-    //                 // OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
-    //                 // OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
-    //                 // OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
-    //             }
-
-    //             tau = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
-    //             TDatabase::TimeDB->CURRENTTIME += tau;
-
-    //             // OutPut(endl<< "CURRENT TIME: ");
-    //             // OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
-
-    //             //copy rhs to oldrhs
-    //             memcpy(oldrhs, rhs, N_DOF * SizeOfDouble);
-
-    //             // unless the stiffness matrix or rhs change in time, it is enough to
-    //             // assemble only once at the begning
-    //             if (UpdateStiffnessMat || UpdateRhs || ConvectionFirstTime)
-    //             {
-    //                 SystemMatrix->AssembleARhs(NULL, sol, rhs);
-
-    //                 // M:= M + (tau*THETA1)*A
-    //                 // rhs: =(tau*THETA4)*rhs +(tau*THETA3)*oldrhs +[M-(tau*THETA2)A]*oldsol
-    //                 // note! sol contains only the previous time step value, so just pass
-    //                 // sol for oldsol
-    //                 SystemMatrix->AssembleSystMat(oldrhs, sol, rhs, sol);
-    //                 ConvectionFirstTime = FALSE;
-    //             }
-
-    //             // solve the system matrix
-    //             SystemMatrix->Solve(sol, rhs);
-
-    //             // restore the mass matrix for the next time step
-    //             // unless the stiffness matrix or rhs change in time, it is not necessary to assemble the system matrix in every time step
-    //             if (UpdateStiffnessMat || UpdateRhs)
-    //             {
-    //                 SystemMatrix->RestoreMassMat();
-    //             }
-
-    //             if (TDatabase::ParamDB->WRITE_VTK)
-    //             {
-    //                 os.seekp(std::ios::beg);
-    //                 if (img < 10)
-    //                     os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
-    //                 else if (img < 100)
-    //                     os << filename.c_str() << "/" << VtkBaseName << ".000" << img << ".vtk" << ends;
-    //                 else if (img < 1000)
-    //                     os << filename.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
-    //                 else if (img < 10000)
-    //                     os << filename.c_str() << "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
-    //                 else
-    //                     os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
-    //                 Output->WriteVtk(os.str().c_str());
-    //                 img++;
-    //             }
-
-    //         } // for(l=0;l< N_SubSteps;l++)
-
-    //     } // while(TDatabase::TimeDB->CURRENTTIME< end_time)
-
-    //     //======================================================================
-    //     // produce final outout
-    //     //======================================================================
-
-    //     os.seekp(std::ios::beg);
-    //     if (img < 10)
-    //         os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
-    //     else if (img < 100)
-    //         os << filename.c_str() << "/" << VtkBaseName << ".000" << img << ".vtk" << ends;
-    //     else if (img < 1000)
-    //         os << filename.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
-    //     else if (img < 10000)
-    //         os << filename.c_str()<< "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
-    //     else
-    //         os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
-    //     Output->WriteVtk(os.str().c_str());
-    //     img++;
-
-    //     // cout << " Solution Norm After: " << Ddot(N_DOF,sol,sol) <<endl;
-    //     for(int i=0;i<N_DOF;i++){
-    //         solMeanMC[i]+=sol[i]/N_Realisations;
-    //     }
-    //     for ( int k = 0 ; k < N_samples;k++)
-    //     {
-    //         fileout_final << sol[indexArray[k]];
-    //         if(k != N_DOF - 1) fileout_final <<",";
-    //     }
-    //     fileout_final<<endl;
-        
-
-    //     // set Current Time as Zero
-    //     TDatabase::TimeDB->CURRENTTIME = 0;
-    //     // delete SystemMatrix;
-
-    // } // End Realization Loop
-    // fileout.close();
-////// Mean Test ///////////////
-//Mean of solutions of Monte Carlo Realizations Must be equal to solution of Mean of Monte Carlo Realization
-///////////////////////////////
-    //======================================================================
-    // Solve system for mean Cbar
-    //======================================================================
-//////////////////////////////////////////////////////// Mean Equation Implementation Starts ////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    double* solMeanDO = new double[N_DOF];
-    std::string str= std::to_string(N_Realisations);
-    std::string filename = "Mean_NRealisations_" + std::to_string(N_Realisations);
-    VtkBaseName = const_cast<char *>(filename.c_str());
-
-    mkdir(filename.c_str(), 0777);
+        mkdir(filename.c_str(), 0777);
 
         for ( int i=0 ; i < N_DOF; i++)
-            sol[mappingArray[i]] = MeanVector[i];
+            sol[i] = RealizationVector[RealNo  +  N_Realisations * i];
         
         os.seekp(std::ios::beg);
         if (img < 10)
@@ -904,6 +1164,19 @@ cout << " --- DO Functions Included ---" <<endl;
                 // solve the system matrix
                 SystemMatrix->Solve(sol, rhs);
 
+            fileoutMC= "MonteCarlo/MC_NRealisations_" + std::to_string(N_Realisations)+"_t"+std::to_string(m);
+            std::ofstream fileMC;
+            fileMC.open(fileoutMC,std::fstream::app);
+
+        for (int i = 0; i < N_DOF; i++)
+        {
+            fileMC << sol[i] << ",";
+        }
+        fileMC << endl;
+        cout << "Realization "<< RealNo <<" added" <<endl;
+
+        fileMC.close();
+
                 // restore the mass matrix for the next time step
                 // unless the stiffness matrix or rhs change in time, it is not necessary to assemble the system matrix in every time step
                 if (UpdateStiffnessMat || UpdateRhs)
@@ -933,7 +1206,7 @@ cout << " --- DO Functions Included ---" <<endl;
         } // while(TDatabase::TimeDB->CURRENTTIME< end_time)
 
         //======================================================================
-        // produce final output
+        // produce final outout
         //======================================================================
 
         os.seekp(std::ios::beg);
@@ -951,9 +1224,7 @@ cout << " --- DO Functions Included ---" <<endl;
         img++;
 
         // cout << " Solution Norm After: " << Ddot(N_DOF,sol,sol) <<endl;
-        for(int i=0;i<N_DOF;i++){
-            solMeanDO[i]=sol[i];
-        }
+
         for ( int k = 0 ; k < N_samples;k++)
         {
             fileout_final << sol[indexArray[k]];
@@ -966,192 +1237,14 @@ cout << " --- DO Functions Included ---" <<endl;
         TDatabase::TimeDB->CURRENTTIME = 0;
         // delete SystemMatrix;
 
-//////////////////////////////////////////////////////// Mean Equation Implementation Ends ////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    }
+    fileout.close();
 
-//////////////////////////////////////////////////////// Mode Equation Implementation Starts ////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  
-    // CloseFiles();
-    // double l2 = 0.0;
-    // for(int i=0;i<N_DOF;i++){
-    //     l2+=(pow(solMeanDO[i]-solMeanMC[i],2));
-    // }
-    // l2 = sqrt(l2);
-    // cout<<"L2 Error = " << l2 << endl;
-
-    double* ModeVectorOld = new double[N_DOF*subDim];
-    // std::string str1= std::to_string(N_Realisations);
-    std::string filenameMode = "Mean_NRealisations_" + std::to_string(N_Realisations);
-    VtkBaseName = const_cast<char *>(filename.c_str());
-
-    mkdir(filename.c_str(), 0777);
-
-    for ( int i=0 ; i < N_DOF; i++)
-        sol[mappingArray[i]] = MeanVector[i];
-        
-    os.seekp(std::ios::beg);
-    if (img < 10)
-        os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
-    else if (img < 100)
-        os << filename.c_str() << "/" << VtkBaseName<< ".000" << img << ".vtk" << ends;
-    else if (img < 1000)
-        os << filename.c_str() << "/" << VtkBaseName<< ".00" << img << ".vtk" << ends;
-    else if (img < 10000)
-        os << filename.c_str() << "/" << VtkBaseName<< ".0" << img << ".vtk" << ends;
-    else
-        os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
-    Output->WriteVtk(os.str().c_str());
-    img++;
-
-        for ( int k = 0 ; k < N_samples;k++)
-        {
-            fileout << sol[indexArray[k]];
-            if(k != N_DOF - 1) fileout <<",";
-        }
-        fileout<<endl;
-
-        // assemble the system matrix with given aux, sol and rhs
-        // aux is used to pass  addition fe functions (eg. mesh velocity) that is nedded for assembling,
-        // otherwise, just pass with NULL
-        SystemMatrix->AssembleMRhs(NULL, sol, rhs);
-
-        //======================================================================
-        // time disc loop
-        //======================================================================
-        // parameters for time stepping scheme
-        m = 0;
-        N_SubSteps = GetN_SubSteps();
-        end_time = TDatabase::TimeDB->ENDTIME;
-
-        UpdateStiffnessMat = TRUE; //check BilinearCoeffs in example file
-        UpdateRhs = TRUE;           //check BilinearCoeffs in example file
-        ConvectionFirstTime = TRUE;
-
-        // time loop starts
-        while (TDatabase::TimeDB->CURRENTTIME < end_time)
-        {
-            m++;
-            TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
-
-            for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
-            {
-                SetTimeDiscParameters(1);
-
-                if (m == 1)
-                {
-                    // OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
-                    // OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
-                    // OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
-                    // OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
-                }
-
-                tau = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
-                TDatabase::TimeDB->CURRENTTIME += tau;
-
-                // OutPut(endl<< "CURRENT TIME: ");
-                // OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
-                //********************************-------------------------------------------Update Mode Equation Code Here -----------------------------------******************
-                for(int modeNo=0;modeNo<subDim;modeNo++){
-                    for(int dof=0;dof<N_DOF;dof++){
-                        sol[mappingArray[i]] = ModeVector[subDim*i+modeNo];
-                        }
-                    
-
-                
+    CloseFiles();
 
 
 
-
-
-                //********************************-------------------------------------------Update Mode Equation Code Here -----------------------------------******************
-
-
-                //copy rhs to oldrhs
-                        memcpy(oldrhs, rhs, N_DOF * SizeOfDouble);
-
-                // unless the stiffness matrix or rhs change in time, it is enough to
-                // assemble only once at the begning
-                        if (UpdateStiffnessMat || UpdateRhs || ConvectionFirstTime)
-                        {
-                            SystemMatrix->AssembleARhs(NULL, sol, rhs);
-
-                            // M:= M + (tau*THETA1)*A
-                            // rhs: =(tau*THETA4)*rhs +(tau*THETA3)*oldrhs +[M-(tau*THETA2)A]*oldsol
-                            // note! sol contains only the previous time step value, so just pass
-                            // sol for oldsol
-                            SystemMatrix->AssembleSystMat(oldrhs, sol, rhs, sol);
-                            ConvectionFirstTime = FALSE;
-                        }
-
-                // solve the system matrix
-                            SystemMatrix->Solve(sol, rhs);
-
-                // restore the mass matrix for the next time step
-                // unless the stiffness matrix or rhs change in time, it is not necessary to assemble the system matrix in every time step
-                            if (UpdateStiffnessMat || UpdateRhs)
-                            {
-                                SystemMatrix->RestoreMassMat();
-                            }
-
-                            if (TDatabase::ParamDB->WRITE_VTK)
-                            {
-                                os.seekp(std::ios::beg);
-                                if (img < 10)
-                                    os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
-                                else if (img < 100)
-                                    os << filename.c_str() << "/" << VtkBaseName << ".000" << img << ".vtk" << ends;
-                                else if (img < 1000)
-                                    os << filename.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
-                                else if (img < 10000)
-                                    os << filename.c_str() << "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
-                                else
-                                    os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
-                                Output->WriteVtk(os.str().c_str());
-                                img++;
-                                }
-
-                } // Mode Iteration Loop
-                
-
-            } // for(l=0;l< N_SubSteps;l++)
-
-         // while(TDatabase::TimeDB->CURRENTTIME< end_time) loop ends 
-
-        //======================================================================
-        // produce final output
-        //======================================================================
-
-        os.seekp(std::ios::beg);
-        if (img < 10)
-            os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
-        else if (img < 100)
-            os << filename.c_str() << "/" << VtkBaseName << ".000" << img << ".vtk" << ends;
-        else if (img < 1000)
-            os << filename.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
-        else if (img < 10000)
-            os << filename.c_str()<< "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
-        else
-            os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
-        Output->WriteVtk(os.str().c_str());
-        img++;
-
-        // cout << " Solution Norm After: " << Ddot(N_DOF,sol,sol) <<endl;
-        for(int i=0;i<N_DOF;i++){
-            solMeanDO[i]=sol[i];
-        }
-        for ( int k = 0 ; k < N_samples;k++)
-        {
-            fileout_final << sol[indexArray[k]];
-            if(k != N_DOF - 1) fileout_final <<",";
-        }
-        fileout_final<<endl;
-        
-
-        // set Current Time as Zero
-        TDatabase::TimeDB->CURRENTTIME = 0;
-        // delete SystemMatrix;
-
+/////////////////////// Monte Carlo Run Ends /////////////////////////////////////////
 
     return 0;
 } // end main

@@ -54,18 +54,37 @@ TIMESTEPLENGTH: 0.05
 ----------------------------------------------------------------------
 # Monte Carlo controls
 ----------------------------------------------------------------------
-REALIZATIONS: 5
+#Number of Realizations
+REALIZATIONS: 1000
+
+#Lengthscale of correlation kernel
 LENGTHSCALE: 10
+#LENGTHSCALE: 2
+
+
+#Percentage of energy of singular values to be retained
 EIGENPERCENT: 0.99
+
+#Standard deviation function select 
 stddev_switch: 1
+
+#Standard deviation denominator coefficient
 stddev_denom: 0.03
+
+#Displacement from center of standard deviation bump function
 stddev_disp: 0.3
+
+#Power of standard deviation bump function
 stddev_power: 2
 
 ----------------------------------------------------------------------
 # DO controls
 ----------------------------------------------------------------------
+
+Percentage of energy of singular values to be retained after DO-SVD
 SVPercent : 0.99
+
+
 ----------------------------------------------------------------------
 # output controls
 ----------------------------------------------------------------------
