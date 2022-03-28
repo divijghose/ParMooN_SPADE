@@ -1,0 +1,2 @@
+/usr/bin/ar qc /home/divij/Documents/ParMooN_Codes/ParMooN_Output/DO/TCD2D_IVUQ_DO_Test/lib/libgen.a  CMakeFiles/gen.dir/Database.C.o CMakeFiles/gen.dir/MainUtilities.C.o CMakeFiles/gen.dir/MooNMD_Io.C.o CMakeFiles/gen.dir/ReadParam.C.o CMakeFiles/gen.dir/Utilities.C.o CMakeFiles/gen.dir/Vector.C.o
+/usr/bin/ranlib /home/divij/Documents/ParMooN_Codes/ParMooN_Output/DO/TCD2D_IVUQ_DO_Test/lib/libgen.a

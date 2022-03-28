@@ -1,0 +1,2 @@
+/usr/bin/ar qc /home/divij/Documents/ParMooN_Codes/ParMooN_Output/TNSE2D/lib/libsolver.a  CMakeFiles/solver.dir/DirectSparseLinearSolver.C.o
+/usr/bin/ranlib /home/divij/Documents/ParMooN_Codes/ParMooN_Output/TNSE2D/lib/libsolver.a
