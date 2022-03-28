@@ -1,6 +1,27 @@
-// ======================================================================
-// instationary problem
-// ======================================================================
+
+// ===========================================================================//
+// Dynamically Orthogonal Field Equation Solution of Linear Advection Problem //
+// ===========================================================================//
+
+// =======================================================================
+//
+// Purpose:     Example file for solving the set of dynamically orthogonal field
+//              equations for linear advection.  
+//              Features included in this example file - 
+//              1. Definition of boundary conditions, boundary values,
+//                 initial condition and bilinear coefficients
+//              2. Assembly functions for Mean Equation, Mode Equation
+//                 and Coefficient Equation
+//              3. Assembly function for RHS of Mode Equation
+//
+// Authors:      Sashikumaar Ganesan, Thivin Anandh, Divij Ghose
+//
+// History:     1> First iteration implemented on 18.03.2022
+//				2> Bug fixes on 24.03.2022
+
+// =======================================================================
+
+
 
 #include <MacroCell.h>
 #include <IsoBoundEdge.h>
@@ -14,7 +35,7 @@ extern "C"
 					 struct triangulateio *, struct triangulateio *);
 }
 
-/// Include files related to the cell looping for the RHS filligng part.
+// Include files related to the cell looping for the RHS filling part.
 
 #include <Domain.h>
 #include <Database.h>
@@ -42,15 +63,15 @@ extern "C"
 #include <QuadAffin.h>
 #include <QuadBilinear.h>
 
-/// ========================================================================
-// example file
-// ========================================================================
+//========================================================================//
+// 								Example File							  //
+// =======================================================================//
 
 #define __SIN3__
 
 void ExampleFile()
 {
-	OutPut("Example: advection.h" << endl);
+	OutPut("Example: Linear Advection - Dynamically Orthogonal Field Equation Solution" << endl);
 }
 
 // exact solution
@@ -110,6 +131,32 @@ void InitialCondition(double x, double y, double *values)
 
 	// values[0] = val;
 
+}
+
+void BilinearCoeffs(int n_points, double *X, double *Y,
+        double **parameters, double **coeffs)
+{
+  double eps=1/TDatabase::ParamDB->PE_NR;
+  double b1=1, b2=-1, c=1;
+  int i;
+  double *coeff;
+  double x, y;
+  double t = TDatabase::TimeDB->CURRENTTIME;
+
+  for(i=0;i<n_points;i++)
+  {
+    coeff = coeffs[i];
+    
+    x = X[i];
+    y = Y[i];
+
+    coeff[0] = 0;
+    coeff[1] = -sin(t)*0.2;
+    coeff[2] = cos(t)*0.2;
+    coeff[3] = 0;
+
+    coeff[4] = 0.0;
+  }
 }
 
 
@@ -262,7 +309,7 @@ void DO_Mode_Equation_Assembly(double quad_wt, double *coeff, double *param,
 		for (int j = 0; j < N_DOF_perCell; j++) // Ansatz
 		{
 // double val = 0;
-			val += (b1 * Nx[j] + b2 * Ny[j]) * N[i]; //   TO DO
+			val += -1.0*(b1 * Nx[j] + b2 * Ny[j]) * N[i]; //   TO DO
 			// val += c0 * ((Nx[j] * Nx[i]) + (Ny[j] * Ny[i]));
 			// val += c * N[i] * N[j];
 
@@ -497,7 +544,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S,double
 					val *= Mult;
 				}
 
-				val *= C_a[quadPt] ;  // This is Final "f"
+				val *= -1.0*C_a[quadPt] ;  // This is Final "f"
 
 				for ( int j = 0 ; j < N_BaseFunct ; j++)
 				{
@@ -520,7 +567,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S,double
 
 
 
-void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode,TFEVectFunct2D* FEVector_Phi, int N_S, int i_index)
+void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode,TFEVectFunct2D* FEVector_Phi, int N_S, int i_index,int N_R)
 {
 
 	int N_Cells = Fespace->GetN_Cells();
@@ -549,14 +596,20 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode,TFEVect
 
 	double val = 0;
 	double* C_Array = FeVector_C_Mode->GetValues();
-	int len         = FeVector_C_Mode->GetLength();
+	int lenMode         = FeVector_C_Mode->GetLength();
 
 
 	double* Phi_Array = FEVector_Phi->GetValues();
+	double* Phi_Old = new double[N_R*N_S]();
+	memcpy(Phi_Old,Phi_Array,N_R*N_S*SizeOfDouble);
 	int lenPhi         = FEVector_Phi->GetLength();
+	cout << "************** Length of Phi = " << lenPhi << endl;
 	double* phi_New = new double[lenPhi]();
-	double* C_Array_i = C_Array + i_index*len;
-	double* phi_Array_i = Phi_Array + i_index*len;
+	double* C_Array_i = C_Array + i_index*lenMode;
+	// double* phi_Array_i = Phi_Array + i_index*lenMode; ??
+	double* phi_Array_i = Phi_Array + i_index*lenPhi;
+	double* phi_Old_i = Phi_Old + i_index*lenPhi;
+
 
 
 
@@ -682,8 +735,9 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode,TFEVect
 
 		for ( int a = 0 ; a < N_S ; a++)
 		{
-			double* C_Array_a = C_Array + a*len;
-			double* phi_Array_a = Phi_Array + a*len;
+			double* C_Array_a = C_Array + a*lenMode;
+			// double* phi_Array_a = Phi_Array + a*lenMode;??
+			double* phi_Array_a = Phi_Array + a*lenPhi;
 
 			double C_a[N_Points2];
 			double C_x_a[N_Points2];
@@ -742,7 +796,7 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode,TFEVect
 
 			for ( int i = 0 ; i < lenPhi ; i++)
 			{
-				phi_New[i] += val*phi_Array_a[i];
+				phi_New[i] += val*phi_Array_a[i]*-1.0;
 			}
 
 		}
@@ -754,7 +808,7 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode,TFEVect
 	double timeStep = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
 	for ( int i = 0 ; i < lenPhi; i++)
 	{
-		phi_Array_i[i] -= timeStep*phi_New[i];
+		phi_Array_i[i] += phi_Old_i[i]+ timeStep*phi_New[i];
 	}
 
 	delete[] phi_New;

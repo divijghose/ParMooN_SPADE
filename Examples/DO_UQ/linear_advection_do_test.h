@@ -1,6 +1,44 @@
-// ======================================================================
-// instationary problem
-// ======================================================================
+
+/**
+ * @file linear_advection_do_test.h
+ * @brief Purpose:     Example file for solving the set of dynamically orthogonal field
+		               equations for linear advection.  
+         		       Features included in this example file :
+                       1. Definition of boundary conditions, boundary values,
+                       initial condition and bilinear coefficients
+                       2. Assembly functions for Mean Equation, Mode Equation
+                       and Coefficient Equation
+                       3. Assembly function for RHS of Mode Equation
+
+ * @authors Sashikumaar Ganesan
+ * @authors Thivin Anandh
+ * @authors Divij Ghose
+ *  
+ */
+
+// ===========================================================================//
+//  Dynamically Orthogonal Field Equation Solution of Linear Advection Problem //
+// ===========================================================================//
+
+// =======================================================================
+//
+// Purpose:     Example file for solving the set of dynamically orthogonal field
+//              equations for linear advection.  
+//              Features included in this example file - 
+//              1. Definition of boundary conditions, boundary values,
+//                 initial condition and bilinear coefficients
+//              2. Assembly functions for Mean Equation, Mode Equation
+//                 and Coefficient Equation
+//              3. Assembly function for RHS of Mode Equation
+//
+// Authors:      Sashikumaar Ganesan, Thivin Anandh, Divij Ghose
+//
+// History:     1> First iteration implemented on 18.03.2022
+//				2> Bug fixes on 24.03.2022
+
+// =======================================================================
+
+
 
 #include <MacroCell.h>
 #include <IsoBoundEdge.h>
@@ -14,7 +52,7 @@ extern "C"
 					 struct triangulateio *, struct triangulateio *);
 }
 
-/// Include files related to the cell looping for the RHS filligng part.
+// Include files related to the cell looping for the RHS filling part.
 
 #include <Domain.h>
 #include <Database.h>
@@ -42,15 +80,15 @@ extern "C"
 #include <QuadAffin.h>
 #include <QuadBilinear.h>
 
-/// ========================================================================
-// example file
-// ========================================================================
+//========================================================================//
+// 								Example File							  //
+// =======================================================================//
 
 #define __SIN3__
 
 void ExampleFile()
 {
-	OutPut("Example: advection.h" << endl);
+	OutPut("Example: Linear Advection - Dynamically Orthogonal Field Equation Solution" << endl);
 }
 
 // exact solution
@@ -165,6 +203,8 @@ void DO_Mean_Equation_Coefficients(int n_points, double *X, double *Y,
 	}
 }
 
+
+
 void DO_Mode_Equation_Coefficients(int n_points, double *X, double *Y,
 								   double **parameters, double **coeffs)
 {
@@ -195,6 +235,21 @@ void DO_Mode_Equation_Coefficients(int n_points, double *X, double *Y,
 // ASSEMBLY FUNCTION
 // This fucntion will be called for Every Quadrature Point inside a Cell for Local Assembly
 // ======================================================================
+/**
+ * @brief 
+ * 
+ * @param quad_wt 
+ * @param coeff 
+ * @param param 
+ * @param hK 
+ * @param derivatives 
+ * @param N_BaseFuncts 
+ * @param LocMatrices 
+ * @param LocRhs 
+ * \f{equation}{
+  x=2 
+\f}
+ */
 void DO_Mean_Equation_Assembly(double quad_wt, double *coeff, double *param,
 							   double hK, double **derivatives, int *N_BaseFuncts, double ***LocMatrices, double **LocRhs)
 {

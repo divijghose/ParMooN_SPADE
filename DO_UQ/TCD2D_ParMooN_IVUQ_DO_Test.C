@@ -1,3 +1,18 @@
+/**
+ * @file TCD2D_ParMooN_IVUWQ_DO_Test.C
+ * @brief Purpose:     Main program for scalar equations with new kernels of ParMooN. 
+                       Features included in this main program - 
+                       1. Monte Carlo Realization Generation for scalar quantity of interest
+                       2. Initialization of Mean, Modes and Coefficients for solution of Dynamically Orthogonal System of Equations
+                       3. 
+
+ * @author Sashikumaar Ganesan
+ * @author Divij Ghose
+ * @author Thivin Anandh
+
+ *  
+ */
+
 // =======================================================================
 //
 // Purpose:     Main program for scalar equations with new kernels of ParMooN. 
