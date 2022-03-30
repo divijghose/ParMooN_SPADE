@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
-  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/DO/TCD2D_IVUQ_DO_Test/lib/libamg.a"
-  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/DO/TCD2D_IVUQ_DO_Test/lib/libamg.pdb"
+  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/TBE2D/lib/libamg.a"
+  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/TBE2D/lib/libamg.pdb"
   "CMakeFiles/amg.dir/amg_1d_prec.c.o"
   "CMakeFiles/amg.dir/amg_2d_prec.c.o"
   "CMakeFiles/amg.dir/amg_blas.c.o"

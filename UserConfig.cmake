@@ -24,6 +24,7 @@ set(AParMooN_GEO "2D" CACHE STRING "Change AParMooN_GEO, to select the Dimensio 
 # set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/NSE2D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model")#Steady State Navier-Stokes' Equation
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/TNSE2D_IVUQ_SPADE.C" CACHE STRING "Enter to select the Main file of the model")
 
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/TBE2D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model") #Time-dependent Burgers' Equation
 ### 3 Dimensional Problems ###
 # set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/3DPrograms/CD3D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model")
 # set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/3DPrograms/TCD3D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model")
@@ -43,7 +44,7 @@ set(AParMooN_GEO "2D" CACHE STRING "Change AParMooN_GEO, to select the Dimensio 
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TCD2D_ParMooN_MC.C" CACHE STRING "Enter to select the Main file of the model")
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TNSE2D_ParMooN_IVUQ_MC.C" CACHE STRING "Enter to select the Main file of the model")
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TNSE2D_ParMooN_RE_NR_MC.C" CACHE STRING "Enter to select the Main file of the model")
-
+set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TBE2D_ParMooN_MC.C" CACHE STRING "Enter to select the Main file of the model") #Time-dependent Burgers' Equation
 ##### DO Programs#####
 
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TNSE2D_ParMooN_IVUQ_DO.C" CACHE STRING "Enter to select the Main file of the model")
@@ -51,7 +52,7 @@ set(AParMooN_GEO "2D" CACHE STRING "Change AParMooN_GEO, to select the Dimensio 
 
 ######### DO Test Programs #####################
 
-set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TCD2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model")
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TCD2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model")
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TCD2D_ParMooN_IVUQ_DO_Mean.C" CACHE STRING "Enter to select the Main file of the model")
 
 ############################### Selection of main program end ################################################
@@ -85,7 +86,7 @@ set(AParMooN_MPI_IMPLEMENTATION "INTELMPI" CACHE STRING "select the MPI Implemen
 # set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/mesh2d" CACHE STRING "select the model")
 # set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/deepikaji" CACHE STRING "select the model")
 
-#set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/burger" CACHE STRING "select the model")
+set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/TBE2D" CACHE STRING "select the model")
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/cd1dANN" CACHE STRING "select the model")
 
 ####### Monte-Carlo Output Folders ##########
@@ -99,7 +100,7 @@ set(AParMooN_MPI_IMPLEMENTATION "INTELMPI" CACHE STRING "select the MPI Implemen
 
 
 ##### Test Output Folders ###########################
-set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TCD2D_IVUQ_DO_Test" CACHE STRING "select the model")
+#set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TCD2D_IVUQ_DO_Test" CACHE STRING "select the model")
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TCD2D_IVUQ_DO_Mean" CACHE STRING "select the model")
 
 

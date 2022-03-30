@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
-  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/DO/TCD2D_IVUQ_DO_Test/lib/libsys.a"
-  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/DO/TCD2D_IVUQ_DO_Test/lib/libsys.pdb"
+  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/TBE2D/lib/libsys.a"
+  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/TBE2D/lib/libsys.pdb"
   "CMakeFiles/sys.dir/Assemble.C.o"
   "CMakeFiles/sys.dir/AssembleMat2D.C.o"
   "CMakeFiles/sys.dir/CDSystemTimeDG.C.o"

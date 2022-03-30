@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
-  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/DO/TCD2D_IVUQ_DO_Test/lib/libgeo.a"
-  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/DO/TCD2D_IVUQ_DO_Test/lib/libgeo.pdb"
+  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/TBE2D/lib/libgeo.a"
+  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/TBE2D/lib/libgeo.pdb"
   "CMakeFiles/geo.dir/BaseCell.C.o"
   "CMakeFiles/geo.dir/BdCircle.C.o"
   "CMakeFiles/geo.dir/BdLine.C.o"

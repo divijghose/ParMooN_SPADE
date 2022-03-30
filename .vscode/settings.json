@@ -143,7 +143,9 @@
         "TCD2D_ParMooN_IVUQ_DO.C": "cpp",
         "TCD2D_ParMooN_IVUQ_DO_Mean.C": "cpp",
         "Output2D.C": "cpp",
-        "SystemTBE2D.C": "cpp"
+        "SystemTBE2D.C": "cpp",
+        "TBE2D_ParMooN_MC.C": "cpp",
+        "TNSE_3D_Drop.C": "cpp"
     },
     "cmake.configureOnOpen": false
 }

@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
-  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/DO/TCD2D_IVUQ_DO_Test/lib/libgen.a"
-  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/DO/TCD2D_IVUQ_DO_Test/lib/libgen.pdb"
+  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/TBE2D/lib/libgen.a"
+  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/TBE2D/lib/libgen.pdb"
   "CMakeFiles/gen.dir/Database.C.o"
   "CMakeFiles/gen.dir/MainUtilities.C.o"
   "CMakeFiles/gen.dir/MooNMD_Io.C.o"

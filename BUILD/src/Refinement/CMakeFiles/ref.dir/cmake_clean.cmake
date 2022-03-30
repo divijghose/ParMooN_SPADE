@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
-  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/DO/TCD2D_IVUQ_DO_Test/lib/libref.a"
-  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/DO/TCD2D_IVUQ_DO_Test/lib/libref.pdb"
+  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/TBE2D/lib/libref.a"
+  "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/TBE2D/lib/libref.pdb"
   "CMakeFiles/ref.dir/RefHexaRegDesc.C.o"
   "CMakeFiles/ref.dir/RefLineDesc.C.o"
   "CMakeFiles/ref.dir/RefMortar0Desc.C.o"
