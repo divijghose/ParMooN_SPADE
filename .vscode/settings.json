@@ -145,7 +145,8 @@
         "Output2D.C": "cpp",
         "SystemTBE2D.C": "cpp",
         "TBE2D_ParMooN_MC.C": "cpp",
-        "TNSE_3D_Drop.C": "cpp"
+        "TNSE_3D_Drop.C": "cpp",
+        "TBE2D_ParMooN_IVUQ_DO_Test.C": "cpp"
     },
     "cmake.configureOnOpen": false
 }

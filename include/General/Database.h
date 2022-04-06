@@ -250,6 +250,8 @@ struct TParaDB
   // ******** Parameters for Dynamically Orthogonal Solver Runs *********// (Added by Divij)
   //======================================================================
   double* COVARIANCE_MATRIX_DO;
+  double* COSKEWNESS_MATRIX_DO;
+  double* COVARIANCE_INVERSE_DO;
   int N_Subspace_Dim;
 
 
