@@ -934,7 +934,14 @@ int main(int argc, char *argv[])
 
             fileMode.close();
 
-            fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m);
+           
+
+            SystemMatrix_Mean->AssembleSystMat(old_rhsMean, solMean, rhsMean, solMean);
+            ////  --
+            SystemMatrix_Mean->Solve(solMean, rhsMean);
+            SystemMatrix_Mean->RestoreMassMat();
+
+             fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m);
             std::ofstream fileMean;
             fileMean.open(fileoutMean);
 
@@ -946,11 +953,6 @@ int main(int argc, char *argv[])
             }
 
             fileMean.close();
-
-            SystemMatrix_Mean->AssembleSystMat(old_rhsMean, solMean, rhsMean, solMean);
-            ////  --
-            SystemMatrix_Mean->Solve(solMean, rhsMean);
-            SystemMatrix_Mean->RestoreMassMat();
 
             // restore the mass matrix for the next time step
             // unless the stiffness matrix or rhs change in time, it is not necessary to assemble the system matrix in every time step
