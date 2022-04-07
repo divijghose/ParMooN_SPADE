@@ -163,16 +163,16 @@ int main(int argc, char* argv[])
 
 
 
-    double *org_x_coord     = new double[N_DOF];
-    double *org_y_coord     = new double[N_DOF];
-    double *x_coord         = new double[N_DOF];
-    double *y_coord         = new double[N_DOF];
-    int *mappingArray       = new int[N_DOF];
+    double *org_x_coord     = new double[N_U];
+    double *org_y_coord     = new double[N_U];
+    double *x_coord         = new double[N_U];
+    double *y_coord         = new double[N_U];
+    int *mappingArray       = new int[N_U];
 
 
     i=0;
     int N = pow(2,TDatabase::ParamDB->UNIFORM_STEPS  ) + 1;
-    for ( int i = 0 ; i < N_DOF; i++)
+    for ( int i = 0 ; i < N_U; i++)
     {
         int local_i = i/N;
         int local_j = i%N;
@@ -186,14 +186,14 @@ int main(int argc, char* argv[])
 
     Velocity_FeSpace->GetDOFPosition(org_x_coord,org_y_coord);
 
-    for ( int i=0 ; i < N_DOF; i++)   // Generated Values
+    for ( int i=0 ; i < N_U; i++)   // Generated Values
     {  
         // get the generated Value
         double xx = x_coord[i];
         double yy = y_coord[i];
         bool foundFlag = false;
 
-        for ( int j=0 ; j<N_DOF;j++)  // Actual parmooN Co-ordinates
+        for ( int j=0 ; j<N_U;j++)  // Actual parmooN Co-ordinates
         {  
             if(abs(xx - org_x_coord[j]) < 1e-10 &&  abs(yy - org_y_coord[j]) < 1e-10 )
             {
@@ -206,11 +206,11 @@ int main(int argc, char* argv[])
     }
      
 
-    // int N_DOF =  N * N;
-    double* x  =  new double[N_DOF];
-    double* y  =  new double[N_DOF];
+    // int N_U =  N * N;
+    double* x  =  new double[N_U];
+    double* y  =  new double[N_U];
 
-    for ( int i = 0 ; i < N_DOF; i++ )
+    for ( int i = 0 ; i < N_U; i++ )
     {
         int local_i = i/N;
         int local_j = i%N;
@@ -220,16 +220,16 @@ int main(int argc, char* argv[])
     }
 
    
-    double *C = new double[N_DOF*N_DOF];  //MATRIX
-    double *C1 = new double[N_DOF*N_DOF];  //MATRIX  - Corelation Matrix
+    double *C = new double[N_U*N_U];  //MATRIX
+    double *C1 = new double[N_U*N_U];  //MATRIX  - Corelation Matrix
 
     double norm = 0;
-    for( int i =0  ; i < N_DOF ; i++ )
+    for( int i =0  ; i < N_U ; i++ )
     {
         double actual_x = x[i];
         double actual_y = y[i];
 
-        for ( int j=0 ; j < N_DOF ; j++)
+        for ( int j=0 ; j < N_U ; j++)
         {
             double local_x = x[j];
             double local_y = y[j];
@@ -237,8 +237,8 @@ int main(int argc, char* argv[])
             double r = sqrt( pow((actual_x - local_x),2 ) + pow((actual_y - local_y),2 ));
             
             // CO -Relation
-            C[j*N_DOF + i] = exp ( (- 1.0 * r )/ (LengthScale) );
-            C1[j*N_DOF + i] = exp ( (- 1.0 * r )/ (LengthScale) );
+            C[j*N_U + i] = exp ( (- 1.0 * r )/ (LengthScale) );
+            C1[j*N_U + i] = exp ( (- 1.0 * r )/ (LengthScale) );
 
 
             if(TDatabase::ParamDB->stddev_switch == 0)
@@ -247,7 +247,7 @@ int main(int argc, char* argv[])
                 double sig_r2 = exp (-1.0/(1.0 - pow(( 2*local_x - 1),4) ) )  * exp ( -1.0/ ( 1 - pow(( 2*local_y - 1),4) ) ) ; 
             
                 // Co Variance
-                C[j*N_DOF + i] *= sig_r1 * sig_r2 * 5.0;
+                C[j*N_U + i] *= sig_r1 * sig_r2 * 5.0;
             }
 
             else if(TDatabase::ParamDB->stddev_switch == 1)
@@ -258,7 +258,7 @@ int main(int argc, char* argv[])
                 double sig_r1 = exp ( - pow( ( 2*actual_x - 1 - disp),power)  / (E) )  / (2*3.14159265359 * sqrt(E))  * exp ( - pow(( 2*actual_x - 1-disp),power)  / (E) )  / (2*3.14159265359 * sqrt(E)) ;
                 double sig_r2 = exp ( - pow(( 2*local_x - 1 -disp),power)  / (E) )  / (2*3.14159265359 * sqrt(E))  * exp ( - pow(( 2*local_y - 1-disp),power)  / (E) ) / (2*3.14159265359 * sqrt(E)); 
                 // Co Variance
-                C[j*N_DOF + i] *= sig_r1 * sig_r2 ;
+                C[j*N_U + i] *= sig_r1 * sig_r2 ;
             }
 
             else{
@@ -275,12 +275,12 @@ int main(int argc, char* argv[])
     std::ofstream fileo;
     fileo.open("Corelation.txt");
 
-    for ( int i=0 ; i < N_DOF ; i++)
+    for ( int i=0 ; i < N_U ; i++)
     {
-        for ( int j=0 ; j < N_DOF ; j++)
+        for ( int j=0 ; j < N_U ; j++)
         {
-            fileo << C1[i*N_DOF + j] ;
-            if(j!= N_DOF-1 ) fileo<<",";
+            fileo << C1[i*N_U + j] ;
+            if(j!= N_U-1 ) fileo<<",";
         }
         fileo<<endl;
     }
@@ -291,12 +291,12 @@ int main(int argc, char* argv[])
     std::ofstream fileo_r;
     fileo.open("Covarriance.txt");
 
-    for ( int i=0 ; i < N_DOF ; i++)
+    for ( int i=0 ; i < N_U ; i++)
     {
-        for ( int j=0 ; j < N_DOF ; j++)
+        for ( int j=0 ; j < N_U ; j++)
         {
-            fileo_r << C[i*N_DOF + j] ;
-            if(j!= N_DOF-1 ) fileo_r<<",";
+            fileo_r << C[i*N_U + j] ;
+            if(j!= N_U-1 ) fileo_r<<",";
         }
         fileo_r<<endl;
     }
@@ -306,12 +306,12 @@ int main(int argc, char* argv[])
     // exit(0);
     ////////////////////////////////////////////////////// SVD ////////////////////////////////////////////
     // Declare SVD parameters
-    MKL_INT m1 = N_DOF, n = N_DOF, lda = N_DOF, ldu = N_DOF, ldvt = N_DOF, info;
-    double superb[std::min(N_DOF,N_DOF)-1];
+    MKL_INT m1 = N_U, n = N_U, lda = N_U, ldu = N_U, ldvt = N_U, info;
+    double superb[std::min(N_U,N_U)-1];
 
-    double* S = new double[N_DOF];
-    double* U = new double[N_DOF*N_DOF];
-    double* Vt = new double[N_DOF*N_DOF];
+    double* S = new double[N_U];
+    double* U = new double[N_U*N_U];
+    double* Vt = new double[N_U*N_U];
     cout << " REALISATIONS COMPUTED " <<endl;
     info = LAPACKE_dgesvd( LAPACK_ROW_MAJOR, 'A', 'A', m1, n, C, lda,
                         S, U, ldu, Vt, ldvt, superb );
@@ -328,10 +328,10 @@ int main(int argc, char* argv[])
 
 
     double sumSingularVal = 0;
-    for( int i=0;i<N_DOF;i++) sumSingularVal += S[i];
+    for( int i=0;i<N_U;i++) sumSingularVal += S[i];
 
     double val = 0;
-    for( energyVal =0 ; energyVal< N_DOF; energyVal++)
+    for( energyVal =0 ; energyVal< N_U; energyVal++)
     {
         val += S[energyVal];
         temp++;
@@ -342,18 +342,18 @@ int main(int argc, char* argv[])
     
     int modDim = temp+1;
        
-    double* Ut = new double[N_DOF*modDim]();
+    double* Ut = new double[N_U*modDim]();
     double* Z  = new double[N_Realisations*modDim]();
 
-    double* RealizationVector = new double[N_DOF * N_Realisations]();
-    double* RealizationVectorTemp = new double[N_DOF * N_Realisations]();
+    double* RealizationVector = new double[N_U * N_Realisations]();
+    double* RealizationVectorTemp = new double[N_U * N_Realisations]();
 
 
     // -------------- Generate Random Number Based on Normal Distribution -------------------------//
     int k=0;
-    int skip = N_DOF - modDim;
+    int skip = N_U - modDim;
     int count =0;
-    for ( int i = 0 ; i < N_DOF*N_DOF ; i++ )
+    for ( int i = 0 ; i < N_U*N_U ; i++ )
     {  
         // cout << "i val " << i <<endl;
         if(count < modDim )
@@ -388,36 +388,36 @@ int main(int argc, char* argv[])
 
     cout << " N_Realisations : " << N_Realisations <<endl;
     cout << " MULT START "<<endl;
-    cblas_dgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans,N_DOF,N_Realisations, modDim , 1.0, Ut,modDim,Z,N_Realisations,0.0,RealizationVector,N_Realisations);
+    cblas_dgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans,N_U,N_Realisations, modDim , 1.0, Ut,modDim,Z,N_Realisations,0.0,RealizationVector,N_Realisations);
     cout << " MULT DONE "<<endl;
-    // printMatrix(SolutionVector, N_DOF,N_Realisations);
+    // printMatrix(SolutionVector, N_U,N_Realisations);
 
-    // mkl_dimatcopy('R','T', N_DOF,N_Realisations,1.0,SolutionVector,N_DOF,N_Realisations);
+    // mkl_dimatcopy('R','T', N_U,N_Realisations,1.0,SolutionVector,N_U,N_Realisations);
     // cout << " COPY DONE "<<endl;
 
     cout << " REALISATIONS COMPUTED " <<endl;
 
-    for(int i=0;i<N_DOF;i++){
+    for(int i=0;i<N_U;i++){
         for(int j=0;j<N_Realisations;j++){
             RealizationVectorTemp[mappingArray[i]*N_Realisations+j]=RealizationVector[j+N_Realisations*i];
         }
     }
 
-  memcpy(RealizationVector,RealizationVectorTemp,N_DOF*N_Realisations*SizeOfDouble);
+  memcpy(RealizationVector,RealizationVectorTemp,N_U*N_Realisations*SizeOfDouble);
 
     /////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////// -------- START OF DO INITIALIZATION ------------ ////////////////////////////////////////////////////////////////
 
-    double* MeanVector = new double[N_DOF * 1](); //overline{C}_{dof} = \sum_{i=1}^{N_Realisations}(C^{i}_{dof})/N_Realisations
-    for(int i=0; i<N_DOF; ++i) {
+    double* MeanVector = new double[N_U * 1](); //overline{C}_{dof} = \sum_{i=1}^{N_Realisations}(C^{i}_{dof})/N_Realisations
+    for(int i=0; i<N_U; ++i) {
     for(int j = 0; j < N_Realisations; ++j){
                 MeanVector[i] +=  (RealizationVector[i*N_Realisations+j]/N_Realisations);
             }
     }
 
-    double* PerturbationVector = new double[N_DOF * N_Realisations](); // \hat{C}^{i}_{dof} = C^{i}_{dof} - \overline{C}_{dof}
-    for(int i = 0; i < N_DOF; ++i){
+    double* PerturbationVector = new double[N_U * N_Realisations](); // \hat{C}^{i}_{dof} = C^{i}_{dof} - \overline{C}_{dof}
+    for(int i = 0; i < N_U; ++i){
     for(int j = 0; j < N_Realisations; ++j){
         PerturbationVector[i*N_Realisations+j] = RealizationVector[i*N_Realisations+j] - MeanVector[i];
     }
@@ -427,15 +427,15 @@ int main(int argc, char* argv[])
 /////////////////////////////DO - Initialization SVD//////////////////////////////////////////////
 //================================================================================================
 // Declare SVD parameters
-int minDim = std::min(N_DOF,N_Realisations);
-MKL_INT mDO = N_DOF, nDO = N_Realisations, ldaDO = N_Realisations, lduDO = minDim, ldvtDO = N_Realisations, infoDO;
+int minDim = std::min(N_U,N_Realisations);
+MKL_INT mDO = N_U, nDO = N_Realisations, ldaDO = N_Realisations, lduDO = minDim, ldvtDO = N_Realisations, infoDO;
 double superbDO[minDim-1];
 
-double* PerturbationVectorCopy = new double[N_DOF * N_Realisations]();
-memcpy(PerturbationVectorCopy,PerturbationVector,N_DOF*N_Realisations*SizeOfDouble);
+double* PerturbationVectorCopy = new double[N_U * N_Realisations]();
+memcpy(PerturbationVectorCopy,PerturbationVector,N_U*N_Realisations*SizeOfDouble);
 
 double* Sg = new double[minDim];
-double* L = new double[N_DOF*minDim];
+double* L = new double[N_U*minDim];
 double* Rt = new double[minDim*N_Realisations];
 
 infoDO = LAPACKE_dgesvd( LAPACK_ROW_MAJOR, 'S', 'N', mDO, nDO, PerturbationVectorCopy, ldaDO,
@@ -476,7 +476,7 @@ TDatabase::ParamDB->N_Subspace_Dim=subDim;
 cout << " Min DIMENSION : "  << minDim <<endl;
 double* ProjectionVector = new double[N_Realisations * minDim]();
 cout << "PROJ VECTOR MULT START "<<endl;
-cblas_dgemm(CblasRowMajor,CblasTrans,CblasNoTrans,N_Realisations,minDim,N_DOF,1.0,PerturbationVector,N_Realisations,L,minDim,0.0,ProjectionVector,minDim);
+cblas_dgemm(CblasRowMajor,CblasTrans,CblasNoTrans,N_Realisations,minDim,N_U,1.0,PerturbationVector,N_Realisations,L,minDim,0.0,ProjectionVector,minDim);
 cout << "PROJ VECTOR MULT DONE "<< endl;
 
 /// Initialize Coefficient Matrix - First subDim columns of Projection Matrix ////////////////////
@@ -494,16 +494,16 @@ for(int i=0;i<N_Realisations;i++){
 }
 
 ////////////Initialize Mode Vector - First subDim columns of Left Singular Vector//////////////////
-double* ModeVector = new double[N_DOF* subDim]();
-// memcpy(ModeVector, L, N_DOF*subDim*SizeOfDouble);//For ColMajor storage
-// for (int i=0;i<N_DOF;i++){
+double* ModeVector = new double[N_U* subDim]();
+// memcpy(ModeVector, L, N_U*subDim*SizeOfDouble);//For ColMajor storage
+// for (int i=0;i<N_U;i++){
 // 	for (int j=0;j<subDim;j++){
 // 		ModeVector[i*subDim+j] = ProjectionVector[i*minDim+j];
 // 	}
 // }
-for(int i=0;i<N_DOF;i++){
+for(int i=0;i<N_U;i++){
     for(int j=0;j<subDim;j++){
-        ModeVector[j*N_DOF+i] = L[i*minDim+j]; // ModeVector in Col Major form 
+        ModeVector[j*N_U+i] = L[i*minDim+j]; // ModeVector in Col Major form 
     }
 }
 
