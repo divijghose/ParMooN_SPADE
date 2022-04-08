@@ -411,13 +411,17 @@ void InvertCov()
 	matInv(TDatabase::ParamDB->COVARIANCE_INVERSE_DO, N);
 }
 
-void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, double *GlobalRhs_mean)
+void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode,int N_S, double *GlobalRhs_mean,int N_U)
 {
 
 	int N_Cells = Fespace->GetN_Cells();
 	TCollection *coll = Fespace->GetCollection();
-	double *U_Mode = FeVector_Mode->GetValues();
+	double* U_Mode = FeVector_Mode->GetValues();
 	int lenMode = FeVector_Mode->GetLength();
+	int lenMean = N_U;
+
+
+	
 
 	// Get the Global DOF arrays INdex from the FE Space.
 	int *GlobalNumbers = Fespace->GetGlobalNumbers();
@@ -439,8 +443,8 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
 	double **origvaluesD20; // Shape Function 2nd Derivatives ( x ) at Quadrature Points
 	double **origvaluesD02; // Shape Function 2nd Derivatives ( y ) at Quadrature Points
 
-	for (int cellId = 0; cellId < 1; cellId++)
-	{
+	for (int cellId = 0; cellId < N_Cells; cellId++)
+	{//Cell Loop
 		TBaseCell *currentCell = coll->GetCell(cellId);
 		// Get the "ID" of Finite Element for the given 2D Element ( Conforming/NonConforming-Order Finite Element : eg : it could be Conforming-2nd order Finite Element )
 		FE2D elementId = Fespace->GetFE2D(cellId, currentCell);
@@ -548,10 +552,12 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
 			Coeffs[i] = new double[10]();
 		}
 		DO_Mean_Equation_Coefficients(N_Points2, X, Y, Param, Coeffs);
+	
+
 		for (int a = 0; a < N_S; a++)
 		{														   //"a" loop
-			double *Mode_Comp1_a = U_Mode + a * 2 * lenMode;	   // col Major
-			double *Mode_Comp2_a = U_Mode + (a * 2 + 1) * lenMode; // col Major
+			double* Mode_Comp1_a = U_Mode + (a * 2 * lenMode);	   // col Major
+			double* Mode_Comp2_a = U_Mode + ((a * 2 + 1) * lenMode); // col Major
 																   //  double* phi_Array_a = Phi_Array + a*lenMode;??
 
 			double U1_Mode_a[N_Points2];
@@ -573,8 +579,7 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
 				U2x_Mode_a[quadPt] = 0;
 				U2y_Mode_a[quadPt] = 0;
 			}
-			// for ( int quadPt = 0 ; quadPt < N_Points2; quadPt++) C_x_a[quadPt] = 0;
-			// for ( int quadPt = 0 ; quadPt < N_Points2; quadPt++) C_y_a[quadPt] = 0;
+			
 
 			// Obtain all values for C_a
 			for (int quadPt = 0; quadPt < N_Points2; quadPt++)
@@ -595,8 +600,8 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
 			{ //"b" loop
 				val1 = 0;
 				val2 = 0;
-				double *Mode_Comp1_b = U_Mode + b * 2 * lenMode;	   // col Major
-				double *Mode_Comp2_b = U_Mode + (b * 2 + 1) * lenMode; // col Major
+				double* Mode_Comp1_b = U_Mode + (b * 2 * lenMode);	   // col Major
+				double* Mode_Comp2_b = U_Mode + ((b * 2 + 1) * lenMode); // col Major
 
 				double U1_Mode_b[N_Points2];
 				double U1x_Mode_b[N_Points2];
@@ -638,8 +643,9 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
 					double Mult = Weights2[qdpt] * AbsDetjk[qdpt];
 					double *orgD00 = origvaluesD00[qdpt];
 
-					val1 += -1.0 * (U1_Mode_a[qdpt] * U1x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U1y_Mode_b[qdpt]) * TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult;
-					val2 += -1.0 * (U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt]) * TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult;
+					val1 += -1.0 * (U1_Mode_a[qdpt] * U1x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U1y_Mode_b[qdpt]);// * TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult;
+
+					val2 += -1.0 * (U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt]); //* TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult;
 
 					for (int j = 0; j < N_BaseFunct; j++)
 					{
@@ -652,14 +658,17 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
 
 		} //"a" loop
 
+
 		for (int j = 0; j < N_BaseFunct; j++)
 		{
 			int GlobalDOF = DOF[j];
 			GlobalRhs_mean[GlobalDOF] += rhs1[j];
-			GlobalRhs_mean[GlobalDOF] += rhs2[j];
+			GlobalRhs_mean[GlobalDOF+lenMean] += rhs2[j];
 		}
 		// --
-	}
+	}//cell loop
+
+	
 }
 
 //======================================================================
@@ -706,7 +715,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 	double val1 = 0;
 	double val2 = 0;
 
-	for (int cellId = 0; cellId < 1; cellId++)
+	for (int cellId = 0; cellId < N_Cells; cellId++)
 	{
 		TBaseCell *currentCell = coll->GetCell(cellId);
 		// Get the "ID" of Finite Element for the given 2D Element ( Conforming/NonConforming-Order Finite Element : eg : it could be Conforming-2nd order Finite Element )
@@ -1200,7 +1209,7 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
 
 	//   double* phi_New = new double[lenPhi]();
 
-	for (int cellId = 0; cellId < 1; cellId++)
+	for (int cellId = 0; cellId < N_Cells; cellId++)
 	{ // cell loop
 		TBaseCell *currentCell = coll->GetCell(cellId);
 		// Get the "ID" of Finite Element for the given 2D Element ( Conforming/NonConforming-Order Finite Element : eg : it could be Conforming-2nd order Finite Element )

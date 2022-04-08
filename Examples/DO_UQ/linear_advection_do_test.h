@@ -499,7 +499,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S,double
 	double** origvaluesD02;           // Shape Function 2nd Derivatives ( y ) at Quadrature Points
 
 
-	for (int cellId = 0; cellId < 1; cellId++)
+	for (int cellId = 0; cellId < N_Cells; cellId++)
 	{
 		TBaseCell* currentCell = coll->GetCell(cellId);
         // Get the "ID" of Finite Element for the given 2D Element ( Conforming/NonConforming-Order Finite Element : eg : it could be Conforming-2nd order Finite Element )
@@ -766,7 +766,7 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode,TFEVect
 
 
 
-	for (int cellId = 0; cellId < 1; cellId++)
+	for (int cellId = 0; cellId < N_Cells; cellId++)
 	{//cell loop
 		TBaseCell* currentCell = coll->GetCell(cellId);
         // Get the "ID" of Finite Element for the given 2D Element ( Conforming/NonConforming-Order Finite Element : eg : it could be Conforming-2nd order Finite Element )
