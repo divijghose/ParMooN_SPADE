@@ -112,6 +112,7 @@ void TSystemTBE2D::Init(CoeffFct2D *lincoeffs, BoundCondFunct2D *BoundCond, Boun
   // set the Discreteforms
   InitializeDiscreteFormsBurgers(DiscreteFormGalerkin, DiscreteFormSDFEM, DiscreteFormUpwind, DiscreteFormNLGalerkin,
                                  DiscreteFormNLSDFEM, DiscreteFormNLUpwind, DiscreteFormRHS, lincoeffs);
+
   
     // find discrete form
     switch(Disctype)
@@ -144,6 +145,8 @@ void TSystemTBE2D::Init(CoeffFct2D *lincoeffs, BoundCondFunct2D *BoundCond, Boun
    AMatRhsAssemble = new TAssembleMat2D(1, fesp, 2, SQMATRICES, 0, NULL,
                               2, RHSs, fesprhs, DiscreteFormMARhs, BoundaryConditions, BoundaryValues, BEaux);   
    AMatRhsAssemble->Init();     
+
+
 
    AMatAssembleNonLinear = new TAssembleMat2D(1, fesp, 1, SQMATRICES, 0, NULL,
                               0, NULL, NULL, DiscreteFormNL, BoundaryConditions, BoundaryValues, BEaux);   

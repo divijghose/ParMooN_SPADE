@@ -321,7 +321,7 @@ void CalcCovarianceMatx(double *Vector)
 
 	int height = TDatabase::ParamDB->REALIZATIONS;
 	int width = TDatabase::ParamDB->N_Subspace_Dim;
-	TDatabase::ParamDB->COVARIANCE_MATRIX_DO = new double[width * width]();
+	// TDatabase::ParamDB->COVARIANCE_MATRIX_DO = new double[width * width]();
 	double *phi = new double[width * height](); //Col to Row Major
 	for (int i = 0; i < height; i++)
 	{
@@ -333,7 +333,6 @@ void CalcCovarianceMatx(double *Vector)
 
 	cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, width, width, height, (1.0 / (height - 1)), phi, height, phi, width, 0.0, TDatabase::ParamDB->COVARIANCE_MATRIX_DO, width);
 
-	TDatabase::ParamDB->COVARIANCE_MATRIX_DO = new double[width * width]();
 
 	
 }
@@ -362,7 +361,7 @@ void CalcCoskewnessMatx(double *Vector)
 		}
 	}
 
-	TDatabase::ParamDB->COSKEWNESS_MATRIX_DO = new double[width * width * width]();
+	// TDatabase::ParamDB->COSKEWNESS_MATRIX_DO = new double[width * width * width]();
 	for (int i = 0; i < width; i++)
 	{
 		for (int j = 0; j < width; j++)
@@ -372,7 +371,7 @@ void CalcCoskewnessMatx(double *Vector)
 				for (int p = 0; p < height; p++)
 				{
 
-					TDatabase::ParamDB->COSKEWNESS_MATRIX_DO[width * width * k + width * i + j] += ((phi[width * p + i] * phi[width * p + i] * phi[width * p + i]) / (height - 1));
+					TDatabase::ParamDB->COSKEWNESS_MATRIX_DO[width * width * k + width * i + j] += ((phi[width * p + i] * phi[width * p + j] * phi[width * p + k]) / (height - 1));
 				}
 			}
 		}
@@ -405,7 +404,7 @@ lapack_int matInv(double *A, unsigned n)
 void InvertCov()
 {
 	int N = TDatabase::ParamDB->N_Subspace_Dim;
-	TDatabase::ParamDB->COVARIANCE_INVERSE_DO = new double[N * N]();
+	// TDatabase::ParamDB->COVARIANCE_INVERSE_DO = new double[N * N]();
 
 	memcpy(TDatabase::ParamDB->COVARIANCE_INVERSE_DO, TDatabase::ParamDB->COVARIANCE_MATRIX_DO, N * N * SizeOfDouble);
 	matInv(TDatabase::ParamDB->COVARIANCE_INVERSE_DO, N);
@@ -418,6 +417,7 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode,int N_S, dou
 	TCollection *coll = Fespace->GetCollection();
 	double* U_Mode = FeVector_Mode->GetValues();
 	int lenMode = FeVector_Mode->GetLength();
+	// cout << "Length Mode in DO Mean RHS: " << lenMode << endl;
 	int lenMean = N_U;
 
 
@@ -643,9 +643,9 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode,int N_S, dou
 					double Mult = Weights2[qdpt] * AbsDetjk[qdpt];
 					double *orgD00 = origvaluesD00[qdpt];
 
-					val1 += -1.0 * (U1_Mode_a[qdpt] * U1x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U1y_Mode_b[qdpt]);// * TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult;
+					val1 += -1.0 * (U1_Mode_a[qdpt] * U1x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U1y_Mode_b[qdpt])* TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult;
 
-					val2 += -1.0 * (U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt]); //* TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult;
+					val2 += -1.0 * (U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt])* TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult;
 
 					for (int j = 0; j < N_BaseFunct; j++)
 					{
