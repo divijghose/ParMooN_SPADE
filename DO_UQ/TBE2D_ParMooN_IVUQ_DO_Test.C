@@ -536,6 +536,7 @@ int main(int argc, char *argv[])
 	defect = new double[N_Total_MeanDOF]();
 
 	solMode = new double[N_Total_ModeDOF]();
+	old_solMode = new double[N_Total_ModeDOF]();
 	rhsMode = new double[N_Total_ModeDOF]();
 	old_rhsMode = new double[2 * N_M]();
 
@@ -697,6 +698,7 @@ int main(int argc, char *argv[])
 	TDatabase::ParamDB->COVARIANCE_MATRIX_DO = new double[subDim * subDim]();
 	TDatabase::ParamDB->COSKEWNESS_MATRIX_DO = new double[subDim * subDim * subDim]();
 	TDatabase::ParamDB->COVARIANCE_INVERSE_DO = new double[subDim * subDim]();
+
 	CalcCovarianceMatx(CoeffVector);
 	CalcCoskewnessMatx(CoeffVector);
 	InvertCov();
@@ -896,8 +898,8 @@ int main(int argc, char *argv[])
 			// OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
 
 			// copy sol, rhs to olssol, oldrhs
-			memcpy(old_rhsMean, rhsMean, N_TotalDOF * SizeOfDouble);
-			memcpy(old_solMean, solMean, N_TotalDOF * SizeOfDouble);
+			memcpy(old_rhsMean, rhsMean, N_Total_MeanDOF * SizeOfDouble);
+			memcpy(old_solMean, solMean, N_Total_MeanDOF * SizeOfDouble);
 
 			DO_Mean_RHS(Velocity_FeSpace, Velocity_Mode,subDim, rhsMean,N_U);
 
@@ -921,11 +923,11 @@ int main(int argc, char *argv[])
 			oldtau = tau;
 
 			// calculate the residual
-			memset(defect, 0, N_TotalDOF * SizeOfDouble);
+			memset(defect, 0, N_Total_MeanDOF * SizeOfDouble);
 			// SystemMatrix_Mean->GetTBEResidual(sol, defect);
 			SystemMatrix_Mean->GetTBEResidual(solMean, defect);
 
-			residual = Ddot(N_TotalDOF, defect, defect);
+			residual = Ddot(N_Total_MeanDOF, defect, defect);
 			// OutPut("Nonlinear iteration step   0");
 			// OutPut(setw(14) << sqrt(residual) << endl);
 
@@ -952,11 +954,11 @@ int main(int argc, char *argv[])
 				SystemMatrix_Mean->AssembleSystMatNonLinear();
 
 				// get the residual
-				memset(defect, 0, N_TotalDOF * SizeOfDouble);
+				memset(defect, 0, N_Total_MeanDOF * SizeOfDouble);
 				//  SystemMatrix_Mean->GetTBEResidual(sol, defect);
 				SystemMatrix_Mean->GetTBEResidual(solMean, defect);
 
-				residual = Ddot(N_TotalDOF, defect, defect);
+				residual = Ddot(N_Total_MeanDOF, defect, defect);
 				//  OutPut("nonlinear iteration step " << setw(3) << j);
 				//  OutPut(setw(14) << sqrt(residual) << endl);
 
@@ -1032,7 +1034,7 @@ int main(int argc, char *argv[])
 				OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
 			}
 
-			// tau = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
+			tau = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
 			// TDatabase::TimeDB->CURRENTTIME += tau;
 
 			for (int subSpaceNum = 0; subSpaceNum < subDim; subSpaceNum++)
@@ -1042,11 +1044,27 @@ int main(int argc, char *argv[])
 
 				// copy sol, rhs to olssol, oldrhs
 				memcpy(old_rhsMode, modeSolution_rhs, 2 * N_M * SizeOfDouble);
+				memcpy(old_solMode, modeSolution_i, N_Total_MeanDOF * SizeOfDouble);
+
+			
+
 
 				// Assemble rhs
 				DO_Mode_RHS(VelocityMode_FeSpace, Velocity_Mean, Velocity_Mode, subDim, modeSolution_rhs, subSpaceNum);
 
+					if (m != 1)
+			{
+				SystemMatrixModeAll[subSpaceNum]->AssembleA();
+
+				//  SystemMatrix->AssembleA();
+			}
+			else
+			{
+				//  SystemMatrix_Mean->Assemble(solMean, rhsMean);
 				SystemMatrixModeAll[subSpaceNum]->Assemble(modeSolution_i, modeSolution_rhs);
+			}
+
+				// SystemMatrixModeAll[subSpaceNum]->Assemble(modeSolution_i, modeSolution_rhs);
 				//   }
 
 				// scale B matices and assemble NSE-rhs based on the \theta time stepping scheme
@@ -1055,11 +1073,11 @@ int main(int argc, char *argv[])
 				oldtau = tau;
 
 				// calculate the residual
-				memset(defect, 0, N_TotalDOF * SizeOfDouble);
+				memset(defect, 0, N_Total_MeanDOF * SizeOfDouble);
 				// SystemMatrix_Mean->GetTBEResidual(sol, defect);
 				SystemMatrixModeAll[subSpaceNum]->GetTBEResidual(modeSolution_i, defect);
 
-				residual = Ddot(N_TotalDOF, defect, defect);
+				residual = Ddot(N_Total_MeanDOF, defect, defect);
 				// OutPut("Nonlinear iteration step   0");
 				// OutPut(setw(14) << sqrt(residual) << endl);
 
@@ -1086,11 +1104,11 @@ int main(int argc, char *argv[])
 					SystemMatrixModeAll[subSpaceNum]->AssembleSystMatNonLinear();
 
 					// get the residual
-					memset(defect, 0, N_TotalDOF * SizeOfDouble);
+					memset(defect, 0, N_Total_MeanDOF * SizeOfDouble);
 					//  SystemMatrix_Mean->GetTBEResidual(sol, defect);
 					SystemMatrixModeAll[subSpaceNum]->GetTBEResidual(modeSolution_i, defect);
 
-					residual = Ddot(N_TotalDOF, defect, defect);
+					residual = Ddot(N_Total_MeanDOF, defect, defect);
 					//  OutPut("nonlinear iteration step " << setw(3) << j);
 					//  OutPut(setw(14) << sqrt(residual) << endl);
 

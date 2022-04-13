@@ -151,7 +151,8 @@
         "FEVectFunct2D.C": "cpp",
         "TBE2D_ParMooN_IVUQ_DO_Mean.C": "cpp",
         "TBE2D_ParMooN_MC_Test.C": "cpp",
-        "AssembleMat2D.C": "cpp"
+        "AssembleMat2D.C": "cpp",
+        "TimeDiscRout.C": "cpp"
     },
     "cmake.configureOnOpen": false
 }
