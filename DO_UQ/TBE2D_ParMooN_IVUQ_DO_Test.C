@@ -246,6 +246,14 @@ int main(int argc, char *argv[])
 				C[j * N_U + i] *= sig_r1 * sig_r2;
 			}
 
+			 else if(TDatabase::ParamDB->stddev_switch == 2){
+
+              double sig_r1 = sin(-1.0*Pi*(2*actual_x-2))*sin(-1.0*Pi*(2*actual_y-2));
+              double sig_r2 = sin(-1.0*Pi*(2*local_x-2))*sin(-1.0*Pi*(2*local_y-2));
+              C[j*N_U + i] *= sig_r1 * sig_r2 ;
+            }
+
+
 			else
 			{
 				cout << "Error " << endl;
@@ -546,7 +554,9 @@ int main(int argc, char *argv[])
 		{
 			// solMode[j*N_DOF+mappingArray[i]] = ModeVector[j*N_DOF+i];
 			solMode[(2 * j * N_M) + i] = ModeVector[j * N_U + i];
-			solMode[(2 * j * N_M)+N_M + i] =  ModeVector[j * N_U + i];
+			// solMode[(2 * j * N_M)+N_M + i] =  ModeVector[j * N_U + i];
+			solMode[(2 * j * N_M)+N_M + i] =  0;
+
 		}
 	}
 	// double *solMode1 = new double[2*N_M]();
@@ -574,7 +584,9 @@ int main(int argc, char *argv[])
 	{
 
 		solMean[i] = MeanVector[i];
-		solMean[N_U + i] = MeanVector[i];
+		// solMean[N_U + i] = MeanVector[i];
+		solMean[N_U + i] = 0;
+
 	}
 
 	

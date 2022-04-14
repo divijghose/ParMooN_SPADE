@@ -262,10 +262,17 @@ int main(int argc, char* argv[])
                 double E = TDatabase::ParamDB->stddev_denom;
                 double disp = TDatabase::ParamDB->stddev_disp;
                 double power = TDatabase::ParamDB->stddev_power;
-                double sig_r1 = exp ( - pow( ( 2*actual_x - 1 - disp),power)  / (E) )  / (2*3.14159265359 * sqrt(E))  * exp ( - pow(( 2*actual_x - 1-disp),power)  / (E) )  / (2*3.14159265359 * sqrt(E)) ;
+                double sig_r1 = exp ( - pow( ( 2*actual_x - 1 - disp),power)  / (E) )  / (2*3.14159265359 * sqrt(E))  * exp ( - pow(( 2*actual_y - 1-disp),power)  / (E) )  / (2*3.14159265359 * sqrt(E)) ;
                 double sig_r2 = exp ( - pow(( 2*local_x - 1 -disp),power)  / (E) )  / (2*3.14159265359 * sqrt(E))  * exp ( - pow(( 2*local_y - 1-disp),power)  / (E) ) / (2*3.14159265359 * sqrt(E)); 
                 // Co Variance
                 C[j*N_U + i] *= sig_r1 * sig_r2 ;
+            }
+
+            else if(TDatabase::ParamDB->stddev_switch == 2){
+
+              double sig_r1 = sin(-1.0*Pi*(2*actual_x-2))*sin(-1.0*Pi*(2*actual_y-2));
+              double sig_r2 = sin(-1.0*Pi*(2*local_x-2))*sin(-1.0*Pi*(2*local_y-2));
+              C[j*N_U + i] *= sig_r1 * sig_r2 ;
             }
 
             else{
@@ -467,7 +474,7 @@ int main(int argc, char* argv[])
     // SystemMatrix_Mean->Assemble(sol, rhs);
     for(i=0;i<N_U;i++){
       sol[mappingArray[i]] = RealizationVector[RealNo+N_Realisations*i]/10;
-      sol[N_U+mappingArray[i]]=RealizationVector[RealNo+N_Realisations*i]/10;
+      sol[N_U+mappingArray[i]]=0;
       
     }
     SystemMatrix->Assemble(sol, rhs);

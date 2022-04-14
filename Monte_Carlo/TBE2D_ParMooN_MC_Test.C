@@ -284,11 +284,13 @@ int main(int argc, char* argv[])
 				double E = TDatabase::ParamDB->stddev_denom;
 				double disp = TDatabase::ParamDB->stddev_disp;
 				double power = TDatabase::ParamDB->stddev_power;
-				double sig_r1 = exp(-pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E)) * exp(-pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E));
+				double sig_r1 = exp(-pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E)) * exp(-pow((2 * actual_y - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E));
 				double sig_r2 = exp(-pow((2 * local_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E)) * exp(-pow((2 * local_y - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E));
 				// Co Variance
 				C[j * N_U + i] *= sig_r1 * sig_r2;
 			}
+
+      
 
 			else
 			{
