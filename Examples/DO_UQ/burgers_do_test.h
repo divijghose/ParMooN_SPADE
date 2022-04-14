@@ -391,6 +391,7 @@ lapack_int matInv(double *A, unsigned n)
 						 ipiv);
 
 	if (ret != 0)
+		// cout<<"Failure with dgetrf" << endl;
 		return ret;
 
 	ret = LAPACKE_dgetri(LAPACK_ROW_MAJOR,
@@ -398,6 +399,8 @@ lapack_int matInv(double *A, unsigned n)
 						 A,
 						 n,
 						 ipiv);
+
+	// cout << "Failure with dgetri" << endl;
 	return ret;
 }
 

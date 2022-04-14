@@ -901,21 +901,25 @@ int main(int argc, char *argv[])
 			memcpy(old_rhsMean, rhsMean, N_Total_MeanDOF * SizeOfDouble);
 			memcpy(old_solMean, solMean, N_Total_MeanDOF * SizeOfDouble);
 
-			DO_Mean_RHS(Velocity_FeSpace, Velocity_Mode,subDim, rhsMean,N_U);
+
+
+			DO_Mean_RHS(VelocityMean_FeSpace, Velocity_Mode,subDim, rhsMean,N_U);
+
+
 
 			// assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
 			// not needed if rhs is not time-dependent
-			if (m != 1)
-			{
-				SystemMatrix_Mean->AssembleA();
+			// if (m != 1)
+			// {
+			// 	SystemMatrix_Mean->AssembleA();
 
-				//  SystemMatrix->AssembleA();
-			}
-			else
-			{
+			// 	//  SystemMatrix->AssembleA();
+			// }
+			// else
+			// {
 				//  SystemMatrix_Mean->Assemble(solMean, rhsMean);
 				SystemMatrix_Mean->Assemble(solMean, rhsMean);
-			}
+			// }
 
 			// scale B matices and assemble NSE-rhs based on the \theta time stepping scheme
 			//  SystemMatrix_Mean->AssembleSystMat(oldrhs, rhs, sol);
@@ -959,8 +963,8 @@ int main(int argc, char *argv[])
 				SystemMatrix_Mean->GetTBEResidual(solMean, defect);
 
 				residual = Ddot(N_Total_MeanDOF, defect, defect);
-				//  OutPut("nonlinear iteration step " << setw(3) << j);
-				//  OutPut(setw(14) << sqrt(residual) << endl);
+				 OutPut("nonlinear iteration step " << setw(3) << j);
+				 OutPut(setw(14) << sqrt(residual) << endl);
 
 				if (sqrt(residual) <= limit)
 					break;
@@ -1044,7 +1048,7 @@ int main(int argc, char *argv[])
 
 				// copy sol, rhs to olssol, oldrhs
 				memcpy(old_rhsMode, modeSolution_rhs, 2 * N_M * SizeOfDouble);
-				memcpy(old_solMode, modeSolution_i, N_Total_MeanDOF * SizeOfDouble);
+				// memcpy(old_solMode, modeSolution_i, N_Total_MeanDOF * SizeOfDouble);
 
 			
 
@@ -1052,19 +1056,19 @@ int main(int argc, char *argv[])
 				// Assemble rhs
 				DO_Mode_RHS(VelocityMode_FeSpace, Velocity_Mean, Velocity_Mode, subDim, modeSolution_rhs, subSpaceNum);
 
-					if (m != 1)
-			{
-				SystemMatrixModeAll[subSpaceNum]->AssembleA();
+			// 		if (m != 1)
+			// {
+			// 	SystemMatrixModeAll[subSpaceNum]->AssembleA();
 
-				//  SystemMatrix->AssembleA();
-			}
-			else
-			{
-				//  SystemMatrix_Mean->Assemble(solMean, rhsMean);
+			// 	//  SystemMatrix->AssembleA();
+			// }
+			// else
+			// {
+			// 	//  SystemMatrix_Mean->Assemble(solMean, rhsMean);
+			// 	SystemMatrixModeAll[subSpaceNum]->Assemble(modeSolution_i, modeSolution_rhs);
+			// }
+
 				SystemMatrixModeAll[subSpaceNum]->Assemble(modeSolution_i, modeSolution_rhs);
-			}
-
-				// SystemMatrixModeAll[subSpaceNum]->Assemble(modeSolution_i, modeSolution_rhs);
 				//   }
 
 				// scale B matices and assemble NSE-rhs based on the \theta time stepping scheme
@@ -1119,9 +1123,6 @@ int main(int argc, char *argv[])
 				SystemMatrixModeAll[subSpaceNum]->RestoreMassMat();
 			} // subspace loop end
 
-			// restore the mass matrix for the next time step
-			// SystemMatrix_Mean->RestoreMassMat();
-			// SystemMatrix_Mean->RestoreMassMat();
 
 		} // l substep time loop
 		  //======================================================================
