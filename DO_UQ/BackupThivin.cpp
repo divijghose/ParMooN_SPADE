@@ -913,11 +913,25 @@ int main(int argc, char *argv[])
 			memcpy(old_rhsMean, rhsMean, N_Total_MeanDOF * SizeOfDouble);
 			memcpy(old_solMean, solMean, N_Total_MeanDOF * SizeOfDouble);
 
+
+
 			DO_Mean_RHS(VelocityMean_FeSpace, Velocity_Mode,subDim, rhsMean,N_U);
 
-			// assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
-			SystemMatrix_Mean->Assemble(solMean, rhsMean);
 
+
+			// assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
+			// not needed if rhs is not time-dependent
+			// if (m != 1)
+			// {
+			// 	SystemMatrix_Mean->AssembleA();
+
+			// 	//  SystemMatrix->AssembleA();
+			// }
+			// else
+			// {
+				//  SystemMatrix_Mean->Assemble(solMean, rhsMean);
+				SystemMatrix_Mean->Assemble(solMean, rhsMean);
+			// }
 
 			// scale B matices and assemble NSE-rhs based on the \theta time stepping scheme
 			//  SystemMatrix_Mean->AssembleSystMat(oldrhs, rhs, sol);
@@ -1036,6 +1050,17 @@ int main(int argc, char *argv[])
 				// Assemble rhs
 				DO_Mode_RHS(VelocityMode_FeSpace, Velocity_Mean, Velocity_Mode, subDim, modeSolution_rhs, subSpaceNum);
 
+			// 		if (m != 1)
+			// {
+			// 	SystemMatrixModeAll[subSpaceNum]->AssembleA();
+
+			// 	//  SystemMatrix->AssembleA();
+			// }
+			// else
+			// {
+			// 	//  SystemMatrix_Mean->Assemble(solMean, rhsMean);
+			// 	SystemMatrixModeAll[subSpaceNum]->Assemble(modeSolution_i, modeSolution_rhs);
+			// }
 
 				SystemMatrixModeAll[subSpaceNum]->Assemble(modeSolution_i, modeSolution_rhs);
 				//   }
