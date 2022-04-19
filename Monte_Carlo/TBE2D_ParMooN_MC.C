@@ -495,7 +495,7 @@ int main(int argc, char* argv[])
     // assemble M, A matrices and rhs 
     // SystemMatrix_Mean->Assemble(sol, rhs);
     for(i=0;i<N_U;i++){
-      sol[mappingArray[i]] = RealizationVector[RealNo+N_Realisations*i]/10;
+      sol[mappingArray[i]] = RealizationVector[RealNo+N_Realisations*i];
       sol[N_U+mappingArray[i]]=0;
       
     }
