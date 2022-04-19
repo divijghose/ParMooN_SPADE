@@ -1,8 +1,30 @@
+/**
+ * @file TBE2D_ParMooN_MC.C
+ * @brief Purpose:  Main program for solving Monte Carlo runs of time-dependent Burger's equation in ParMooN.			   
+ * @authors Sashikumaar Ganesan
+ * @authors Divij Ghose
+ * @authors Thivin Anandh
+ * @bug No known bugs
+ */
+
+// ===========================================================================//
+//  Monte Carlo Solution of Burgers' Equation //
+// ===========================================================================//
+
 // =======================================================================
-// Purpose:     main program for solving a time-dependent Burger's equation in ParMooN
-// Author:      Sashikumaar Ganesan
-// History:     Implementation started on 28.11.2020
+//
+// Purpose:     Main program for solving Monte Carlo runs of time-dependent Burger's equation in ParMooN.	
+//
+// Authors:      Sashikumaar Ganesan, Thivin Anandh, Divij Ghose
+//
+// History:     1> First iteration implemented on 01.04.2022
+//              2> Sine Wave standard deviation function implemented on 12.04.2022
+//              
+//		        
+//
 // =======================================================================
+
+
 #include <Domain.h>
 #include <Database.h>
 #include <FEDatabase2D.h>
@@ -30,7 +52,7 @@
 // =======================================================================
 // include current example
 // =======================================================================
-#include "../Examples/Monte_Carlo/burgers_do_test.h" // smooth sol in unit square
+#include "../Examples/Monte_Carlo/burgers_mc.h" // smooth sol in unit square
 
 // =======================================================================
 // main program
