@@ -1,9 +1,0 @@
-[  1%] Built target solver
-[  5%] Built target amg
-[ 30%] Built target ref
-[ 33%] Built target quad
-[ 50%] Built target geo
-[ 53%] Built target gen
-[ 90%] Built target fe
-[ 99%] Built target sys
-[100%] Built target parmoon_2D_SEQUENTIAL.exe
