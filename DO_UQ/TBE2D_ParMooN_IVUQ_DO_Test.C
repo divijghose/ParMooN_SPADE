@@ -88,6 +88,7 @@ int main(int argc, char *argv[])
 	TAuxParam2D **BEaux_modeAll;
 
 	const char vtkdir[] = "VTK";
+	const char coeffdir[] = "Coefficients";
 
 	char *PsBaseName, *VtkBaseName, *GEO;
 
@@ -101,6 +102,7 @@ int main(int argc, char *argv[])
 	os << " ";
 
 	mkdir(vtkdir, 0777);
+	mkdir(coeffdir, 0777);
 
 	// ======================================================================
 	// set the database values and generate mesh
@@ -246,13 +248,13 @@ int main(int argc, char *argv[])
 				C[j * N_U + i] *= sig_r1 * sig_r2;
 			}
 
-			 else if(TDatabase::ParamDB->stddev_switch == 2){
+			else if (TDatabase::ParamDB->stddev_switch == 2)
+			{
 
-              double sig_r1 = sin(-1.0*Pi*(2*actual_x-2))*sin(-1.0*Pi*(2*actual_y-2));
-              double sig_r2 = sin(-1.0*Pi*(2*local_x-2))*sin(-1.0*Pi*(2*local_y-2));
-              C[j*N_U + i] *= sig_r1 * sig_r2 ;
-            }
-
+				double sig_r1 = sin(-1.0 * Pi * (2 * actual_x - 2)) * sin(-1.0 * Pi * (2 * actual_y - 2));
+				double sig_r2 = sin(-1.0 * Pi * (2 * local_x - 2)) * sin(-1.0 * Pi * (2 * local_y - 2));
+				C[j * N_U + i] *= sig_r1 * sig_r2;
+			}
 
 			else
 			{
@@ -555,8 +557,7 @@ int main(int argc, char *argv[])
 			// solMode[j*N_DOF+mappingArray[i]] = ModeVector[j*N_DOF+i];
 			solMode[(2 * j * N_M) + i] = ModeVector[j * N_U + i];
 			// solMode[(2 * j * N_M)+N_M + i] =  ModeVector[j * N_U + i];
-			solMode[(2 * j * N_M)+N_M + i] =  0;
-
+			solMode[(2 * j * N_M) + N_M + i] = 0;
 		}
 	}
 	// double *solMode1 = new double[2*N_M]();
@@ -586,11 +587,7 @@ int main(int argc, char *argv[])
 		solMean[i] = MeanVector[i];
 		// solMean[N_U + i] = MeanVector[i];
 		solMean[N_U + i] = 0;
-
 	}
-
-	
-
 
 	TFEVectFunct2D **VelocityModeAll = new TFEVectFunct2D *[subDim];
 	for (int subD = 0; subD < subDim; subD++)
@@ -684,10 +681,10 @@ int main(int argc, char *argv[])
 
 	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
 	//-------------------------------------- MODE EQUATION SETUP -----------------------------------------------------//
-	for (int subD = 0; subD < subDim; subD++){
+	for (int subD = 0; subD < subDim; subD++)
+	{
 		SystemMatrixModeAll[subD]->Init(DO_Mode_Equation_Coefficients, BoundCondition, U1BoundValue, U2BoundValue, BEaux_modeAll[subD], BEaux_error_mode);
 		SystemMatrixModeAll[subD]->Assemble(solMode + (subD * 2 * N_M), rhsMode + (subD * 2 * N_M));
-
 	}
 
 	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
@@ -706,7 +703,6 @@ int main(int argc, char *argv[])
 	//                                          DO_Mode_Equation_Assembly, DO_Mode_Equation_Coefficients,
 	//                                          NULL);
 
-	
 	TDatabase::ParamDB->COVARIANCE_MATRIX_DO = new double[subDim * subDim]();
 	TDatabase::ParamDB->COSKEWNESS_MATRIX_DO = new double[subDim * subDim * subDim]();
 	TDatabase::ParamDB->COVARIANCE_INVERSE_DO = new double[subDim * subDim]();
@@ -863,22 +859,22 @@ int main(int argc, char *argv[])
 
 	// fileMode.close();
 
-	// fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m);
-	// std::ofstream fileCoeff;
-	// fileCoeff.open(fileoutCoeff);
+	fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m);
+	std::ofstream fileCoeff;
+	fileCoeff.open(fileoutCoeff);
 
-	// for (int i = 0; i < N_Realisations; i++)
-	// {
-	// 	for (int j = 0; j < subDim; j++)
-	// 	{
-	// 		fileCoeff << CoeffVector[j * subDim + i];
-	// 		if (j != subDim - 1)
-	// 			fileCoeff << ",";
-	// 	}
-	// 	fileCoeff << endl;
-	// }
+	for (int i = 0; i < N_Realisations; i++)
+	{
+		for (int j = 0; j < subDim; j++)
+		{
+			fileCoeff << CoeffVector[j * subDim + i];
+			if (j != subDim - 1)
+				fileCoeff << ",";
+		}
+		fileCoeff << endl;
+	}
 
-	// fileCoeff.close();
+	fileCoeff.close();
 
 	N_SubSteps = GetN_SubSteps();
 	oldtau = 1.;
@@ -913,11 +909,10 @@ int main(int argc, char *argv[])
 			memcpy(old_rhsMean, rhsMean, N_Total_MeanDOF * SizeOfDouble);
 			memcpy(old_solMean, solMean, N_Total_MeanDOF * SizeOfDouble);
 
-			DO_Mean_RHS(VelocityMean_FeSpace, Velocity_Mode,subDim, rhsMean,N_U);
+			DO_Mean_RHS(VelocityMean_FeSpace, Velocity_Mode, subDim, rhsMean, N_U);
 
 			// assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
 			SystemMatrix_Mean->Assemble(solMean, rhsMean);
-
 
 			// scale B matices and assemble NSE-rhs based on the \theta time stepping scheme
 			//  SystemMatrix_Mean->AssembleSystMat(oldrhs, rhs, sol);
@@ -961,8 +956,8 @@ int main(int argc, char *argv[])
 				SystemMatrix_Mean->GetTBEResidual(solMean, defect);
 
 				residual = Ddot(N_Total_MeanDOF, defect, defect);
-				 OutPut("nonlinear iteration step " << setw(3) << j);
-				 OutPut(setw(14) << sqrt(residual) << endl);
+				OutPut("nonlinear iteration step " << setw(3) << j);
+				OutPut(setw(14) << sqrt(residual) << endl);
 
 				if (sqrt(residual) <= limit)
 					break;
@@ -1002,12 +997,29 @@ int main(int argc, char *argv[])
 
 			DO_CoEfficient(Velocity_FeSpace, Velocity_Mode, FeVector_Coefficient, Velocity_Mean, subDim, subSpaceNum, N_Realisations);
 		}
-		
+
 		// OutPut("Ddot Coeff Vector After Coeff Solve:" << Ddot(N_Realisations*subDim, CoeffVector, CoeffVector) << endl);
 		CalcCovarianceMatx(CoeffVector);
 		CalcCoskewnessMatx(CoeffVector);
 		InvertCov();
 
+		
+		fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m);
+		std::ofstream fileCoeff;
+		fileCoeff.open(fileoutCoeff);
+
+		for (int i = 0; i < N_Realisations; i++)
+		{
+			for (int j = 0; j < subDim; j++)
+			{
+				fileCoeff << CoeffVector[j * subDim + i];
+				if (j != subDim - 1)
+					fileCoeff << ",";
+			}
+			fileCoeff << endl;
+		}
+
+		fileCoeff.close();
 		// xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 		for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
 		{
@@ -1035,7 +1047,6 @@ int main(int argc, char *argv[])
 
 				// Assemble rhs
 				DO_Mode_RHS(VelocityMode_FeSpace, Velocity_Mean, Velocity_Mode, subDim, modeSolution_rhs, subSpaceNum);
-
 
 				SystemMatrixModeAll[subSpaceNum]->Assemble(modeSolution_i, modeSolution_rhs);
 				//   }
@@ -1091,7 +1102,6 @@ int main(int argc, char *argv[])
 				} // for(j=1;j<=Max_It;j++)
 				SystemMatrixModeAll[subSpaceNum]->RestoreMassMat();
 			} // subspace loop end
-
 
 		} // l substep time loop
 		  //======================================================================
