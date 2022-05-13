@@ -1,20 +1,26 @@
 // =======================================================================
-// Purpose:     main program for solving a time-dependent Burger's equation in ParMooN
+//
+// Purpose:     main program for solving a time-dependent NSE equation in ParMooN
+//
 // Author:      Sashikumaar Ganesan
-// History:     Implementation started on 28.11.2020
+//
+// History:     Implementation started on 03.09.2014
+
 // =======================================================================
 #include <Domain.h>
-#include <Database.h> 
+#include <Database.h>
 #include <FEDatabase2D.h>
 #include <LinAlg.h>
 #include <FESpace2D.h>
-#include <SystemTBE2D.h>
-#include <SystemTBE_Mode2D.h>
+#include <SystemTNSE2D.h>
 #include <SquareStructure2D.h>
+#include <Structure2D.h>
 #include <Output2D.h>
+#include <CD2DErrorEstimator.h>
 #include <MainUtilities.h>
-#include <TimeDiscRout.h>
+// #include <TimeUtilities.h>
 #include <TNSE2D_ParamRout.h>
+#include <TimeDiscRout.h>
 
 #include <string.h>
 #include <sstream>
@@ -26,12 +32,14 @@
 #include <mkl.h>
 #include <cmath>
 #include <random>
-
 // =======================================================================
 // include current example
 // =======================================================================
-#include "../Examples/DO_UQ/burgers_do_test.h" // smooth sol in unit square
-
+#include "../Examples/DO_UQ/navierstokes_do_ldc_test.h" //   in unit square
+// #include "../Examples/TNSE_2D/Bsp3.h" // smooth sol in unit square
+// #include "../Examples_All/TNSE_2D/Benchmark2.h"
+//#include "../Examples/TNSE_2D/SinCos.h" // smooth sol in unit square
+//#include "../Examples/TNSE_2D/SinCos2.h" // smooth sol in unit square
 // =======================================================================
 // main program
 // =======================================================================
@@ -40,63 +48,52 @@ int main(int argc, char *argv[])
 	// ======================================================================
 	//  declaration of variables
 	// ======================================================================
-	int i, j, l, m, N_Cells, ORDER, N_U, N_M, N_L, N_TotalDOF, img = 1, N_Modes, N_Realiz;
-	int N_Total_MeanDOF, Max_It, NSEType, N_SubSteps, Disctype;
+	int i, j, l, m, N_Cells, ORDER, N_U, N_P, N_L, N_TotalDOF, img = 1, pressure_space_code, velocity_space_code;
+
+	int pressure_space_code_mean;
+	int pressure_space_code_mode;
+	int velocity_space_code_mean;
+	int velocity_space_code_mode;
+
+	int Max_It, NSEType, N_SubSteps, Disctype;
 
 	double *sol, *rhs, *oldrhs, *defect, t1, t2, residual, impuls_residual;
 	double limit, AllErrors[7], end_time, oldtau, tau;
 
-	double *solMean, *rhsMean, *old_rhsMean, *old_solMean;
-	double *solMode, *rhsMode, *old_rhsMode, *old_solMode;
-
 	TDomain *Domain;
+
 	TDatabase *Database = new TDatabase();
+
 	TFEDatabase2D *FEDatabase = new TFEDatabase2D();
+
 	TCollection *coll, *mortarcoll = NULL;
 
-	TFESpace2D *Velocity_FeSpace, *VelocityMode_FeSpace, *VelocityMean_FeSpace;
-	TFESpace2D *fesp[2], *fesp_mode[2], *fesp_mean[2];
-	TFESpace2D *Velocity_FeSpace_Mean, *fespMean[2];
-	TFESpace2D *Velocity_FeSpace_Mode, *fespMode[2];
-	// TFESpace2D *Velocity_FeSpace, *fespMean[2];
+	TFESpace2D *Velocity_FeSpace, *Pressure_FeSpace, *fesp[2];
 
-	// TFEVectFunct2D *Velocity_Mean, *Velocity_Mode;
-	TFEVectFunct2D *Velocity_Mean, *Velocity_Mode, *Velocity;
-	// TFEFunction2D *u1_mean, *u2_mean, *fefct[2];
+	TFEVectFunct2D *Velocity;
 
-	TFEFunction2D *u1, *u2, *fefct[2];
-	TFEFunction2D *u1Mean, *u2Mean, *fefctMean[2];
-	TFEFunction2D *u1Mode, *u2Mode, *fefctMode[2];
+	TFEFunction2D *u1, *u2, *Pressure, *fefct[2];
 
-	// Triple pointer for sending in a FEVect function for each of the Aux
-	TFEFunction2D *fefctModeAll[50][2];
+	TOutput2D *Output;
 
-	TOutput2D *Output, *OutputMean, *OutputMode;
+	TSystemTNSE2D *SystemMatrix;
 
-	// TSystemTBE2D *SystemMatrix_Mean;
-	TSystemTBE2D *SystemMatrix, *SystemMatrix_Mean, *SystemMatrix_Mode;
+	TAuxParam2D *aux, *NSEaux_error;
 
-	// TSystemTBE_Mode2D *SystemMatrix_Mode;
-	// TFEFunction2D *FeFct[2], *FeFct_Mode[4];
+	MultiIndex2D AllDerivatives[3] = {D00, D10, D01};
 
-	TFEFunction2D *FeFct[2];
-
-	TAuxParam2D *BEaux, *BEaux_error;
-	TAuxParam2D *BEaux_mean, *BEaux_error_mean;
-	TAuxParam2D *BEaux_mode, *BEaux_error_mode;
-
-	TAuxParam2D **BEaux_modeAll;
+#ifdef __PRIVATE__
+	TFESpace2D *Projection_space;
+#endif
 
 	const char vtkdir[] = "VTK";
 	const char coeffdir[] = "Coefficients";
 
 	char *PsBaseName, *VtkBaseName, *GEO;
 
-	char *VtkBaseNameMean, *VtkBaseNameMode;
-	// char UString[] = "u_mean";
-	// char UString[] = "usol";
-	// char UMString[] = "u_mode";
-	// char NameString[] = "UQ";
+	char UString[] = "u";
+	char PString[] = "p";
+	char NameString[] = "VMS";
 
 	std::ostringstream os;
 	os << " ";
@@ -113,6 +110,7 @@ int main(int argc, char *argv[])
 	OpenFiles();
 	OutFile.setf(std::ios::scientific);
 
+	Database->CheckParameterConsistencyNSE();
 	Database->WriteParamDB(argv[0]);
 	Database->WriteTimeDB();
 	ExampleFile();
@@ -138,18 +136,44 @@ int main(int argc, char *argv[])
 	//=========================================================================
 	// construct all finite element spaces
 	//=========================================================================
-
 	ORDER = TDatabase::ParamDB->ANSATZ_ORDER;
+	NSEType = TDatabase::ParamDB->NSTYPE;
 	Disctype = TDatabase::ParamDB->DISCTYPE;
 
 	coll = Domain->GetCollection(It_Finest, 0);
 	N_Cells = coll->GetN_Cells();
-	OutPut("Number of Cells : " << N_Cells << endl);
+	OutPut("N_Cells : " << N_Cells << endl);
 
-	Velocity_FeSpace = new TFESpace2D(coll, (char *)"Sol", (char *)"FESpace for Solution", BoundCondition, ORDER, NULL);
+	// fespaces for velocity and pressure
+	GetVelocityAndPressureSpace(coll, BoundCondition, mortarcoll, Velocity_FeSpace,
+								Pressure_FeSpace, &pressure_space_code,
+								TDatabase::ParamDB->VELOCITY_SPACE,
+								TDatabase::ParamDB->PRESSURE_SPACE);
+
+	// defaulty inf-sup pressure space will be selected based on the velocity space, so update it in database
+	TDatabase::ParamDB->INTERNAL_PRESSURE_SPACE = pressure_space_code;
+	velocity_space_code = TDatabase::ParamDB->VELOCITY_SPACE;
+
 	N_U = Velocity_FeSpace->GetN_DegreesOfFreedom();
+	N_P = Pressure_FeSpace->GetN_DegreesOfFreedom();
+	int N_Total_DomainDOF = 2 * N_U + N_P;
 
-	OutPut("DOF for general solution" << setw(10) << 2 * N_U << endl);
+	// OutPut("Dof Velocity : " << setw(10) << 2 * N_U << endl);
+	// OutPut("Dof Pressure : " << setw(10) << N_P << endl);
+	// OutPut("Total Dof all: " << setw(10) << N_TotalDOF << endl);
+
+#ifdef __PRIVATE__
+	if (Disctype == VMS_PROJECTION)
+	{
+		if (TDatabase::ParamDB->VMS_LARGE_VELOCITY_SPACE == 0)
+			Projection_space = new TFESpace2D(coll, NameString, UString, BoundCondition, DiscP_PSpace, 0, mortarcoll);
+		else
+			Projection_space = new TFESpace2D(coll, NameString, UString, BoundCondition, DiscP_PSpace, 1, mortarcoll);
+
+		N_L = Projection_space->GetN_DegreesOfFreedom();
+		OutPut("Dof Projection : " << setw(10) << N_L << endl);
+	}
+#endif
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	////////// -------- REALISATION DATA GENERATION ----------------------------------------- //////
@@ -259,7 +283,7 @@ int main(int argc, char *argv[])
 			else
 			{
 				cout << "Error - No standard deviation function is defined for stddev_switch: " << TDatabase::ParamDB->stddev_switch << endl;
-                exit(0);
+				exit(0);
 			}
 
 			norm += C[j * N + i] * C[j * N + i];
@@ -385,12 +409,6 @@ int main(int argc, char *argv[])
 	// printMatrix(RealizationVector, N_DOF,N_Realisations);
 
 	// mkl_dimatcopy('R','T', N_DOF,N_Realisations,1.0,RealizationVector,N_DOF,N_Realisations);
-	cout << " COPY DONE " << endl;
-
-	cout << " REALISATIONS COMPUTED " << endl;
-
-	//////////////////////////////////End of Realization/////////////////////////////////////////
-
 	srand(time(NULL));
 	int N_samples = 100;
 	int *indexArray = new int[N_samples];
@@ -407,8 +425,13 @@ int main(int argc, char *argv[])
 	}
 
 	memcpy(RealizationVector, RealizationVectorTemp, N_U * N_Realisations * SizeOfDouble);
+	cout << " COPY DONE " << endl;
 
-	/////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
+	cout << " REALISATIONS COMPUTED " << endl;
+
+	//////////////////////////////////End of Realization/////////////////////////////////////////
+
+	//
 
 	////////////////////////////////////// -------- START OF DO INITIALIZATION ------------ ////////////////////////////////////////////////////////////////
 
@@ -453,7 +476,7 @@ int main(int argc, char *argv[])
 		printf("The algorithm computing SVD for DO failed to converge.\n");
 		exit(1);
 	}
-	cout << " DO SVD COMPUTED " << endl;
+	// cout << " DO SVD COMPUTED " << endl;
 
 	//////////////////////////////////////////// DO - SVD End///////////////////////////////
 
@@ -477,15 +500,14 @@ int main(int argc, char *argv[])
 
 	int subDim = s + 1;
 	////////Subspace dimension calculated//////////////////
-	TDatabase::ParamDB->N_Subspace_Dim = subDim;
 
 	/////Projection Matrix///////////
 	////////////////////////////////
-	cout << " Min DIMENSION : " << minDim << endl;
+	// cout << " Min DIMENSION : " << minDim << endl;
 	double *ProjectionVector = new double[N_Realisations * minDim]();
-	cout << "PROJ VECTOR MULT START " << endl;
+	// cout << "PROJ VECTOR MULT START " << endl;
 	cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, N_Realisations, minDim, N_U, 1.0, PerturbationVector, N_Realisations, L, minDim, 0.0, ProjectionVector, minDim);
-	cout << "PROJ VECTOR MULT DONE " << endl;
+	// cout << "PROJ VECTOR MULT DONE " << endl;
 
 	/// Initialize Coefficient Matrix - First subDim columns of Projection Matrix ////////////////////
 	double *CoeffVector = new double[N_Realisations * subDim]();
@@ -522,13 +544,34 @@ int main(int argc, char *argv[])
 	////////////////////////////////////////////DO - Initialization Ends//////////////////////////////////////
 	///////================================================================================//////////////////
 
-	VelocityMean_FeSpace = new TFESpace2D(coll, (char *)"Mean", (char *)"FE Space for Mean Solution", BoundCondition, ORDER, NULL);
+	//=========================================================================
+	// Assign dimension values to Database
+	//=========================================================================
+	TDatabase::ParamDB->N_Subspace_Dim = subDim; // Added to Database.h
+	TDatabase::ParamDB->REALIZATIONS = N_Realisations;
 
-	VelocityMode_FeSpace = new TFESpace2D(coll, (char *)"Mode", (char *)"FE Space for Mode Solution", BoundCondition, ORDER, NULL);
+	//=========================================================================
+	// Set up FE Spaces for velocity and pressure
+	//=========================================================================
+	TFESpace2D *VelocityMean_FeSpace, *PressureMean_FeSpace;
+	GetVelocityAndPressureSpace(coll, BoundCondition, mortarcoll, VelocityMean_FeSpace,
+								PressureMean_FeSpace, &pressure_space_code_mean,
+								TDatabase::ParamDB->VELOCITY_SPACE,
+								TDatabase::ParamDB->PRESSURE_SPACE);
 
-	N_M = VelocityMode_FeSpace->GetN_DegreesOfFreedom();
-	N_Total_MeanDOF = 2 * N_U;
-	int N_Total_ModeDOF = 2 * N_M * subDim;
+	// VelocityMean_FeSpace = new TFESpace2D(coll, (char *)"Mean", (char *)"FE Space for Mean Solution", BoundCondition, ORDER, NULL);
+
+	TFESpace2D *VelocityMode_FeSpace, *PressureMode_FeSpace;
+	GetVelocityAndPressureSpace(coll, BoundCondition, mortarcoll, VelocityMode_FeSpace,
+								PressureMode_FeSpace, &pressure_space_code_mode,
+								TDatabase::ParamDB->VELOCITY_SPACE,
+								TDatabase::ParamDB->PRESSURE_SPACE);
+
+	// VelocityMode_FeSpace = new TFESpace2D(coll, (char *)"Mode", (char *)"FE Space for Mode Solution", BoundCondition, ORDER, NULL);
+
+	int N_M = VelocityMode_FeSpace->GetN_DegreesOfFreedom();
+	int N_Total_MeanDOF = 2 * N_U + N_P;
+	int N_Total_ModeDOF = (2 * N_M + N_P) * subDim;
 	N_TotalDOF = N_Total_MeanDOF + N_Total_ModeDOF;
 	OutPut("Dof Mean Velocity : " << setw(10) << N_Total_MeanDOF << endl);
 	OutPut("Dof Mode Velocity : " << setw(10) << N_Total_ModeDOF << endl);
@@ -538,48 +581,13 @@ int main(int argc, char *argv[])
 	// construct all finite element functions
 	//======================================================================
 
+	// for Mean
+	double *solMean, *rhsMean, *old_rhsMean, *defectMean, *old_solMean;
 	solMean = new double[N_Total_MeanDOF]();
-	old_solMean = new double[N_Total_MeanDOF]();
 	rhsMean = new double[N_Total_MeanDOF]();
 	old_rhsMean = new double[N_Total_MeanDOF]();
-
-	defect = new double[N_Total_MeanDOF]();
-
-	solMode = new double[N_Total_ModeDOF]();
-	old_solMode = new double[N_Total_ModeDOF]();
-	rhsMode = new double[N_Total_ModeDOF]();
-	old_rhsMode = new double[2 * N_M]();
-
-	for (int j = 0; j < subDim; j++)
-	{
-		for (int i = 0; i < N_M; i++)
-		{
-			// solMode[j*N_DOF+mappingArray[i]] = ModeVector[j*N_DOF+i];
-			solMode[(2 * j * N_M) + i] = ModeVector[j * N_U + i];
-			// solMode[(2 * j * N_M)+N_M + i] =  ModeVector[j * N_U + i];
-			solMode[(2 * j * N_M) + N_M + i] = 0;
-		}
-	}
-	// double *solMode1 = new double[2*N_M]();
-	// double *rhsMode1 = new double[2*N_M]();
-	// double *old_rhsMode1 = new double[2*N_M]();
-
-	// double *solMode2 = new double[2*N_M]();
-	// double *rhsMode2 = new double[2*N_M]();
-	// double *old_rhsMode2 = new double[2*N_M]();
-	// memset(solMode2, 0, 2*N_M * SizeOfDouble);
-	// memset(rhsMode2, 0, 2*N_M * SizeOfDouble);
-	// memset(old_rhsMode2, 0, 2*N_M * SizeOfDouble);
-
-	Velocity_Mean = new TFEVectFunct2D(VelocityMean_FeSpace, (char *)"U_Mean", (char *)"Mean Component", solMean, N_U, 2); // check length
-
-	Velocity_Mode = new TFEVectFunct2D(VelocityMode_FeSpace, (char *)"U_Mode", (char *)"Mode Component", solMode, N_M, 2 * subDim); // check length ??
-
-	u1Mean = Velocity_Mean->GetComponent(0);
-	u2Mean = Velocity_Mean->GetComponent(1);
-
-	// u1Mean->Interpolate(InitialU1Mean);
-	// u2Mean->Interpolate(InitialU2Mean);
+	old_solMean = new double[N_Total_MeanDOF]();
+	defectMean = new double[N_Total_MeanDOF]();
 
 	for (i = 0; i < N_U; i++)
 	{
@@ -589,193 +597,266 @@ int main(int argc, char *argv[])
 		solMean[N_U + i] = 0;
 	}
 
+	for (i = 0; i < N_P; i++)
+	{
+
+		solMean[2 * N_U + i] = 0;
+	}
+
+	defectMean = new double[N_Total_MeanDOF]();
+
+	TFEVectFunct2D *Velocity_Mean;
+	TFEFunction2D *Pressure_Mean;
+
+	Velocity_Mean = new TFEVectFunct2D(VelocityMean_FeSpace, (char *)"U_Mean", (char *)"Mean Component", solMean, N_U, 2); // check length
+
+	Pressure_Mean = new TFEFunction2D(PressureMean_FeSpace, (char *)"P_Mean", (char *)"Mean Component", solMean + 2 * N_U, N_P);
+
+	// Interpolate the initial solution
+	//  u1Mean->Interpolate(InitialU1);
+	//  u2Mean->Interpolate(InitialU2);
+	//  Pressure_Mean->Interpolate(InitialP);
+
+	// for mode
+	double *solMode, *rhsMode, *old_rhsMode, *defectMode, *old_solMode;
+	solMode = new double[N_Total_ModeDOF]();
+	old_solMode = new double[2 * N_M + N_P]();
+	rhsMode = new double[N_Total_ModeDOF]();
+	old_rhsMode = new double[2 * N_M + N_P]();
+	defectMean = new double[2 * N_M + N_P]();
+
+	for (int j = 0; j < subDim; j++)
+	{
+		for (int i = 0; i < N_M; i++)
+		{
+			solMode[(j * (2 * N_M + N_P)) + i] = ModeVector[j * N_U + i]; // first component velocity
+			solMode[(j * (2 * N_M + N_P)) + N_M + i] = 0;				  // second component velocity
+		}
+	}
+
+	for (int j = 0; j < subDim; j++)
+	{
+		for (int i = 0; i < N_P; i++)
+		{
+
+			solMode[(j * (2 * N_M + N_P)) + N_M + N_M + i] = 0; // Pressure
+		}
+	}
+
+	TFEVectFunct2D *Velocity_Mode;
+	TFEFunction2D *u1Mode, *u2Mode, *Pressure_Mode, *fefctMode[2];
+
+	// Velocity_Mode = new TFEVectFunct2D(VelocityMode_FeSpace, (char *)"U_Mode", (char *)"Mode Component", solMode, N_M, 2 * subDim); // check length ??
+
+	// u1Mode = Velocity_Mode->GetComponent(0);
+	// u2Mode = Velocity_Mode->GetComponent(1);
+	// Pressure_Mode = new TFEFunction2D(PressureMode_FeSpace, (char *)"P_Mode", (char *)"Mode Component", solMode + 2 * N_M * subDim, N_P * subDim);
+
 	TFEVectFunct2D **VelocityModeAll = new TFEVectFunct2D *[subDim];
 	for (int subD = 0; subD < subDim; subD++)
-		VelocityModeAll[subD] = new TFEVectFunct2D(VelocityMode_FeSpace, (char *)"U_Mode", (char *)"Mode Component", solMode + (subD * 2 * N_M), N_M, 2);
+		VelocityModeAll[subD] = new TFEVectFunct2D(VelocityMode_FeSpace, (char *)"U_Mode", (char *)"Mode Component", solMode + (subD * (2 * N_M + N_P)), N_M, 2);
 
-	//======================================================================
-	// /DO - SystemMatrix construction and solution
-	//======================================================================
-	// Disc type: GALERKIN (or) SDFEM  (or) UPWIND (or) SUPG (or) LOCAL_PROJECTION
-	// Solver: AMG_SOLVE (or) GMG  (or) DIRECT
-
-	SystemMatrix_Mean = new TSystemTBE2D(VelocityMean_FeSpace, Velocity_Mean, solMean, rhsMean, GALERKIN, DIRECT);
-
-	TSystemTBE2D **SystemMatrixModeAll = new TSystemTBE2D *[subDim];
+	TFEFunction2D **PressureModeAll = new TFEFunction2D *[subDim];
 	for (int subD = 0; subD < subDim; subD++)
-		SystemMatrixModeAll[subD] = new TSystemTBE2D(VelocityMode_FeSpace, VelocityModeAll[subD], solMode + (subD * 2 * N_M), rhsMode + (subD * 2 * N_M), GALERKIN, DIRECT);
+		PressureModeAll[subD] = new TFEFunction2D(PressureMode_FeSpace, (char *)"P_Mode", (char *)"Mode Component", solMode + (subDim * (2 * N_M + N_P)) + 2 * N_M, N_P);
 
+	//======================================================================
+	// SystemMatrix construction and solution
+	//======================================================================
+
+	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
+	//------------------------------------------ MEAN EQUATION SETUP -----------------------------------------------------//
+	TSystemTNSE2D *SystemMatrix_Mean;
+	SystemMatrix_Mean = new TSystemTNSE2D(VelocityMean_FeSpace, PressureMean_FeSpace, Velocity_Mean, Pressure_Mean, solMean, rhsMean, Disctype, NSEType, DIRECT
+#ifdef __PRIVATE__
+										  ,
+										  Projection_space, NULL, NULL
+#endif
+	);
+
+	TFESpace2D *fespMean[2];
+
+	fespMean[0] = VelocityMean_FeSpace;
+
+	TFEFunction2D *u1Mean, *u2Mean, *fefctMean[2];
+	u1Mean = Velocity_Mean->GetComponent(0);
+	u2Mean = Velocity_Mean->GetComponent(1);
 	fefctMean[0] = u1Mean;
 	fefctMean[1] = u2Mean;
-	fespMean[0] = VelocityMean_FeSpace;
-	fespMode[0] = VelocityMode_FeSpace;
 
-	BEaux_mean = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2, TimeNSN_ParamFct2,
-								 TimeNSN_FEValues2, fespMean, fefctMean, TimeNSFct2, TimeNSFEFctIndex2,
-								 TimeNSFEMultiIndex2, TimeNSN_Params2, TimeNSBeginParam2);
+	TAuxParam2D *auxMean, *NSEaux_error_mean;
+
+	switch (Disctype)
+	{
+	// turbulent viscosity must be computed
+	case SMAGORINSKY:
+	case VMS_PROJECTION:
+	case CLASSICAL_LES:
+	case GL00_CONVOLUTION:
+	case GL00_AUX_PROBLEM:
+
+		auxMean = new TAuxParam2D(TimeNSN_FESpacesVelo_GradVelo, TimeNSN_FctVelo_GradVelo,
+								  TimeNSN_ParamFctVelo_GradVelo,
+								  TimeNSN_FEValuesVelo_GradVelo,
+								  fespMean, fefctMean,
+								  TimeNSFctVelo_GradVelo,
+								  TimeNSFEFctIndexVelo_GradVelo,
+								  TimeNSFEMultiIndexVelo_GradVelo,
+								  TimeNSN_ParamsVelo_GradVelo,
+								  TimeNSBeginParamVelo_GradVelo);
+
+		break;
+
+	default:
+		// 2 parameters are needed for assembling (u1_old, u2_old)
+		auxMean = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2, TimeNSN_ParamFct2,
+								  TimeNSN_FEValues2,
+								  fespMean, fefctMean,
+								  TimeNSFct2,
+								  TimeNSFEFctIndex2, TimeNSFEMultiIndex2,
+								  TimeNSN_Params2, TimeNSBeginParam2);
+	}
 
 	// aux for calculating the error
-	// if (TDatabase::ParamDB->MEASURE_ERRORS)
-	// {
-	// 	BEaux_error_mean = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2,
-	// 									   TimeNSN_ParamFct2,
-	// 									   TimeNSN_FEValues2,
-	// 									   fespMean, FeFct,
-	// 									   TimeNSFct2,
-	// 									   TimeNSFEFctIndex2, TimeNSFEMultiIndex2,
-	// 									   TimeNSN_Params2, TimeNSBeginParam2);
-	// }
+	if (TDatabase::ParamDB->MEASURE_ERRORS)
+	{
+		NSEaux_error_mean = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2,
+											TimeNSN_ParamFct2,
+											TimeNSN_FEValues2,
+											fespMean, fefctMean,
+											TimeNSFct2,
+											TimeNSFEFctIndex2, TimeNSFEMultiIndex2,
+											TimeNSN_Params2, TimeNSBeginParam2);
+	}
+	double hmin, hmax;
+	coll->GetHminHmax(&hmin, &hmax);
+	OutPut("h_min : " << hmin << " h_max : " << hmax << endl);
+	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
+	//------------------------------------------ MEAN EQUATION SETUP END-----------------------------------------------------//
 
-	BEaux_modeAll = new TAuxParam2D *[subDim];
+	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
+	//------------------------------------------ MODE EQUATION SETUP -----------------------------------------------------//
+	TSystemTNSE2D **SystemMatrixModeAll = new TSystemTNSE2D *[subDim];
+	for (int subD = 0; subD < subDim; subD++)
+		SystemMatrixModeAll[subD] = new TSystemTNSE2D(VelocityMode_FeSpace, PressureMode_FeSpace, VelocityModeAll[subD], PressureModeAll[subD], solMode + (subD * (2 * N_M + N_P)), rhsMode + (subD * (2 * N_M + N_P)), Disctype, NSEType, DIRECT
+#ifdef __PRIVATE__
+													  ,
+													  Projection_space, NULL, NULL
+#endif
+		);
+
+	TAuxParam2D *auxMode, *NSEaux_error_mode;
+	TFESpace2D *fespMode[2];
+	TFEFunction2D *fefctModeAll[50][2];
+
+	fespMode[0] = VelocityMode_FeSpace;
+
+	TAuxParam2D **auxModeAll = new TAuxParam2D *[subDim];
+	TAuxParam2D **NSEaux_error_modeAll = new TAuxParam2D *[subDim];
 
 	for (int subD = 0; subD < subDim; subD++)
 	{
 		fefctModeAll[subDim][0] = VelocityModeAll[subD]->GetComponent(0);
 		fefctModeAll[subDim][1] = VelocityModeAll[subD]->GetComponent(1);
+		switch (Disctype)
+		{
+		// turbulent viscosity must be computed
+		case SMAGORINSKY:
+		case VMS_PROJECTION:
+		case CLASSICAL_LES:
+		case GL00_CONVOLUTION:
+		case GL00_AUX_PROBLEM:
 
-		BEaux_modeAll[subD] = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2, TimeNSN_ParamFct2,
-											  TimeNSN_FEValues2, fespMode, fefctModeAll[subDim], TimeNSFct2, TimeNSFEFctIndex2,
-											  TimeNSFEMultiIndex2, TimeNSN_Params2, TimeNSBeginParam2);
+			auxModeAll[subD] = new TAuxParam2D(TimeNSN_FESpacesVelo_GradVelo, TimeNSN_FctVelo_GradVelo,
+											   TimeNSN_ParamFctVelo_GradVelo,
+											   TimeNSN_FEValuesVelo_GradVelo,
+											   fespMode, fefctModeAll[subD],
+											   TimeNSFctVelo_GradVelo,
+											   TimeNSFEFctIndexVelo_GradVelo,
+											   TimeNSFEMultiIndexVelo_GradVelo,
+											   TimeNSN_ParamsVelo_GradVelo,
+											   TimeNSBeginParamVelo_GradVelo);
+
+			break;
+
+		default:
+			// 2 parameters are needed for assembling (u1_old, u2_old)
+			auxModeAll[subD] = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2, TimeNSN_ParamFct2,
+											   TimeNSN_FEValues2,
+											   fespMode, fefctModeAll[subD],
+											   TimeNSFct2,
+											   TimeNSFEFctIndex2, TimeNSFEMultiIndex2,
+											   TimeNSN_Params2, TimeNSBeginParam2);
+		}
+
+		// aux for calculating the error
+		if (TDatabase::ParamDB->MEASURE_ERRORS)
+		{
+			NSEaux_error_modeAll[subD] = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2,
+														 TimeNSN_ParamFct2,
+														 TimeNSN_FEValues2,
+														 fespMode, fefctModeAll[subD],
+														 TimeNSFct2,
+														 TimeNSFEFctIndex2, TimeNSFEMultiIndex2,
+														 TimeNSN_Params2, TimeNSBeginParam2);
+		}
 	}
-
-	// aux for calculating the error
-	// if (TDatabase::ParamDB->MEASURE_ERRORS)
-	// {
-	// 	BEaux_error_mode = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2,
-	// 									   TimeNSN_ParamFct2,
-	// 									   TimeNSN_FEValues2,
-	// 									   fespMode, FeFct,
-	// 									   TimeNSFct2,
-	// 									   TimeNSFEFctIndex2, TimeNSFEMultiIndex2,
-	// 									   TimeNSN_Params2, TimeNSBeginParam2);
-	// }
-
-	// SystemMatrix_Mode->Init(DO_Mode_Equation_Coefficients, BoundCondition, U1BoundValue, U2BoundValue, BEaux_mode, BEaux_error_mode);
-
 	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
-	//------------------------------------------ MEAN EQUATION SETUP -----------------------------------------------------//
-	// initilize the system matrix with the functions defined in Example file
-	SystemMatrix_Mean->Init(DO_Mean_Equation_Coefficients, BoundCondition, U1BoundValue, U2BoundValue, BEaux_mean, BEaux_error_mean);
-
-	SystemMatrix_Mean->Assemble(solMean, rhsMean);
-
+	//------------------------------------------ MODE EQUATION SETUP END-----------------------------------------------------//
 	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
-
-	// Aux Setup for the RHS -- There is no Aux for the Mean equation, So set the values as NULL
-	TAuxParam2D *aux;
-	// fespMean[0] = Velocity_FeSpace;
-	aux = new TAuxParam2D(1, 0, 0, 0, fespMean, NULL, NULL, NULL, NULL, 0, NULL);
-
-	/* -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-
-	--------------------------------------[[[ END  ]]] MEAN EQUATION SETUP -----------------------------------------------------
-	 -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-*/
-	//  -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
-	//------------------------------------------ CO EFFICIENT EQUATION SETUP -----------------------------------------------------//
-	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
+	//------------------------------------------ COEFF EQUATION SETUP END-----------------------------------------------------//
 
 	TFEVectFunct2D *FeVector_Coefficient = new TFEVectFunct2D(Velocity_FeSpace, (char *)"Coeff", (char *)"Coefficients", CoeffVector, N_Realisations, subDim);
+	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
+	//------------------------------------------ COEFF EQUATION SETUP END END-----------------------------------------------------//
 
 	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
-	//------------------------------------------ CO EFFICIENT EQUATION SETUP END -------------------------------------------------------//
+	//------------------------------------------ MEAN EQUATION INITIALIZATION -----------------------------------------------------//
+	SystemMatrix_Mean->Init(DO_Mean_Equation_Coefficients, BoundConditionMean, U1BoundValueMean, U2BoundValueMean, auxMean, NSEaux_error_mean);
 	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
-
-	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
-	//-------------------------------------- MODE EQUATION SETUP -----------------------------------------------------//
+	//------------------------------------------ MODE EQUATION INITIALIZATION -----------------------------------------------------//
 	for (int subD = 0; subD < subDim; subD++)
 	{
-		SystemMatrixModeAll[subD]->Init(DO_Mode_Equation_Coefficients, BoundCondition, U1BoundValue, U2BoundValue, BEaux_modeAll[subD], BEaux_error_mode);
-		SystemMatrixModeAll[subD]->Assemble(solMode + (subD * 2 * N_M), rhsMode + (subD * 2 * N_M));
+		SystemMatrixModeAll[subD]->Init(DO_Mode_Equation_Coefficients, BoundCondition, U1BoundValue, U2BoundValue, auxModeAll[subD], NSEaux_error_modeAll[subD]);
 	}
 
-	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
-	// int N_terms_Mode = 3; // Number of Shape function derivatives required ( in this case 3, N, NX, NY )
-	// MultiIndex2D Derivatives_MatrixARhs_Mode[3] = {D00, D10, D01};
-	// int SpacesNumbers_MatrixARhs_Mode[3] = {0, 0, 0};
-	// int N_Matrices_MatrixARhs_Mode = 1;
-	// int RowSpace_MatrixARhs_Mode[1] = {0};
-	// int ColumnSpace_MatrixARhs_Mode[1] = {0};
-	// int N_Rhs_MatrixARhs_Mode = 1;
-	// int RhsSpace_MatrixARhs_Mode[1] = {0};
-	// SystemMatrix_Mode->Init_WithDiscreteform(DO_Mode_Equation_Coefficients, BoundCondition, BoundValue, "DO_LINEAR_Mode", "DO_LINEAR_Mode",
-	//                                          N_terms_Mode, Derivatives_MatrixARhs_Mode, SpacesNumbers_MatrixARhs_Mode,
-	//                                          N_Matrices_MatrixARhs_Mode, N_Rhs_MatrixARhs_Mode,
-	//                                          RowSpace_MatrixARhs_Mode, ColumnSpace_MatrixARhs_Mode, RhsSpace_MatrixARhs_Mode,
-	//                                          DO_Mode_Equation_Assembly, DO_Mode_Equation_Coefficients,
-	//                                          NULL);
+	////////////////////////Divergence Free Adjustment - Run for one time step//////////////////////
+	// assemble M, A matrices and rhs
+	SystemMatrix_Mean->Assemble(solMean, rhsMean);
+	for (int subD = 0; subD < subDim; subD++)
+		SystemMatrixModeAll[subD]->Assemble(solMode + (subD * (2 * N_M + N_P)), rhsMode + (subD * (2 * N_M + N_P)));
 
-	TDatabase::ParamDB->COVARIANCE_MATRIX_DO = new double[subDim * subDim]();
-	TDatabase::ParamDB->COSKEWNESS_MATRIX_DO = new double[subDim * subDim * subDim]();
-	TDatabase::ParamDB->COVARIANCE_INVERSE_DO = new double[subDim * subDim]();
+	TDatabase::TimeDB->CURRENTTIME = 0.0;
+	//////////////////Divergence Adjustment Ends/////////////////////////////////////////////////
 
-	CalcCovarianceMatx(CoeffVector);
-	CalcCoskewnessMatx(CoeffVector);
-	InvertCov();
+	// done here
+	SystemMatrix_Mean->Assemble(solMean, rhsMean);
+	for (int subD = 0; subD < subDim; subD++)
+		SystemMatrixModeAll[subD]->Assemble(solMode + (subD * (2 * N_M + N_P)), rhsMode + (subD * (2 * N_M + N_P)));
 
-	// 	// double* ModeVector_OldRHS = new double[N_DOF]();
-
-	// // Set up a FE VECT FUNCTION TO STORE ALL THE Components of CTilde
-
-	//     // TFEVectFunct2D* linModesFeVectFunct =
-
-	// int TimeLinear_FESpaces_DO = 1;
-	// int TimeLinear_Fct_DO = 1; // \tilde(C)
-	// int TimeLinear_ParamFct_DO = 1;
-	// int TimeLinear_FEValues_DO = 3;
-	// int TimeLinear_Params_DO = 3;
-	// int TimeNSFEFctIndex_DO[3] = {0, 0, 0};
-	// MultiIndex2D TimeNSFEMultiIndex_DO[3] = {D00, D01, D10};
-	// ParamFct *TimeNSFct_DO[1] = {DO_Mode_RHS_Aux_Param};
-	// int TimeNSBeginParam_DO[1] = {0};
-
-	// TFEFunction2D *fefct_RHS[4];
-	// TFESpace2D *fesp_RHS[2];
-
-	// ;
-	//     // Set Up Aux  Param for the given MOde
-	//     // The mode equation needs the entire values of the C_tilde matrix array
-	//     // TAuxParam2D* aux_RHS_DO = new TAuxParam2D (	TimeLinear_FESpaces_DO, <FE VECT FUNCTION>, TimeLinear_ParamFct_DO,
-	// 	// 											TimeLinear_FEValues_DO,
-	// 	// 											fesp_RHS,
-	// 	// 											TimeNSFct_DO,
-	// 	// 											TimeNSFEMultiIndex_DO,
-	// 	// 											TimeLinear_Params_DO, TimeNSBeginParam_DO);
-
-	TAuxParam2D *aux_RHS_DO = new TAuxParam2D(1, 0, 0, 0, fespMean, NULL, NULL, NULL, NULL, 0, NULL);
-	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
-	//--------------------------------------[[[ END  ]]] MODE EQUATION SETUP -----------------------------------------------------//
-	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
-
-	// // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-	//======================================================================
-	// produce outout at t=0
-	//======================================================================
-	// VtkBaseName = TDatabase::ParamDB->VTKBASENAME;
+	// Setup Output for Mean and N_S outputs for modes
+	char *PsBaseNameMean, *VtkBaseNameMean, *GEOMean;
 	std::string strMean = std::to_string(N_Realisations);
 	std::string filenameMean = "Mean_NRealisations_" + std::to_string(N_Realisations);
 	VtkBaseNameMean = const_cast<char *>(filenameMean.c_str());
 
+	char *PsBaseNameMode, *VtkBaseNameMode, *GEOMode;
 	std::string strMode = std::to_string(N_Realisations);
 	std::string filenameMode = "Mode_NRealisations_" + std::to_string(N_Realisations);
 	VtkBaseNameMode = const_cast<char *>(filenameMode.c_str());
 
-	std::string fileoutCoeff;
-	std::string fileoutMean;
-	std::string fileoutMode;
-	std::string fileoutMC;
-
+	TOutput2D *OutputMean;
 	OutputMean = new TOutput2D(2, 2, 1, 1, Domain);
 	OutputMean->AddFEVectFunct(Velocity_Mean);
+	OutputMean->AddFEFunction(Pressure_Mean);
 
 	TOutput2D **OutputModeAll = new TOutput2D *[subDim];
-
-	for (int sd = 0; sd < subDim; sd++)
+	for (int subD = 0; subD < subDim; subD++)
 	{
-		OutputModeAll[sd] = new TOutput2D(2, 2, 1, 1, Domain);
-		OutputModeAll[sd]->AddFEVectFunct(VelocityModeAll[sd]);
+		OutputModeAll[subD] = new TOutput2D(2, 2, 1, 1, Domain);
+		OutputModeAll[subD]->AddFEVectFunct(VelocityModeAll[subD]);
+		OutputModeAll[subD]->AddFEFunction(PressureModeAll[subD]);
 	}
-
-	// OutputMode = new TOutput2D(2, 2*subDim, 1, 1, Domain);
-	// OutputMode->AddFEVectFunct(Velocity_Mode);
 
 	int meanimg = 0;
 	int *modeimg = new int[subDim]();
@@ -820,62 +901,11 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-	// coll->GetHminHmax(&hmin, &hmax);
-	// OutPut("h_min : " << hmin << " h_max : " << hmax << endl);
-
 	//======================================================================
 	// time disc loop
 	//======================================================================
 	// parameters for time stepping scheme
 	m = 0;
-	// fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m);
-	// std::ofstream fileMean;
-	// fileMean.open(fileoutMean);
-
-	// for (int i = 0; i < N_TotalDOF; i++)
-	// {
-
-	// 	fileMean << MeanVector[i] << ",";
-	// 	fileMean << endl;
-	// }
-
-	// fileMean.close();
-
-	// fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m);
-	// std::ofstream fileMode;
-	// fileMode.open(fileoutMode);
-
-	// for (int i = 0; i < N_TotalDOF; i++)
-	// {
-	// 	for (int j = 0; j < subDim; j++)
-	// 	{
-	// 		fileMode << solMode[j * subDim + i];
-	// 		if (j != subDim - 1)
-	// 			fileMode << ",";
-	// 	}
-	// 	fileMode << endl;
-	// }
-
-	// fileMode.close();
-
-	fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m);
-	std::ofstream fileCoeff;
-	fileCoeff.open(fileoutCoeff);
-
-	for (int i = 0; i < N_Realisations; i++)
-	{
-		for (int j = 0; j < subDim; j++)
-		{
-			fileCoeff << CoeffVector[j * subDim + i];
-			if (j != subDim - 1)
-				fileCoeff << ",";
-		}
-		fileCoeff << endl;
-	}
-
-	fileCoeff.close();
-
 	N_SubSteps = GetN_SubSteps();
 	oldtau = 1.;
 	end_time = TDatabase::TimeDB->ENDTIME;
@@ -883,6 +913,7 @@ int main(int argc, char *argv[])
 	Max_It = TDatabase::ParamDB->SC_NONLIN_MAXIT_SADDLE;
 	memset(AllErrors, 0, 7. * SizeOfDouble);
 
+	// time loop starts
 	while (TDatabase::TimeDB->CURRENTTIME < end_time)
 	{ // time cycle
 		m++;
@@ -902,31 +933,39 @@ int main(int argc, char *argv[])
 			tau = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
 			TDatabase::TimeDB->CURRENTTIME += tau;
 
-			// OutPut(endl << "CURRENT TIME: ");
-			// OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
+			OutPut(endl
+				   << "CURRENT TIME: ");
+			OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
 
 			// copy sol, rhs to olssol, oldrhs
 			memcpy(old_rhsMean, rhsMean, N_Total_MeanDOF * SizeOfDouble);
 			memcpy(old_solMean, solMean, N_Total_MeanDOF * SizeOfDouble);
 
-			DO_Mean_RHS(VelocityMean_FeSpace, Velocity_Mode, subDim, rhsMean, N_U);
-
 			// assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
+			// not needed if rhs is not time-dependent
+			DO_Mean_RHS(VelocityMode_FeSpace, Velocity_Mean, Velocity_Mode, subDim, rhsMean, N_U);
+
 			SystemMatrix_Mean->Assemble(solMean, rhsMean);
 
 			// scale B matices and assemble NSE-rhs based on the \theta time stepping scheme
-			//  SystemMatrix_Mean->AssembleSystMat(oldrhs, rhs, sol);
-			SystemMatrix_Mean->AssembleSystMat(old_rhsMean, rhsMean, solMean);
+			SystemMatrix_Mean->AssembleSystMat(tau / oldtau, old_rhsMean, rhsMean, solMean);
 			oldtau = tau;
 
 			// calculate the residual
-			memset(defect, 0, N_Total_MeanDOF * SizeOfDouble);
-			// SystemMatrix_Mean->GetTBEResidual(sol, defect);
-			SystemMatrix_Mean->GetTBEResidual(solMean, defect);
+			memset(defectMean, 0, N_Total_MeanDOF * SizeOfDouble);
 
-			residual = Ddot(N_Total_MeanDOF, defect, defect);
-			// OutPut("Nonlinear iteration step   0");
-			// OutPut(setw(14) << sqrt(residual) << endl);
+			SystemMatrix_Mean->GetTNSEResidual(solMean, defectMean);
+
+			// correction due to L^2_O Pressure space
+			if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
+				IntoL20Vector2D(defectMean + 2 * N_U, N_P, pressure_space_code_mean);
+
+			residual = Ddot(N_Total_MeanDOF, defectMean, defectMean);
+			impuls_residual = Ddot(2 * N_U, defectMean, defectMean);
+			OutPut("Nonlinear iteration step   0");
+			OutPut(setw(14) << impuls_residual);
+			OutPut(setw(14) << residual - impuls_residual);
+			OutPut(setw(14) << sqrt(residual) << endl);
 
 			//======================================================================
 			// Solve the system
@@ -935,42 +974,52 @@ int main(int argc, char *argv[])
 			for (j = 1; j <= Max_It; j++)
 			{
 				// Solve the NSE system
-				//  SystemMatrix_Mean->Solve(sol);
 				SystemMatrix_Mean->Solve(solMean);
 
+				if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
+					IntoL20FEFunction(solMean + 2 * N_U, N_P, PressureMean_FeSpace, velocity_space_code_mean, pressure_space_code_mean);
+
+				// no nonlinear iteration for Stokes problem
+				if (TDatabase::ParamDB->FLOW_PROBLEM_TYPE == STOKES)
+					break;
+
 				// restore the mass matrix for the next nonlinear iteration
-				//  SystemMatrix_Mean->RestoreMassMat();
 				SystemMatrix_Mean->RestoreMassMat();
 
 				// assemble the system matrix with given aux, sol and rhs
-				//  SystemMatrix_Mean->AssembleANonLinear(sol, rhs);
 				SystemMatrix_Mean->AssembleANonLinear(solMean, rhsMean);
 
 				// assemble system mat, S = M + dt\theta_1*A
-				//  SystemMatrix_Mean->AssembleSystMatNonLinear();
 				SystemMatrix_Mean->AssembleSystMatNonLinear();
 
 				// get the residual
-				memset(defect, 0, N_Total_MeanDOF * SizeOfDouble);
-				//  SystemMatrix_Mean->GetTBEResidual(sol, defect);
-				SystemMatrix_Mean->GetTBEResidual(solMean, defect);
+				// calculate the residual
+				memset(defectMean, 0, N_Total_MeanDOF * SizeOfDouble);
 
-				residual = Ddot(N_Total_MeanDOF, defect, defect);
+				SystemMatrix->GetTNSEResidual(solMean, defectMean);
+
+				// correction due to L^2_O Pressure space
+				if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
+					IntoL20Vector2D(defectMean + 2 * N_U, N_P, pressure_space_code_mean);
+
+				residual = Ddot(N_Total_MeanDOF, defectMean, defectMean);
+				impuls_residual = Ddot(2 * N_U, defectMean, defectMean);
 				OutPut("nonlinear iteration step " << setw(3) << j);
+				OutPut(setw(14) << impuls_residual);
+				OutPut(setw(14) << residual - impuls_residual);
 				OutPut(setw(14) << sqrt(residual) << endl);
 
 				if (sqrt(residual) <= limit)
 					break;
 
 			} // for(j=1;j<=Max_It;j++)
-
+			  /*           cout << " test VHM main " << endl;
+exit(0);      */
 			// restore the mass matrix for the next time step
-			// SystemMatrix_Mean->RestoreMassMat();
 			SystemMatrix_Mean->RestoreMassMat();
 
 		} // for(l=0;l<N_SubSteps;
-
-		//======================================================================
+		  //======================================================================
 		// produce outout
 		//======================================================================
 		if (m == 1 || m % TDatabase::TimeDB->STEPS_PER_IMAGE == 0)
@@ -991,35 +1040,17 @@ int main(int argc, char *argv[])
 				meanimg++;
 			}
 
-		// OutPut("Ddot Coeff Vector Before Coeff Solve:" << Ddot(N_Realisations*subDim, CoeffVector, CoeffVector) << endl);
 		for (int subSpaceNum = 0; subSpaceNum < subDim; subSpaceNum++)
 		{
 
 			DO_CoEfficient(Velocity_FeSpace, Velocity_Mode, FeVector_Coefficient, Velocity_Mean, subDim, subSpaceNum, N_Realisations);
 		}
 
-		// OutPut("Ddot Coeff Vector After Coeff Solve:" << Ddot(N_Realisations*subDim, CoeffVector, CoeffVector) << endl);
 		CalcCovarianceMatx(CoeffVector);
 		CalcCoskewnessMatx(CoeffVector);
 		InvertCov();
 
-		
-		fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m);
-		std::ofstream fileCoeff;
-		fileCoeff.open(fileoutCoeff);
-
-		for (int i = 0; i < N_Realisations; i++)
-		{
-			for (int j = 0; j < subDim; j++)
-			{
-				fileCoeff << CoeffVector[j * subDim + i];
-				if (j != subDim - 1)
-					fileCoeff << ",";
-			}
-			fileCoeff << endl;
-		}
-
-		fileCoeff.close();
+		// start here 12-05-21
 		// xxxxxxxxxxxxxxxxxxxxxxxxxxxx
 		for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
 		{
@@ -1034,36 +1065,38 @@ int main(int argc, char *argv[])
 			}
 
 			tau = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
-			// TDatabase::TimeDB->CURRENTTIME += tau;
-
 			for (int subSpaceNum = 0; subSpaceNum < subDim; subSpaceNum++)
-			{															  // subspace loop
-				double *modeSolution_i = solMode + subSpaceNum * 2 * N_M; // This works for column major
-				double *modeSolution_rhs = rhsMode + subSpaceNum * 2 * N_M;
-
+			{ // Subspace loop
+				// subspace loop
+				double *modeSolution_i = solMode + subSpaceNum * (2 * N_M + N_P); // This works for column major
+				double *modeSolution_rhs = rhsMode + subSpaceNum * (2 * N_M + N_P);
 				// copy sol, rhs to olssol, oldrhs
-				memcpy(old_rhsMode, modeSolution_rhs, 2 * N_M * SizeOfDouble);
+				memcpy(old_rhsMode, modeSolution_rhs, (2 * N_M + N_P) * SizeOfDouble);
 				// memcpy(old_solMode, modeSolution_i, N_Total_MeanDOF * SizeOfDouble);
 
-				// Assemble rhs
-				DO_Mode_RHS(VelocityMode_FeSpace, Velocity_Mean, Velocity_Mode, subDim, modeSolution_rhs, subSpaceNum);
+				// Assemble RHS
+				DO_Mode_RHS(VelocityMode_FeSpace, Velocity_Mean, Velocity_Mode, Pressure_Mode, subDim, modeSolution_rhs, subSpaceNum);
 
 				SystemMatrixModeAll[subSpaceNum]->Assemble(modeSolution_i, modeSolution_rhs);
-				//   }
-
 				// scale B matices and assemble NSE-rhs based on the \theta time stepping scheme
-				//  SystemMatrix_Mean->AssembleSystMat(oldrhs, rhs, sol);
-				SystemMatrixModeAll[subSpaceNum]->AssembleSystMat(old_rhsMode, modeSolution_rhs, modeSolution_i);
+
+				SystemMatrixModeAll[subSpaceNum]->AssembleSystMat(tau / oldtau, old_rhsMode, modeSolution_rhs, modeSolution_i);
 				oldtau = tau;
 
 				// calculate the residual
-				memset(defect, 0, N_Total_MeanDOF * SizeOfDouble);
-				// SystemMatrix_Mean->GetTBEResidual(sol, defect);
-				SystemMatrixModeAll[subSpaceNum]->GetTBEResidual(modeSolution_i, defect);
+				memset(defectMode, 0, (2 * N_M + N_P) * SizeOfDouble);
 
-				residual = Ddot(N_Total_MeanDOF, defect, defect);
-				// OutPut("Nonlinear iteration step   0");
-				// OutPut(setw(14) << sqrt(residual) << endl);
+				SystemMatrixModeAll[subSpaceNum]->GetTNSEResidual(modeSolution_i, defectMode);
+				// correction due to L^2_O Pressure space
+				if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
+					IntoL20Vector2D(defectMode + 2 * N_M, N_P, pressure_space_code_mode);
+
+				residual = Ddot(2 * N_M + N_P, defectMode, defectMode);
+				impuls_residual = Ddot(2 * N_M + N_P, defectMode, defectMode);
+				OutPut("Nonlinear iteration step   0");
+				OutPut(setw(14) << impuls_residual);
+				OutPut(setw(14) << residual - impuls_residual);
+				OutPut(setw(14) << sqrt(residual) << endl);
 
 				//======================================================================
 				// Solve the system
@@ -1072,39 +1105,52 @@ int main(int argc, char *argv[])
 				for (j = 1; j <= Max_It; j++)
 				{
 					// Solve the NSE system
-					//  SystemMatrix_Mean->Solve(sol);
 					SystemMatrixModeAll[subSpaceNum]->Solve(modeSolution_i);
 
+					if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
+						IntoL20FEFunction(modeSolution_i + 2 * N_M, N_P, PressureMode_FeSpace, velocity_space_code_mode, pressure_space_code_mode);
+
+					// no nonlinear iteration for Stokes problem
+					if (TDatabase::ParamDB->FLOW_PROBLEM_TYPE == STOKES)
+						break;
+
 					// restore the mass matrix for the next nonlinear iteration
-					//  SystemMatrix_Mean->RestoreMassMat();
 					SystemMatrixModeAll[subSpaceNum]->RestoreMassMat();
 
 					// assemble the system matrix with given aux, sol and rhs
-					//  SystemMatrix_Mean->AssembleANonLinear(sol, rhs);
 					SystemMatrixModeAll[subSpaceNum]->AssembleANonLinear(modeSolution_i, modeSolution_rhs);
 
 					// assemble system mat, S = M + dt\theta_1*A
-					//  SystemMatrix_Mean->AssembleSystMatNonLinear();
 					SystemMatrixModeAll[subSpaceNum]->AssembleSystMatNonLinear();
 
 					// get the residual
-					memset(defect, 0, N_Total_MeanDOF * SizeOfDouble);
-					//  SystemMatrix_Mean->GetTBEResidual(sol, defect);
-					SystemMatrixModeAll[subSpaceNum]->GetTBEResidual(modeSolution_i, defect);
+					// calculate the residual
+					memset(defectMode, 0, (2 * N_M + N_P) * SizeOfDouble);
 
-					residual = Ddot(N_Total_MeanDOF, defect, defect);
-					//  OutPut("nonlinear iteration step " << setw(3) << j);
-					//  OutPut(setw(14) << sqrt(residual) << endl);
+					SystemMatrixModeAll[subSpaceNum]->GetTNSEResidual(modeSolution_i, defectMode);
+
+					// correction due to L^2_O Pressure space
+					if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
+						IntoL20Vector2D(defectMode + 2 * N_M, N_P, pressure_space_code_mode);
+
+					residual = Ddot(2 * N_M + N_P, defectMode, defectMode);
+					impuls_residual = Ddot(2 * N_M + N_P, defectMode, defectMode);
+					OutPut("Nonlinear iteration step   0");
+					OutPut(setw(14) << impuls_residual);
+					OutPut(setw(14) << residual - impuls_residual);
+					OutPut(setw(14) << sqrt(residual) << endl);
 
 					if (sqrt(residual) <= limit)
 						break;
 
 				} // for(j=1;j<=Max_It;j++)
-				SystemMatrixModeAll[subSpaceNum]->RestoreMassMat();
-			} // subspace loop end
 
-		} // l substep time loop
-		  //======================================================================
+				SystemMatrixModeAll[subSpaceNum]->RestoreMassMat();
+
+			} // Subspace Loop Ends
+
+		} // sub steps - mode end for(l=0;l<N_SubSteps;
+		//======================================================================
 		// produce outout
 		//======================================================================
 		if (m == 1 || m % TDatabase::TimeDB->STEPS_PER_IMAGE == 0)
@@ -1133,9 +1179,7 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		// xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-	} // while(TDatabase::TimeDB->CURRENTTIME< e
+	} // while(TDatabase::TimeDB->CURRENTTIME< e)
 
 	//======================================================================
 	// produce final outout

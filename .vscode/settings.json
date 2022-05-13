@@ -152,7 +152,11 @@
         "TBE2D_ParMooN_IVUQ_DO_Mean.C": "cpp",
         "TBE2D_ParMooN_MC_Test.C": "cpp",
         "AssembleMat2D.C": "cpp",
-        "TimeDiscRout.C": "cpp"
+        "TimeDiscRout.C": "cpp",
+        "TNSE2D_ParMooN_IVUQ_DO_Test.C": "cpp",
+        "NSE3D_ParMooN.C": "cpp",
+        "TCD3D_ParMooN.C": "cpp"
     },
-    "cmake.configureOnOpen": false
+    "cmake.configureOnOpen": false,
+    "C_Cpp.dimInactiveRegions": false
 }

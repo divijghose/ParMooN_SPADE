@@ -1,5 +1,5 @@
 /**
- * @file TCD2D_ParMooN_IVUWQ_DO_Test.C
+ * @file TCD2D_ParMooN_IVUQ_DO_Test.C
  * @brief Purpose:     Main program for scalar equations with new kernels of ParMooN.
                        Features included in this main program -
                        1. Monte Carlo Realization Generation for scalar quantity of interest
@@ -80,6 +80,7 @@ int main(int argc, char *argv[])
     double *solMean, *rhsMean, *old_rhsMean;
 
     bool UpdateStiffnessMat, UpdateRhs, ConvectionFirstTime;
+    
     char *VtkBaseName;
     char *VtkBaseNameMean;
     char *VtkBaseNameMode;
@@ -209,7 +210,7 @@ int main(int argc, char *argv[])
         y_coord[i] = double(1.0 / (N - 1)) * local_j;
     }
 
-    cout << " End File Read" << endl;
+    // cout << " End File Read" << endl;
 
     Scalar_FeSpace->GetDOFPosition(org_x_coord, org_y_coord);
 
@@ -288,7 +289,7 @@ int main(int argc, char *argv[])
 
             else
             {
-                cout << "Error " << endl;
+                cout << "Error - No standard deviation function is defined for stddev_switch: " << TDatabase::ParamDB->stddev_switch << endl;
                 exit(0);
             }
 
@@ -296,39 +297,38 @@ int main(int argc, char *argv[])
         }
     }
 
-    std::ofstream fileo;
-    fileo.open("Corelation.txt");
+    // std::ofstream fileo;
+    // fileo.open("Corelation.txt");
 
-    for (int i = 0; i < N_DOF; i++)
-    {
-        for (int j = 0; j < N_DOF; j++)
-        {
-            fileo << C1[i * N_DOF + j];
-            if (j != N_DOF - 1)
-                fileo << ",";
-        }
-        fileo << endl;
-    }
+    // for (int i = 0; i < N_DOF; i++)
+    // {
+    //     for (int j = 0; j < N_DOF; j++)
+    //     {
+    //         fileo << C1[i * N_DOF + j];
+    //         if (j != N_DOF - 1)
+    //             fileo << ",";
+    //     }
+    //     fileo << endl;
+    // }
 
-    fileo.close();
+    // fileo.close();
 
-    std::ofstream fileo_r;
-    fileo.open("Covarriance.txt");
+    // std::ofstream fileo_r;
+    // fileo.open("Covarriance.txt");
 
-    for (int i = 0; i < N_DOF; i++)
-    {
-        for (int j = 0; j < N_DOF; j++)
-        {
-            fileo_r << C[i * N_DOF + j];
-            if (j != N_DOF - 1)
-                fileo_r << ",";
-        }
-        fileo_r << endl;
-    }
+    // for (int i = 0; i < N_DOF; i++)
+    // {
+    //     for (int j = 0; j < N_DOF; j++)
+    //     {
+    //         fileo_r << C[i * N_DOF + j];
+    //         if (j != N_DOF - 1)
+    //             fileo_r << ",";
+    //     }
+    //     fileo_r << endl;
+    // }
 
-    fileo_r.close();
+    // fileo_r.close();
 
-    // exit(0);
     ////////////////////////////////////////////////////// SVD ////////////////////////////////////////////
     // Declare SVD parameters
     MKL_INT m1 = N_DOF, n = N_DOF, lda = N_DOF, ldu = N_DOF, ldvt = N_DOF, info;
@@ -337,7 +337,6 @@ int main(int argc, char *argv[])
     double *S = new double[N_DOF];
     double *U = new double[N_DOF * N_DOF];
     double *Vt = new double[N_DOF * N_DOF];
-    cout << " REALISATIONS COMPUTED " << endl;
     info = LAPACKE_dgesvd(LAPACK_ROW_MAJOR, 'A', 'A', m1, n, C, lda,
                           S, U, ldu, Vt, ldvt, superb);
 
@@ -346,10 +345,9 @@ int main(int argc, char *argv[])
 
     if (info > 0)
     {
-        printf("The algorithm computing SVD failed to converge.\n");
+        printf("The algorithm computing SVD of Covariance Matrix failed to converge.\n");
         exit(1);
     }
-    cout << " REALISATIONS COMPUTED " << endl;
     int energyVal = 0;
     int temp = 0;
 
@@ -366,7 +364,7 @@ int main(int argc, char *argv[])
             break;
     }
 
-    cout << " MODES : " << temp + 1 << endl;
+    // cout << " MODES : " << temp + 1 << endl;
 
     int modDim = temp + 1;
 
@@ -412,16 +410,15 @@ int main(int argc, char *argv[])
         }
     }
 
-    cout << " N_Realisations : " << N_Realisations << endl;
-    cout << " MULT START " << endl;
+    // cout << " N_Realisations : " << N_Realisations << endl;
+    // cout << " MULT START " << endl;
     cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_DOF, N_Realisations, modDim, 1.0, Ut, modDim, Z, N_Realisations, 0.0, RealizationVector, N_Realisations);
-    cout << " MULT DONE " << endl;
+    // cout << " MULT DONE " << endl;
     // printMatrix(SolutionVector, N_DOF,N_Realisations);
 
     // mkl_dimatcopy('R','T', N_DOF,N_Realisations,1.0,SolutionVector,N_DOF,N_Realisations);
     // cout << " COPY DONE "<<endl;
 
-    cout << " REALISATIONS COMPUTED " << endl;
 
     for (int i = 0; i < N_DOF; i++)
     {
@@ -432,6 +429,9 @@ int main(int argc, char *argv[])
     }
 
     memcpy(RealizationVector, RealizationVectorTemp, N_DOF * N_Realisations * SizeOfDouble);
+
+    cout << N_Realisations << " REALISATIONS COMPUTED " << endl;
+
 
     /////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
 
@@ -480,7 +480,7 @@ int main(int argc, char *argv[])
         printf("The algorithm computing SVD for DO failed to converge.\n");
         exit(1);
     }
-    cout << " DO SVD COMPUTED " << endl;
+    // cout << " DO SVD COMPUTED " << endl;
 
     //////////////////////////////////////////// DO - SVD End///////////////////////////////
 
@@ -507,11 +507,11 @@ int main(int argc, char *argv[])
 
     /////Projection Matrix///////////
     ////////////////////////////////
-    cout << " Min DIMENSION : " << minDim << endl;
+    // cout << " Min DIMENSION : " << minDim << endl;
     double *ProjectionVector = new double[N_Realisations * minDim]();
-    cout << "PROJ VECTOR MULT START " << endl;
+    // cout << "PROJ VECTOR MULT START " << endl;
     cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, N_Realisations, minDim, N_DOF, 1.0, PerturbationVector, N_Realisations, L, minDim, 0.0, ProjectionVector, minDim);
-    cout << "PROJ VECTOR MULT DONE " << endl;
+    // cout << "PROJ VECTOR MULT DONE " << endl;
 
     /// Initialize Coefficient Matrix - First subDim columns of Projection Matrix ////////////////////
     double *CoeffVector = new double[N_Realisations * subDim]();
