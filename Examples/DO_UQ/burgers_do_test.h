@@ -304,7 +304,7 @@ void LinCoeffs_Mode(int n_points, double *X, double *Y,
 }
 
 /**
- * @brief Routine to calculate the covariance matrix of coefficients and store it in TDatabas::ParamDB->COVARIANCE_MATRIX_DO
+ * @brief Routine to calculate the covariance matrix of coefficients and store it in TDatabase::ParamDB->COVARIANCE_MATRIX_DO
  * \f{equation}{
   C = \frac{1}{N_{R}-1}\cdot\phi^{T}\phi
 \f}
@@ -817,6 +817,9 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 		{
 			Coeffs[i] = new double[10]();
 		}
+		DO_Mode_Equation_Coefficients(N_Points2, X, Y, Param, Coeffs);
+		
+
 
 		double U1_Mode_i[N_Points2];
 		double U1x_Mode_i[N_Points2];
@@ -1060,7 +1063,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 
 							val1 += nu * (U1xx_Mode_i[qdpt] + U1yy_Mode_i[qdpt]) * U1_Mode_p[qdpt] * Mult;
 
-							val2 += (-1.0 * (U1_Mode_i[qdpt] * U2x_Mean[qdpt] + U2_Mode_a[qdpt] * U2y_Mean[qdpt])) * U2_Mode_p[qdpt] * Mult;
+							val2 += (-1.0 * (U1_Mode_i[qdpt] * U2x_Mean[qdpt] + U2_Mode_i[qdpt] * U2y_Mean[qdpt])) * U2_Mode_p[qdpt] * Mult;
 
 							val2 += (-1.0 * (U1_Mean[qdpt] * U2x_Mode_i[qdpt] + U2_Mean[qdpt] * U2y_Mode_i[qdpt])) * U2_Mode_p[qdpt] * Mult;
 
@@ -1511,9 +1514,9 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
 			{
 				double nu = Coeffs[qdpt][0];
 				double Mult = Weights2[qdpt] * AbsDetjk[qdpt];
-				val += (U1_Mode_a[qdpt] * U1x_Mean[qdpt] + U2_Mode_a[qdpt] * U1y_Mean[qdpt] + U1_Mean[qdpt] * U1x_Mode_a[qdpt] + U2_Mean[qdpt] * U1y_Mode_a[qdpt] + nu * U1xx_Mode_a[qdpt] + nu * U1yy_Mode_a[qdpt]) * U1_Mode_i[qdpt] * Mult;
+				val += (U1_Mode_a[qdpt] * U1x_Mean[qdpt] + U2_Mode_a[qdpt] * U1y_Mean[qdpt] + U1_Mean[qdpt] * U1x_Mode_a[qdpt] + U2_Mean[qdpt] * U1y_Mode_a[qdpt] - nu * U1xx_Mode_a[qdpt] - nu * U1yy_Mode_a[qdpt]) * U1_Mode_i[qdpt] * Mult;
 
-				val += (U1_Mode_a[qdpt] * U2x_Mean[qdpt] + U2_Mode_a[qdpt] * U2y_Mean[qdpt] + U1_Mean[qdpt] * U2x_Mode_a[qdpt] + U2_Mean[qdpt] * U2y_Mode_a[qdpt] + nu * U2xx_Mode_a[qdpt] + nu * U2yy_Mode_a[qdpt]) * U2_Mode_i[qdpt] * Mult;
+				val += (U1_Mode_a[qdpt] * U2x_Mean[qdpt] + U2_Mode_a[qdpt] * U2y_Mean[qdpt] + U1_Mean[qdpt] * U2x_Mode_a[qdpt] + U2_Mean[qdpt] * U2y_Mode_a[qdpt] - nu * U2xx_Mode_a[qdpt] - nu * U2yy_Mode_a[qdpt]) * U2_Mode_i[qdpt] * Mult;
 			}
 
 			for (int i = 0; i < lenPhi; i++)

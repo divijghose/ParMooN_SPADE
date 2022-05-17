@@ -50,63 +50,60 @@ void ExampleFile()
 // ========================================================================
 void InitialU1Mean(double x, double y, double *values)
 {
-  values[0] = 0;
+	values[0] = 0;
 }
 
 void InitialU2Mean(double x, double y, double *values)
 {
-  values[0] = 0;
+	values[0] = 0;
 }
 
 void InitialPMean(double x, double y, double *values)
 {
-  values[0] = 0;
+	values[0] = 0;
 }
-
 
 void InitialU1(double x, double y, double *values)
 {
-  values[0] = 0;
+	values[0] = 0;
 }
 
 void InitialU2(double x, double y, double *values)
 {
-  values[0] = 0;
+	values[0] = 0;
 }
 
 void InitialP(double x, double y, double *values)
 {
-  values[0] = 0;
+	values[0] = 0;
 }
-
 
 // ========================================================================
 // exact solution
 // ========================================================================
 void ExactU1(double x, double y, double *values)
 {
-  values[0] = 0.0;
-  values[1] = 0;
-  values[2] = 0;
-  values[3] = 0;
+	values[0] = 0.0;
+	values[1] = 0;
+	values[2] = 0;
+	values[3] = 0;
 }
 
 void ExactU2(double x, double y, double *values)
 {
-  values[0] = 0;
-  values[1] = 0;
-  values[2] = 0;
-  values[3] = 0;
+	values[0] = 0;
+	values[1] = 0;
+	values[2] = 0;
+	values[3] = 0;
 }
 
 void ExactP(double x, double y, double *values)
 {
-  values[0] = 0;
-  values[1] = 0;
-  values[2] = 0;
-  values[3] = 0;
+	values[0] = 0;
+	values[1] = 0;
+	values[2] = 0;
+	values[3] = 0;
 }
-
 
 // ========================================================================
 // boundary conditions
@@ -118,33 +115,34 @@ void BoundCondition(int i, double t, BoundCond &cond)
 
 void U1BoundValue(int BdComp, double Param, double &value)
 {
-  double t = TDatabase::TimeDB->CURRENTTIME;
+	double t = TDatabase::TimeDB->CURRENTTIME;
 
-  switch(BdComp)
-  {
-    case 0: 
-            value=0;
-            break;
-    case 1: 
-            value=0;
-            break;
-    case 2: 
-            if(abs(Param - 0) < 1e-6 || abs(Param - 1.0) < 1e-6 )
-            value=0; // top moving side velocity
-            else 
-              value = 1.0;
-            break;
-    case 3: 
-            value=0;
-            break;
-    default: cout << "wrong boundary part number" << endl;
-            break;
-  }
+	switch (BdComp)
+	{
+	case 0:
+		value = 0;
+		break;
+	case 1:
+		value = 0;
+		break;
+	case 2:
+		if (abs(Param - 0) < 1e-6 || abs(Param - 1.0) < 1e-6)
+			value = 0; // top moving side velocity
+		else
+			value = 1.0;
+		break;
+	case 3:
+		value = 0;
+		break;
+	default:
+		cout << "wrong boundary part number" << endl;
+		break;
+	}
 }
 
 void U2BoundValue(int BdComp, double Param, double &value)
 {
-  value = 0;
+	value = 0;
 }
 
 void BoundConditionMean(int i, double t, BoundCond &cond)
@@ -154,33 +152,34 @@ void BoundConditionMean(int i, double t, BoundCond &cond)
 
 void U1BoundValueMean(int BdComp, double Param, double &value)
 {
-  double t = TDatabase::TimeDB->CURRENTTIME;
+	double t = TDatabase::TimeDB->CURRENTTIME;
 
-  switch(BdComp)
-  {
-    case 0: 
-            value=0;
-            break;
-    case 1: 
-            value=0;
-            break;
-    case 2: 
-            if(abs(Param - 0) < 1e-6 || abs(Param - 1.0) < 1e-6 )
-            value=0; // top moving side velocity
-            else 
-              value = 1.0;
-            break;
-    case 3: 
-            value=0;
-            break;
-    default: cout << "wrong boundary part number" << endl;
-            break;
-  }
+	switch (BdComp)
+	{
+	case 0:
+		value = 0;
+		break;
+	case 1:
+		value = 0;
+		break;
+	case 2:
+		if (abs(Param - 0) < 1e-6 || abs(Param - 1.0) < 1e-6)
+			value = 0; // top moving side velocity
+		else
+			value = 1.0;
+		break;
+	case 3:
+		value = 0;
+		break;
+	default:
+		cout << "wrong boundary part number" << endl;
+		break;
+	}
 }
 
 void U2BoundValueMean(int BdComp, double Param, double &value)
 {
-  value = 0;
+	value = 0;
 }
 
 void BoundConditionMode(int i, double t, BoundCond &cond)
@@ -190,100 +189,96 @@ void BoundConditionMode(int i, double t, BoundCond &cond)
 
 void U1BoundValueMode(int BdComp, double Param, double &value)
 {
-  double t = TDatabase::TimeDB->CURRENTTIME;
+	double t = TDatabase::TimeDB->CURRENTTIME;
 
-  switch(BdComp)
-  {
-    case 0: 
-            value=0;
-            break;
-    case 1: 
-            value=0;
-            break;
-    case 2: 
-            if(abs(Param - 0) < 1e-6 || abs(Param - 1.0) < 1e-6 )
-            value=0; // top moving side velocity
-            else 
-              value = 1.0;
-            break;
-    case 3: 
-            value=0;
-            break;
-    default: cout << "wrong boundary part number" << endl;
-            break;
-  }
+	switch (BdComp)
+	{
+	case 0:
+		value = 0;
+		break;
+	case 1:
+		value = 0;
+		break;
+	case 2:
+		if (abs(Param - 0) < 1e-6 || abs(Param - 1.0) < 1e-6)
+			value = 0; // top moving side velocity
+		else
+			value = 1.0;
+		break;
+	case 3:
+		value = 0;
+		break;
+	default:
+		cout << "wrong boundary part number" << endl;
+		break;
+	}
 }
 
 void U2BoundValueMode(int BdComp, double Param, double &value)
 {
-  value = 0;
+	value = 0;
 }
-
-
 
 // data on each quadrature point for mean
 void LinCoeffs(int n_points, double *X, double *Y,
-               double **parameters, double **coeffs)
+			   double **parameters, double **coeffs)
 {
-  int i;
-  double *coeff, x, y; 
-  static double eps=double(1.0/TDatabase::ParamDB->RE_NR);
+	int i;
+	double *coeff, x, y;
+	static double eps = double(1.0 / TDatabase::ParamDB->RE_NR);
 
-  for(i=0;i<n_points;i++)
-  {
-    coeff = coeffs[i];
-    x = X[i];
-    y = Y[i];
+	for (i = 0; i < n_points; i++)
+	{
+		coeff = coeffs[i];
+		x = X[i];
+		y = Y[i];
 
-    coeff[0] = eps;
+		coeff[0] = eps;
 
-    coeff[1] = 0;  // f1
-    coeff[2] = 0;  // f2
-  }
+		coeff[1] = 0; // f1
+		coeff[2] = 0; // f2
+	}
 }
 
-
 void DO_Mean_Equation_Coefficients(int n_points, double *X, double *Y,
-               double **parameters, double **coeffs)
+								   double **parameters, double **coeffs)
 {
-  int i;
-  double *coeff, x, y; 
-  static double eps=double(1.0/TDatabase::ParamDB->RE_NR);
+	int i;
+	double *coeff, x, y;
+	static double eps = double(1.0 / TDatabase::ParamDB->RE_NR);
 
-  for(i=0;i<n_points;i++)
-  {
-    coeff = coeffs[i];
-    x = X[i];
-    y = Y[i];
+	for (i = 0; i < n_points; i++)
+	{
+		coeff = coeffs[i];
+		x = X[i];
+		y = Y[i];
 
-    coeff[0] = eps;
+		coeff[0] = eps;
 
-    coeff[1] = 0;  // f1
-    coeff[2] = 0;  // f2
-  }
+		coeff[1] = 0; // f1
+		coeff[2] = 0; // f2
+	}
 }
 
 void DO_Mode_Equation_Coefficients(int n_points, double *X, double *Y,
-               double **parameters, double **coeffs)
+								   double **parameters, double **coeffs)
 {
-  int i;
-  double *coeff, x, y; 
-  static double eps=double(1.0/TDatabase::ParamDB->RE_NR);
+	int i;
+	double *coeff, x, y;
+	static double eps = double(1.0 / TDatabase::ParamDB->RE_NR);
 
-  for(i=0;i<n_points;i++)
-  {
-    coeff = coeffs[i];
-    x = X[i];
-    y = Y[i];
+	for (i = 0; i < n_points; i++)
+	{
+		coeff = coeffs[i];
+		x = X[i];
+		y = Y[i];
 
-    coeff[0] = eps;
+		coeff[0] = eps;
 
-    coeff[1] = 0;  // f1
-    coeff[2] = 0;  // f2
-  }
+		coeff[1] = 0; // f1
+		coeff[2] = 0; // f2
+	}
 }
-
-
 
 /**
  * @brief Routine to calculate the covariance matrix of coefficients and store it in TDatabas::ParamDB->COVARIANCE_MATRIX_DO
@@ -304,7 +299,7 @@ void CalcCovarianceMatx(double *Vector)
 	int height = TDatabase::ParamDB->REALIZATIONS;
 	int width = TDatabase::ParamDB->N_Subspace_Dim;
 	// TDatabase::ParamDB->COVARIANCE_MATRIX_DO = new double[width * width]();
-	double *phi = new double[width * height](); //Col to Row Major
+	double *phi = new double[width * height](); // Col to Row Major
 	for (int i = 0; i < height; i++)
 	{
 		for (int j = 0; j < width; j++)
@@ -314,9 +309,6 @@ void CalcCovarianceMatx(double *Vector)
 	}
 
 	cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, width, width, height, (1.0 / (height - 1)), phi, height, phi, width, 0.0, TDatabase::ParamDB->COVARIANCE_MATRIX_DO, width);
-
-
-	
 }
 
 /**
@@ -334,7 +326,7 @@ void CalcCoskewnessMatx(double *Vector)
 
 	int height = TDatabase::ParamDB->REALIZATIONS;
 	int width = TDatabase::ParamDB->N_Subspace_Dim;
-	double *phi = new double[width * height](); //Col to Row Major
+	double *phi = new double[width * height](); // Col to Row Major
 	for (int i = 0; i < height; i++)
 	{
 		for (int j = 0; j < width; j++)
@@ -395,21 +387,17 @@ void InvertCov()
 	matInv(TDatabase::ParamDB->COVARIANCE_INVERSE_DO, N);
 }
 
-void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode,TFEFunction2D *FePressure_Mean ,int N_S, double *GlobalRhs_mean,int N_U)
+void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEFunction2D *FePressure_Mean, int N_S, double *GlobalRhs_mean, int N_U)
 {
 
 	int N_Cells = Fespace->GetN_Cells();
 	TCollection *coll = Fespace->GetCollection();
-	double* U_Mode = FeVector_Mode->GetValues();
+	double *U_Mode = FeVector_Mode->GetValues();
 	int lenMode = FeVector_Mode->GetLength();
 	// cout << "Length Mode in DO Mean RHS: " << lenMode << endl;
 	int lenMean = N_U;
 
-	double* P_Mean = FePressure_Mean->GetValues();
-
-
-
-	
+	double *P_Mean = FePressure_Mean->GetValues();
 
 	// Get the Global DOF arrays INdex from the FE Space.
 	int *GlobalNumbers = Fespace->GetGlobalNumbers();
@@ -432,7 +420,7 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode,TFEFunction2
 	double **origvaluesD02; // Shape Function 2nd Derivatives ( y ) at Quadrature Points
 
 	for (int cellId = 0; cellId < N_Cells; cellId++)
-	{//Cell Loop
+	{ // Cell Loop
 		TBaseCell *currentCell = coll->GetCell(cellId);
 		// Get the "ID" of Finite Element for the given 2D Element ( Conforming/NonConforming-Order Finite Element : eg : it could be Conforming-2nd order Finite Element )
 		FE2D elementId = Fespace->GetFE2D(cellId, currentCell);
@@ -544,31 +532,11 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode,TFEFunction2
 		double Px_Mean[N_Points2];
 		double Py_Mean[N_Points2];
 
-			for (int quadPt = 0; quadPt < N_Points2; quadPt++) // Initialize
-			{
-				// C_i[quadPt] = 0;
-				Px_Mean[quadPt] = 0;
-				Py_Mean[quadPt] = 0;
-			}
-			
-
-			// Obtain all values for C_a
-			for (int quadPt = 0; quadPt < N_Points2; quadPt++)
-			{
-				for (int j = 0; j < N_BaseFunct; j++)
-				{
-					int globDOF = DOF[j];
-					Px_Mean[quadPt] += origvaluesD10[quadPt][j] * P_Mean[globDOF];
-					Py_Mean[quadPt] += origvaluesD01[quadPt][j] * P_Mean[globDOF];
-				}
-			}
-	
-
 		for (int a = 0; a < N_S; a++)
-		{														   //"a" loop
-			double* Mode_Comp1_a = U_Mode + (a * 2 * lenMode);	   // col Major
-			double* Mode_Comp2_a = U_Mode + ((a * 2 + 1) * lenMode); // col Major
-																   //  double* phi_Array_a = Phi_Array + a*lenMode;??
+		{															 //"a" loop
+			double *Mode_Comp1_a = U_Mode + (a * 2 * lenMode);		 // col Major
+			double *Mode_Comp2_a = U_Mode + ((a * 2 + 1) * lenMode); // col Major
+																	 //  double* phi_Array_a = Phi_Array + a*lenMode;??
 
 			double U1_Mode_a[N_Points2];
 			double U1x_Mode_a[N_Points2];
@@ -589,7 +557,6 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode,TFEFunction2
 				U2x_Mode_a[quadPt] = 0;
 				U2y_Mode_a[quadPt] = 0;
 			}
-			
 
 			// Obtain all values for C_a
 			for (int quadPt = 0; quadPt < N_Points2; quadPt++)
@@ -610,8 +577,8 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode,TFEFunction2
 			{ //"b" loop
 				val1 = 0;
 				val2 = 0;
-				double* Mode_Comp1_b = U_Mode + (b * 2 * lenMode);	   // col Major
-				double* Mode_Comp2_b = U_Mode + ((b * 2 + 1) * lenMode); // col Major
+				double *Mode_Comp1_b = U_Mode + (b * 2 * lenMode);		 // col Major
+				double *Mode_Comp2_b = U_Mode + ((b * 2 + 1) * lenMode); // col Major
 
 				double U1_Mode_b[N_Points2];
 				double U1x_Mode_b[N_Points2];
@@ -653,9 +620,9 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode,TFEFunction2
 					double Mult = Weights2[qdpt] * AbsDetjk[qdpt];
 					double *orgD00 = origvaluesD00[qdpt];
 
-					val1 += -1.0*Px_Mean[qdpt]-(U1_Mode_a[qdpt] * U1x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U1y_Mode_b[qdpt])* TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult;
+					val1 += -1.0 * (U1_Mode_a[qdpt] * U1x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U1y_Mode_b[qdpt]) * TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult;
 
-					val2 += -1.0*Py_Mean[qdpt]-(U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt])* TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult;
+					val2 += -1.0 * (U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt]) * TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult;
 
 					for (int j = 0; j < N_BaseFunct; j++)
 					{
@@ -668,28 +635,37 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode,TFEFunction2
 
 		} //"a" loop
 
-
 		for (int j = 0; j < N_BaseFunct; j++)
 		{
 			int GlobalDOF = DOF[j];
 			GlobalRhs_mean[GlobalDOF] += rhs1[j];
-			GlobalRhs_mean[GlobalDOF+lenMean] += rhs2[j];
+			GlobalRhs_mean[GlobalDOF + lenMean] += rhs2[j];
 		}
 		// --
-	}//cell loop
-
-	
+	} // cell loop
 }
 
 //======================================================================
 // ************************** Mode RHS********************************//
 //======================================================================
+/**
+ * @brief Assembly function for RHS of mode equation.
+ * \f{equation}{
+  -(\overline{u}\frac{\partial\tilde{u}_{i}}{\partial x}+\tilde{u}_{i}\frac{\partial\overline{u}}{\partial x}+\overline{v}\frac{\partial\tilde{u}_{i}}{\partial y}+\tilde{v}_{i}\frac{\partial\overline{u}}{\partial y}) + (\tilde{u}_{i}\frac{\partial\tilde{u}_{i}}{\partial x}+\tilde{v}_{i}\frac{\partial\tilde{u}_{i}}{\partial y})
+	\f}
+ * @param Fespace
+ * @param FeVector_Mean Vector with Mean velocity. Two components of mean velocity are stored contiguously
+ * @param FeVector_Mode
+ * @param FePressure_Mode
+ * @param N_S
+ * @param GlobalRhs_mode
+ * @param i_index
+ */
 void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunct2D *FeVector_Mode, TFEFunction2D *FePressure_Mode, int N_S, double *GlobalRhs_mode, int i_index)
 {
 
 	int N_Cells = Fespace->GetN_Cells();
 	TCollection *coll = Fespace->GetCollection();
-
 	// Get the Global DOF arrays INdex from the FE Space.
 	int *GlobalNumbers = Fespace->GetGlobalNumbers();
 	int *BeginIndex = Fespace->GetBeginIndex();
@@ -716,13 +692,16 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 	double *U_Mean = FeVector_Mean->GetValues();
 	int lenMean = FeVector_Mean->GetLength();
 
+	double *Pressure_Mode = FePressure_Mode->GetValues();
+	int lenPressureMode = FePressure_Mode->GetLength();
+
 	double *Mean_Comp1 = U_Mean;
 	double *Mean_Comp2 = U_Mean + lenMean; //
 
 	double *Mode_Comp1_i = U_Mode + i_index * 2 * lenMode;		 // col Major
 	double *Mode_Comp2_i = U_Mode + (i_index * 2 + 1) * lenMode; // col Major
 
-	
+	double *Pressure_Mode_i = Pressure_Mode + i_index * lenPressureMode; // col Major
 
 	double val1 = 0;
 	double val2 = 0;
@@ -826,6 +805,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 		{
 			Coeffs[i] = new double[10]();
 		}
+		DO_Mode_Equation_Coefficients(N_Points2, X, Y, Param, Coeffs);
 
 		double U1_Mode_i[N_Points2];
 		double U1x_Mode_i[N_Points2];
@@ -846,6 +826,9 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 		double U2_Mean[N_Points2];
 		double U2x_Mean[N_Points2];
 		double U2y_Mean[N_Points2];
+
+		double Px_Mode_i[N_Points2];
+		double Py_Mode_i[N_Points2];
 
 		for (int quadPt = 0; quadPt < N_Points2; quadPt++) // Initialize
 		{
@@ -868,6 +851,9 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 			U2_Mean[quadPt] = 0;
 			U2x_Mean[quadPt] = 0;
 			U2y_Mean[quadPt] = 0;
+
+			Px_Mode_i[N_Points2];
+			Py_Mode_i[N_Points2];
 		}
 
 		for (int quadPt = 0; quadPt < N_Points2; quadPt++)
@@ -894,6 +880,9 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 				U2_Mean[quadPt] += origvaluesD00[quadPt][j] * Mean_Comp2[globDOF];
 				U2x_Mean[quadPt] += origvaluesD10[quadPt][j] * Mean_Comp2[globDOF];
 				U2y_Mean[quadPt] += origvaluesD01[quadPt][j] * Mean_Comp2[globDOF];
+
+				Px_Mode_i[quadPt] += origvaluesD01[quadPt][j] * Pressure_Mode_i[globDOF];
+				Py_Mode_i[quadPt] += origvaluesD10[quadPt][j] * Pressure_Mode_i[globDOF];
 			}
 		}
 
@@ -913,32 +902,17 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 			double *Mode_Comp1_a = U_Mode + a * 2 * lenMode;	   // col Major
 			double *Mode_Comp2_a = U_Mode + (a * 2 + 1) * lenMode; // col Major
 
-			double U1_Mode_a[N_Points2];
-			double U1x_Mode_a[N_Points2];
-			double U1y_Mode_a[N_Points2];
-			double U1xx_Mode_a[N_Points2];
-			double U1yy_Mode_a[N_Points2];
+			double U1_Mode_a[N_Points2]; // u tilde a
 
-			double U2_Mode_a[N_Points2];
-			double U2x_Mode_a[N_Points2];
-			double U2y_Mode_a[N_Points2];
-			double U2xx_Mode_a[N_Points2];
-			double U2yy_Mode_a[N_Points2];
+			double U2_Mode_a[N_Points2]; // v tilde a
 
 			for (int quadPt = 0; quadPt < N_Points2; quadPt++) // Initialize
 			{
 				// C_i[quadPt] = 0;
 				U1_Mode_a[quadPt] = 0;
-				U1x_Mode_a[quadPt] = 0;
-				U1y_Mode_a[quadPt] = 0;
 
 				U2_Mode_a[quadPt] = 0;
-				U2x_Mode_a[quadPt] = 0;
-				U2y_Mode_a[quadPt] = 0;
 			}
-			// for ( int quadPt = 0 ; quadPt < N_Points2; quadPt++) C_x_a[quadPt] = 0;
-			// for ( int quadPt = 0 ; quadPt < N_Points2; quadPt++) C_y_a[quadPt] = 0;
-
 			// Obtain all values for U_a
 			for (int quadPt = 0; quadPt < N_Points2; quadPt++)
 			{
@@ -946,12 +920,8 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 				{
 					int globDOF = DOF[j];
 					U1_Mode_a[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp1_a[globDOF];
-					U1x_Mode_a[quadPt] += origvaluesD10[quadPt][j] * Mode_Comp1_a[globDOF];
-					U1y_Mode_a[quadPt] += origvaluesD01[quadPt][j] * Mode_Comp1_a[globDOF];
 
 					U2_Mode_a[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp2_a[globDOF];
-					U2x_Mode_a[quadPt] += origvaluesD10[quadPt][j] * Mode_Comp2_a[globDOF];
-					U2y_Mode_a[quadPt] += origvaluesD01[quadPt][j] * Mode_Comp2_a[globDOF];
 				}
 			}
 
@@ -961,21 +931,17 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 				double *Mode_Comp1_b = U_Mode + b * 2 * lenMode;	   // col Major
 				double *Mode_Comp2_b = U_Mode + (b * 2 + 1) * lenMode; // col Major
 
-				double U1_Mode_b[N_Points2];
-				double U1x_Mode_b[N_Points2];
-				double U1y_Mode_b[N_Points2];
+				double U1x_Mode_b[N_Points2]; // ddx(u tilde b)
+				double U1y_Mode_b[N_Points2]; // ddy(u tilde b)
 
-				double U2_Mode_b[N_Points2];
-				double U2x_Mode_b[N_Points2];
-				double U2y_Mode_b[N_Points2];
+				double U2x_Mode_b[N_Points2]; // ddx(v tilde b)
+				double U2y_Mode_b[N_Points2]; // ddy (v tilde b)
 
 				for (int quadPt = 0; quadPt < N_Points2; quadPt++) // Initialize
 				{
-					U1_Mode_b[quadPt] = 0;
 					U1x_Mode_b[quadPt] = 0;
 					U1y_Mode_b[quadPt] = 0;
 
-					U2_Mode_b[quadPt] = 0;
 					U2x_Mode_b[quadPt] = 0;
 					U2y_Mode_b[quadPt] = 0;
 				}
@@ -985,11 +951,9 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 					for (int j = 0; j < N_BaseFunct; j++)
 					{
 						int globDOF = DOF[j];
-						U1_Mode_b[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp1_b[globDOF];
 						U1x_Mode_b[quadPt] += origvaluesD10[quadPt][j] * Mode_Comp1_b[globDOF];
 						U1y_Mode_b[quadPt] += origvaluesD01[quadPt][j] * Mode_Comp1_b[globDOF];
 
-						U2_Mode_b[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp2_b[globDOF];
 						U2x_Mode_b[quadPt] += origvaluesD10[quadPt][j] * Mode_Comp2_b[globDOF];
 						U2y_Mode_b[quadPt] += origvaluesD01[quadPt][j] * Mode_Comp2_b[globDOF];
 					}
@@ -1002,23 +966,15 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 					double *Mode_Comp1_p = U_Mode + p * 2 * lenMode;	   // col Major
 					double *Mode_Comp2_p = U_Mode + (p * 2 + 1) * lenMode; // col Major
 
-					double U1_Mode_p[N_Points2];
-					double U1x_Mode_p[N_Points2];
-					double U1y_Mode_p[N_Points2];
+					double U1_Mode_p[N_Points2]; // u tilde p
 
-					double U2_Mode_p[N_Points2];
-					double U2x_Mode_p[N_Points2];
-					double U2y_Mode_p[N_Points2];
+					double U2_Mode_p[N_Points2]; // v tilde p
 
 					for (int quadPt = 0; quadPt < N_Points2; quadPt++) // Initialize
 					{
 						U1_Mode_p[quadPt] = 0;
-						U1x_Mode_p[quadPt] = 0;
-						U1y_Mode_p[quadPt] = 0;
 
 						U2_Mode_p[quadPt] = 0;
-						U2x_Mode_p[quadPt] = 0;
-						U2y_Mode_p[quadPt] = 0;
 					}
 
 					for (int quadPt = 0; quadPt < N_Points2; quadPt++)
@@ -1027,12 +983,8 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 						{
 							int globDOF = DOF[j];
 							U1_Mode_p[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp1_p[globDOF];
-							U1x_Mode_p[quadPt] += origvaluesD10[quadPt][j] * Mode_Comp1_p[globDOF];
-							U1y_Mode_p[quadPt] += origvaluesD01[quadPt][j] * Mode_Comp1_p[globDOF];
 
 							U2_Mode_p[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp2_p[globDOF];
-							U2x_Mode_p[quadPt] += origvaluesD10[quadPt][j] * Mode_Comp2_p[globDOF];
-							U2y_Mode_p[quadPt] += origvaluesD01[quadPt][j] * Mode_Comp2_p[globDOF];
 						}
 					}
 
@@ -1046,7 +998,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 						double *orgD20 = origvaluesD20[quadPt];
 						double *orgD02 = origvaluesD02[quadPt];
 
-						double nu = Coeffs[quadPt][0]; // nu
+						double eps = Coeffs[quadPt][0]; // eps
 
 						for (int c = 0; c < N_S; c++)
 						{ //"c"loop
@@ -1067,13 +1019,15 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 
 							val1 += (-1.0 * (U1_Mean[qdpt] * U1x_Mode_i[qdpt] + U2_Mean[qdpt] * U1y_Mode_i[qdpt])) * U1_Mode_p[qdpt] * Mult;
 
-							val1 += nu * (U1xx_Mode_i[qdpt] + U1yy_Mode_i[qdpt]) * U1_Mode_p[qdpt] * Mult;
+							val1 += eps * (U1xx_Mode_i[qdpt] + U1yy_Mode_i[qdpt]) * U1_Mode_p[qdpt] * Mult;
 
-							val2 += (-1.0 * (U1_Mode_i[qdpt] * U2x_Mean[qdpt] + U2_Mode_a[qdpt] * U2y_Mean[qdpt])) * U2_Mode_p[qdpt] * Mult;
+							val1 += -1.0 * Px_Mode_i[qdpt] * U1_Mode_p[qdpt] * Mult; // p term
+
+							val2 += (-1.0 * (U1_Mode_i[qdpt] * U2x_Mean[qdpt] + U2_Mode_i[qdpt] * U2y_Mean[qdpt])) * U2_Mode_p[qdpt] * Mult;
 
 							val2 += (-1.0 * (U1_Mean[qdpt] * U2x_Mode_i[qdpt] + U2_Mean[qdpt] * U2y_Mode_i[qdpt])) * U2_Mode_p[qdpt] * Mult;
 
-							val2 += nu * (U2xx_Mode_i[qdpt] + U2yy_Mode_i[qdpt]) * U2_Mode_p[qdpt] * Mult;
+							val2 += eps * (U2xx_Mode_i[qdpt] + U2yy_Mode_i[qdpt]) * U2_Mode_p[qdpt] * Mult;
 						}
 
 						val1 *= -1.0 * U1_Mode_p[quadPt]; // This is Final "f"
@@ -1168,7 +1122,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
  * @param i_index
  * @param N_R
  */
-void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectFunct2D *FEVector_Phi, TFEVectFunct2D *FeVector_Mean, int N_S, int i_index, int N_R)
+void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectFunct2D *FEVector_Phi, TFEVectFunct2D *FeVector_Mean, TFEFunction2D *FePressure_Mode, int N_S, int i_index, int N_R)
 {
 
 	int N_Cells = Fespace->GetN_Cells();
@@ -1219,7 +1173,10 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
 	double *phi_Array_i = Phi_Array + i_index * lenPhi;
 	double *phi_Old_i = Phi_Old + i_index * lenPhi;
 
-	//   double* phi_New = new double[lenPhi]();
+	double *Pressure_Mode = FePressure_Mode->GetValues();
+	int lenPressureMode = FePressure_Mode->GetLength();
+
+	double *Pressure_Mode_i = Pressure_Mode + i_index * lenPressureMode; // col Major
 
 	for (int cellId = 0; cellId < N_Cells; cellId++)
 	{ // cell loop
@@ -1361,8 +1318,6 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
 			U2x_Mean[quadPt] = 0;
 			U2y_Mean[quadPt] = 0;
 		}
-		// for ( int quadPt = 0 ; quadPt < N_Points2; quadPt++) C_x_i[quadPt] = 0;
-		// for ( int quadPt = 0 ; quadPt < N_Points2; quadPt++) C_y_i[quadPt] = 0;
 
 		for (int quadPt = 0; quadPt < N_Points2; quadPt++)
 		{
@@ -1384,9 +1339,6 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
 				U2_Mean[quadPt] += origvaluesD00[quadPt][j] * Mean_Comp2[globDOF];
 				U2x_Mean[quadPt] += origvaluesD10[quadPt][j] * Mean_Comp2[globDOF];
 				U2y_Mean[quadPt] += origvaluesD01[quadPt][j] * Mean_Comp2[globDOF];
-
-				// C_x_i[quadPt] += origvaluesD10[quadPt][j] * C_Array_i[globDOF];
-				// C_y_i[quadPt] += origvaluesD01[quadPt][j] * C_Array_i[globDOF];
 			}
 		}
 
@@ -1395,9 +1347,11 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
 		{ //"a" loop
 		  // double* C_Array_a = U_Mode + a*lenMode;
 			// Check
-			double *Mode_Comp1_a = U_Mode + a * 2 * lenMode;	   // col Major
-			double *Mode_Comp2_a = U_Mode + (a * 2 + 1) * lenMode; // col Major
-			// double* phi_Array_a = Phi_Array + a*lenMode;??
+			double *Mode_Comp1_a = U_Mode + a * 2 * lenMode;			   // col Major
+			double *Mode_Comp2_a = U_Mode + (a * 2 + 1) * lenMode;		   // col Major
+																		   // double* phi_Array_a = Phi_Array + a*lenMode;??
+			double *Pressure_Mode_a = Pressure_Mode + a * lenPressureMode; // col Major
+
 			double *phi_Array_a = Phi_Array + a * lenPhi;
 
 			double U1_Mode_a[N_Points2];
@@ -1411,6 +1365,9 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
 			double U2y_Mode_a[N_Points2];
 			double U2xx_Mode_a[N_Points2];
 			double U2yy_Mode_a[N_Points2];
+
+			double Px_Mode_a[N_Points2];
+			double Py_Mode_a[N_Points2];
 
 			for (int quadPt = 0; quadPt < N_Points2; quadPt++) // Initialize
 			{
@@ -1426,9 +1383,10 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
 				U2y_Mode_a[quadPt] = 0;
 				U2xx_Mode_a[quadPt] = 0;
 				U2yy_Mode_a[quadPt] = 0;
+
+				Px_Mode_a[N_Points2] = 0;
+				Py_Mode_a[N_Points2] = 0;
 			}
-			// for ( int quadPt = 0 ; quadPt < N_Points2; quadPt++) C_x_a[quadPt] = 0;
-			// for ( int quadPt = 0 ; quadPt < N_Points2; quadPt++) C_y_a[quadPt] = 0;
 
 			// Obtain all values for C_a
 			for (int quadPt = 0; quadPt < N_Points2; quadPt++)
@@ -1447,6 +1405,9 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
 					U2y_Mode_a[quadPt] += origvaluesD01[quadPt][j] * Mode_Comp2_a[globDOF];
 					U2xx_Mode_a[quadPt] += origvaluesD20[quadPt][j] * Mode_Comp2_a[globDOF];
 					U2yy_Mode_a[quadPt] += origvaluesD02[quadPt][j] * Mode_Comp2_a[globDOF];
+
+					Px_Mode_a[quadPt] += origvaluesD10[quadPt][j] * Pressure_Mode_a[globDOF];
+					Py_Mode_a[quadPt] += origvaluesD01[quadPt][j] * Pressure_Mode_a[globDOF];
 				}
 			}
 
@@ -1518,11 +1479,11 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
 			val = 0;
 			for (int qdpt = 0; qdpt < N_Points2; qdpt++)
 			{
-				double nu = Coeffs[qdpt][0];
+				double eps = Coeffs[qdpt][0];
 				double Mult = Weights2[qdpt] * AbsDetjk[qdpt];
-				val += (U1_Mode_a[qdpt] * U1x_Mean[qdpt] + U2_Mode_a[qdpt] * U1y_Mean[qdpt] + U1_Mean[qdpt] * U1x_Mode_a[qdpt] + U2_Mean[qdpt] * U1y_Mode_a[qdpt] + nu * U1xx_Mode_a[qdpt] + nu * U1yy_Mode_a[qdpt]) * U1_Mode_i[qdpt] * Mult;
+				val += (U1_Mode_a[qdpt] * U1x_Mean[qdpt] + U2_Mode_a[qdpt] * U1y_Mean[qdpt] + U1_Mean[qdpt] * U1x_Mode_a[qdpt] + U2_Mean[qdpt] * U1y_Mode_a[qdpt] - eps * U1xx_Mode_a[qdpt] - eps * U1yy_Mode_a[qdpt]+Px_Mode_a[qdpt]) * U1_Mode_i[qdpt] * Mult;
 
-				val += (U1_Mode_a[qdpt] * U2x_Mean[qdpt] + U2_Mode_a[qdpt] * U2y_Mean[qdpt] + U1_Mean[qdpt] * U2x_Mode_a[qdpt] + U2_Mean[qdpt] * U2y_Mode_a[qdpt] + nu * U2xx_Mode_a[qdpt] + nu * U2yy_Mode_a[qdpt]) * U2_Mode_i[qdpt] * Mult;
+				val += (U1_Mode_a[qdpt] * U2x_Mean[qdpt] + U2_Mode_a[qdpt] * U2y_Mean[qdpt] + U1_Mean[qdpt] * U2x_Mode_a[qdpt] + U2_Mean[qdpt] * U2y_Mode_a[qdpt] - eps * U2xx_Mode_a[qdpt] - eps * U2yy_Mode_a[qdpt]+Py_Mode_a[qdpt]) * U2_Mode_i[qdpt] * Mult;
 			}
 
 			for (int i = 0; i < lenPhi; i++)
