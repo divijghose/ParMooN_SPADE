@@ -1,10 +1,27 @@
+/**
+ * @file TNSE2D_ParMooN_IVUQ_DO_Test.C
+ * @brief Purpose:     Main program for solving the set of dynamically orthogonal field
+					   equations for Navier-Stokes' equation in 2D.
+					   Features included in this main program:
+					   1. Mesh generation and database values assignment
+					   2. Construction of finite element spaces and functions
+					   3. Generation of Monte Carlo realisations
+					   4. Initialization of DO state vector
+					   5. System construction and solution
+
+ * @authors Sashikumaar Ganesan
+ * @authors Divij Ghose
+ * @authors Thivin Anandh
+ * @bug No known bugs
+ */
 // =======================================================================
 //
-// Purpose:     main program for solving a time-dependent NSE equation in ParMooN
+// Purpose:     Main program for solving a time-dependent NSE equation in ParMooN with uncertainty quantification using DO field equations
 //
-// Author:      Sashikumaar Ganesan
+// Author:      Sashikumaar Ganesan, Divij Ghose, Thivin Anandh
 //
 // History:     Implementation started on 03.09.2014
+// 				Implementation of DO equations started on 20.04.2022
 
 // =======================================================================
 #include <Domain.h>
@@ -587,7 +604,6 @@ int main(int argc, char *argv[])
 	rhsMean = new double[N_Total_MeanDOF]();
 	old_rhsMean = new double[N_Total_MeanDOF]();
 	old_solMean = new double[N_Total_MeanDOF]();
-	defectMean = new double[N_Total_MeanDOF]();
 
 	for (i = 0; i < N_U; i++)
 	{
@@ -602,8 +618,6 @@ int main(int argc, char *argv[])
 
 		solMean[2 * N_U + i] = 0;
 	}
-
-	defectMean = new double[N_Total_MeanDOF]();
 
 	TFEVectFunct2D *Velocity_Mean;
 	TFEFunction2D *Pressure_Mean;
@@ -623,7 +637,6 @@ int main(int argc, char *argv[])
 	old_solMode = new double[2 * N_M + N_P]();
 	rhsMode = new double[N_Total_ModeDOF]();
 	old_rhsMode = new double[2 * N_M + N_P]();
-	defectMean = new double[2 * N_M + N_P]();
 
 	for (int j = 0; j < subDim; j++)
 	{
@@ -646,11 +659,27 @@ int main(int argc, char *argv[])
 	TFEVectFunct2D *Velocity_Mode;
 	TFEFunction2D *u1Mode, *u2Mode, *Pressure_Mode, *fefctMode[2];
 
-	// Velocity_Mode = new TFEVectFunct2D(VelocityMode_FeSpace, (char *)"U_Mode", (char *)"Mode Component", solMode, N_M, 2 * subDim); // check length ??
+	double *solModeVeloCopy = new double[2 * N_M * subDim]();
+
+	for (int i = 0; i < subDim; i++)
+	{
+		for (int j = 0; j < 2 * N_M; j++)
+			solModeVeloCopy[2 * N_M * i + j] = solMode[i * (2 * N_M + N_P) + j];
+	}
+
+	double *solModePressCopy = new double[N_P * subDim]();
+
+	for (int i = 0; i < subDim; i++)
+	{
+		for (int j = 0; j < N_P; j++)
+			solModePressCopy[N_P* i + j] = solMode[i * (2 * N_M + N_P) + 2*N_M+j];
+	}
+
+	Velocity_Mode = new TFEVectFunct2D(VelocityMode_FeSpace, (char *)"U_Mode", (char *)"Mode Component", solModeVeloCopy, N_M, 2 * subDim); // check length ??
 
 	// u1Mode = Velocity_Mode->GetComponent(0);
 	// u2Mode = Velocity_Mode->GetComponent(1);
-	// Pressure_Mode = new TFEFunction2D(PressureMode_FeSpace, (char *)"P_Mode", (char *)"Mode Component", solMode + 2 * N_M * subDim, N_P * subDim);
+	Pressure_Mode = new TFEFunction2D(PressureMode_FeSpace, (char *)"P_Mode", (char *)"Mode Component", solModePressCopy, N_P);// check length ??
 
 	TFEVectFunct2D **VelocityModeAll = new TFEVectFunct2D *[subDim];
 	for (int subD = 0; subD < subDim; subD++)
@@ -731,6 +760,7 @@ int main(int argc, char *argv[])
 	double hmin, hmax;
 	coll->GetHminHmax(&hmin, &hmax);
 	OutPut("h_min : " << hmin << " h_max : " << hmax << endl);
+
 	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
 	//------------------------------------------ MEAN EQUATION SETUP END-----------------------------------------------------//
 
@@ -756,8 +786,8 @@ int main(int argc, char *argv[])
 
 	for (int subD = 0; subD < subDim; subD++)
 	{
-		fefctModeAll[subDim][0] = VelocityModeAll[subD]->GetComponent(0);
-		fefctModeAll[subDim][1] = VelocityModeAll[subD]->GetComponent(1);
+		fefctModeAll[subD][0] = VelocityModeAll[subD]->GetComponent(0);
+		fefctModeAll[subD][1] = VelocityModeAll[subD]->GetComponent(1);
 		switch (Disctype)
 		{
 		// turbulent viscosity must be computed
@@ -801,6 +831,7 @@ int main(int argc, char *argv[])
 														 TimeNSN_Params2, TimeNSBeginParam2);
 		}
 	}
+
 	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
 	//------------------------------------------ MODE EQUATION SETUP END-----------------------------------------------------//
 	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
@@ -813,18 +844,26 @@ int main(int argc, char *argv[])
 	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
 	//------------------------------------------ MEAN EQUATION INITIALIZATION -----------------------------------------------------//
 	SystemMatrix_Mean->Init(DO_Mean_Equation_Coefficients, BoundConditionMean, U1BoundValueMean, U2BoundValueMean, auxMean, NSEaux_error_mean);
+	SystemMatrix_Mean->Assemble(solMean, rhsMean);
+
 	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
 	//------------------------------------------ MODE EQUATION INITIALIZATION -----------------------------------------------------//
 	for (int subD = 0; subD < subDim; subD++)
 	{
 		SystemMatrixModeAll[subD]->Init(DO_Mode_Equation_Coefficients, BoundCondition, U1BoundValue, U2BoundValue, auxModeAll[subD], NSEaux_error_modeAll[subD]);
+		SystemMatrixModeAll[subD]->Assemble(solMode + (subD * (2 * N_M + N_P)), rhsMode + (subD * (2 * N_M + N_P))); // seg fault
 	}
+	TDatabase::ParamDB->COVARIANCE_MATRIX_DO = new double[subDim * subDim]();
+	TDatabase::ParamDB->COSKEWNESS_MATRIX_DO = new double[subDim * subDim * subDim]();
+	TDatabase::ParamDB->COVARIANCE_INVERSE_DO = new double[subDim * subDim]();
 
+	CalcCovarianceMatx(CoeffVector);
+	CalcCoskewnessMatx(CoeffVector);
+	InvertCov();
 	////////////////////////Divergence Free Adjustment - Run for one time step//////////////////////
 	// assemble M, A matrices and rhs
-	SystemMatrix_Mean->Assemble(solMean, rhsMean);
-	for (int subD = 0; subD < subDim; subD++)
-		SystemMatrixModeAll[subD]->Assemble(solMode + (subD * (2 * N_M + N_P)), rhsMode + (subD * (2 * N_M + N_P)));
+
+	// for (int subD = 0; subD < subDim; subD++)
 
 	TDatabase::TimeDB->CURRENTTIME = 0.0;
 	m = 0;
@@ -866,7 +905,7 @@ int main(int argc, char *argv[])
 
 			// assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
 			// not needed if rhs is not time-dependent
-			DO_Mean_RHS(VelocityMean_FeSpace, Velocity_Mode, Pressure_Mean, subDim, rhsMean, N_U);
+			DO_Mean_RHS(VelocityMean_FeSpace, Velocity_Mode, subDim, rhsMean, N_U);
 
 			SystemMatrix_Mean->Assemble(solMean, rhsMean);
 
@@ -875,6 +914,8 @@ int main(int argc, char *argv[])
 			oldtau = tau;
 
 			// calculate the residual
+			defectMean = new double[N_Total_MeanDOF]();
+
 			memset(defectMean, 0, N_Total_MeanDOF * SizeOfDouble);
 
 			SystemMatrix_Mean->GetTNSEResidual(solMean, defectMean);
@@ -919,7 +960,7 @@ int main(int argc, char *argv[])
 				// calculate the residual
 				memset(defectMean, 0, N_Total_MeanDOF * SizeOfDouble);
 
-				SystemMatrix->GetTNSEResidual(solMean, defectMean);
+				SystemMatrix_Mean->GetTNSEResidual(solMean, defectMean);
 
 				// correction due to L^2_O Pressure space
 				if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
@@ -943,18 +984,15 @@ exit(0);      */
 
 		} // for(l=0;l<N_SubSteps;
 		
-		
-
 		for (int subSpaceNum = 0; subSpaceNum < subDim; subSpaceNum++)
 		{
 
-			DO_CoEfficient(Velocity_FeSpace, Velocity_Mode, FeVector_Coefficient, Velocity_Mean, Pressure_Mode ,subDim, subSpaceNum, N_Realisations);
+			DO_CoEfficient(Velocity_FeSpace, Velocity_Mode, FeVector_Coefficient, Velocity_Mean, Pressure_Mode, subDim, subSpaceNum, N_Realisations);
 		}
 
 		CalcCovarianceMatx(CoeffVector);
 		CalcCoskewnessMatx(CoeffVector);
 		InvertCov();
-
 
 		for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
 		{
@@ -980,17 +1018,21 @@ exit(0);      */
 
 				// Assemble RHS
 				DO_Mode_RHS(VelocityMode_FeSpace, Velocity_Mean, Velocity_Mode, Pressure_Mode, subDim, modeSolution_rhs, subSpaceNum);
+					
 
 				SystemMatrixModeAll[subSpaceNum]->Assemble(modeSolution_i, modeSolution_rhs);
 				// scale B matices and assemble NSE-rhs based on the \theta time stepping scheme
+				
 
 				SystemMatrixModeAll[subSpaceNum]->AssembleSystMat(tau / oldtau, old_rhsMode, modeSolution_rhs, modeSolution_i);
 				oldtau = tau;
 
 				// calculate the residual
+				defectMode = new double[2*N_M+N_P]();
 				memset(defectMode, 0, (2 * N_M + N_P) * SizeOfDouble);
 
 				SystemMatrixModeAll[subSpaceNum]->GetTNSEResidual(modeSolution_i, defectMode);
+				
 				// correction due to L^2_O Pressure space
 				if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
 					IntoL20Vector2D(defectMode + 2 * N_M, N_P, pressure_space_code_mode);
@@ -1010,6 +1052,11 @@ exit(0);      */
 				{
 					// Solve the NSE system
 					SystemMatrixModeAll[subSpaceNum]->Solve(modeSolution_i);
+					for (int i = 0; i < subDim; i++)
+					{
+						for (int j = 0; j < 2 * N_M; j++)
+							solModeVeloCopy[2 * N_M * i + j] = solMode[i * (2 * N_M + N_P) + j];
+					}
 
 					if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
 						IntoL20FEFunction(modeSolution_i + 2 * N_M, N_P, PressureMode_FeSpace, velocity_space_code_mode, pressure_space_code_mode);
@@ -1054,9 +1101,9 @@ exit(0);      */
 			} // Subspace Loop Ends
 
 		} // sub steps - mode end for(l=0;l<N_SubSteps;
-		
 
 	} // while(TDatabase::TimeDB->CURRENTTIME< e)
+
 	//////////////////Divergence Adjustment Ends/////////////////////////////////////////////////
 
 	// done here
@@ -1130,7 +1177,8 @@ exit(0);      */
 			modeimg[sd]++;
 		}
 	}
-
+cout << "Comes Here" << endl;
+exit(0);
 	//======================================================================
 	// time disc loop
 	//======================================================================
@@ -1173,7 +1221,7 @@ exit(0);      */
 
 			// assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
 			// not needed if rhs is not time-dependent
-			DO_Mean_RHS(VelocityMean_FeSpace, Velocity_Mode, Pressure_Mean, subDim, rhsMean, N_U);
+			DO_Mean_RHS(VelocityMean_FeSpace, Velocity_Mode, subDim, rhsMean, N_U);
 
 			SystemMatrix_Mean->Assemble(solMean, rhsMean);
 
@@ -1182,6 +1230,8 @@ exit(0);      */
 			oldtau = tau;
 
 			// calculate the residual
+			defectMean = new double[N_Total_MeanDOF]();
+
 			memset(defectMean, 0, N_Total_MeanDOF * SizeOfDouble);
 
 			SystemMatrix_Mean->GetTNSEResidual(solMean, defectMean);
@@ -1273,7 +1323,7 @@ exit(0);      */
 		for (int subSpaceNum = 0; subSpaceNum < subDim; subSpaceNum++)
 		{
 
-			DO_CoEfficient(Velocity_FeSpace, Velocity_Mode, FeVector_Coefficient, Velocity_Mean,Pressure_Mode, subDim, subSpaceNum, N_Realisations);
+			DO_CoEfficient(Velocity_FeSpace, Velocity_Mode, FeVector_Coefficient, Velocity_Mean, Pressure_Mode, subDim, subSpaceNum, N_Realisations);
 		}
 
 		CalcCovarianceMatx(CoeffVector);

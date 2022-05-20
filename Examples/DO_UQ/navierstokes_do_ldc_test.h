@@ -1,5 +1,3 @@
-
-
 /**
  * @file navierstokes_do_ldc_test.h
  * @brief Purpose:     Example file for solving the set of dynamically orthogonal field
@@ -35,7 +33,7 @@
 // Authors:      Sashikumaar Ganesan, Thivin Anandh, Divij Ghose
 //
 // History:     1> First iteration implemented on 30.03.2022
-//		        2> Bug fixes on 24.03.2022
+//		        2> Bug fixes on 24.04.2022
 
 // =======================================================================
 
@@ -312,7 +310,10 @@ void CalcCovarianceMatx(double *Vector)
 }
 
 /**
- * @brief
+ * @brief Routine to calculate the coskewness matrix of coefficients and store it in TDatabas::ParamDB->COVARIANCE_MATRIX_DO
+ * \f{equation}{
+  C = \frac{1}{N_{R}-1}\cdot\phi^{T}\phi
+\f}
  *
  * @param Vector Coefficient Matrix
  * @param height Number of Realizations, N_R (number of rows of Vector)
@@ -321,6 +322,7 @@ void CalcCovarianceMatx(double *Vector)
  * @remark TDatabase::ParamDB->COVARIANCE_MATRIX_DO is defined in Database.C
  * @remark TDatabase::ParamDB->COVARIANCE_MATRIX_DO is stored in Row Major form
  */
+
 void CalcCoskewnessMatx(double *Vector)
 {
 
@@ -387,17 +389,15 @@ void InvertCov()
 	matInv(TDatabase::ParamDB->COVARIANCE_INVERSE_DO, N);
 }
 
-void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEFunction2D *FePressure_Mean, int N_S, double *GlobalRhs_mean, int N_U)
+void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, double *GlobalRhs_mean, int N_U)
 {
 
 	int N_Cells = Fespace->GetN_Cells();
 	TCollection *coll = Fespace->GetCollection();
 	double *U_Mode = FeVector_Mode->GetValues();
 	int lenMode = FeVector_Mode->GetLength();
-	// cout << "Length Mode in DO Mean RHS: " << lenMode << endl;
 	int lenMean = N_U;
 
-	double *P_Mean = FePressure_Mean->GetValues();
 
 	// Get the Global DOF arrays INdex from the FE Space.
 	int *GlobalNumbers = Fespace->GetGlobalNumbers();
@@ -529,8 +529,7 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEFunction
 		}
 		DO_Mean_Equation_Coefficients(N_Points2, X, Y, Param, Coeffs);
 
-		double Px_Mean[N_Points2];
-		double Py_Mean[N_Points2];
+		
 
 		for (int a = 0; a < N_S; a++)
 		{															 //"a" loop
@@ -573,6 +572,7 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEFunction
 					U2y_Mode_a[quadPt] += origvaluesD01[quadPt][j] * Mode_Comp2_a[globDOF];
 				}
 			}
+			
 			for (int b = 0; b < N_S; b++)
 			{ //"b" loop
 				val1 = 0;
@@ -630,10 +630,12 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEFunction
 						rhs2[j] += val2 * orgD00[j]; // * Mult;
 					}
 				}
-
+				
 			} //"b" loop
+			
 
 		} //"a" loop
+		
 
 		for (int j = 0; j < N_BaseFunct; j++)
 		{
