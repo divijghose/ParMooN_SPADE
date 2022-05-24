@@ -255,6 +255,8 @@ struct TParaDB
   int N_Subspace_Dim;
 
 
+
+
   //======================================================================
   /** parameters for vectorial FE (Raviart-Thomas, Brezzi-Douglas-Marini) */
   //======================================================================
@@ -1086,6 +1088,8 @@ struct TTimDB
   double CURRENTTIME;
   double CURRENTTIMESTEPLENGTH;
   double TIMESTEPLENGTH;
+  double DF_TIMESTEPLENGTH; // For Divergence-Free Adjustment, added by Divij
+  double DF_ENDTIME; // For Divergence-Free Adjustment, added by Divij
   double INTERNAL_STARTTIME;
   double MIN_TIMESTEPLENGTH;
   double MAX_TIMESTEPLENGTH;

@@ -674,6 +674,7 @@ int TDomain::ReadParam(char *ParamFile)
       dat >> TDatabase::ParamDB->SVPERCENT;
       N_Param++;
     }
+   
 ////////////////////////////////////////////////////////////////    
     if (!strcmp(line, "FILTER_WIDTH_CONSTANT:"))
     {
@@ -2558,6 +2559,19 @@ int TDomain::ReadParam(char *ParamFile)
       dat >> TDatabase::TimeDB->RB_APPROX_STEPS;
       N_Param++;
     }
+
+    ///For Monte-Carlo (Added by Divij)
+     if (!strcmp(line, "DF_ENDTIME:"))
+    {
+      dat >> TDatabase::TimeDB->DF_ENDTIME; //For Divergence-Free adjustment
+      N_Param++;
+    }
+        if (!strcmp(line, "DF_TIMESTEPLENGTH:"))
+    {
+      dat >> TDatabase::TimeDB->DF_TIMESTEPLENGTH; //For Divergence-Free adjustment
+      N_Param++;
+    }
+
 
     // read in parameter for surface calculations
     if (!strcmp(line, "FS_MAGNETLAW:"))

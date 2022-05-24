@@ -675,8 +675,10 @@ void TDatabase::SetDefaultParameters()
   ParamDB->stddev_disp = 0.3;
   ParamDB->stddev_power = 2;
 
+
   /////************Default DO Parameters******///// (Added by Divij)
   ParamDB->stddev_power = 5;
+
   
 
   // ******** parameters for saddle point system *********//
@@ -787,6 +789,8 @@ void TDatabase::SetDefaultParameters()
   TimeDB->CURRENTTIME = 0;
   TimeDB->CURRENTTIMESTEPLENGTH = 1;
   TimeDB->TIMESTEPLENGTH = 1;
+  TimeDB->DF_TIMESTEPLENGTH = 1;
+  TimeDB->DF_ENDTIME=1;
   TimeDB->MIN_TIMESTEPLENGTH = 1E-4;
   TimeDB->MAX_TIMESTEPLENGTH = 0.5;
   TimeDB->TIMESTEPLENGTH_TOL = 1e-3;

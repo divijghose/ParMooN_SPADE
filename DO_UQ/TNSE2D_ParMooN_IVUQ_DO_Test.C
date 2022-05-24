@@ -448,6 +448,244 @@ int main(int argc, char *argv[])
 
 	//////////////////////////////////End of Realization/////////////////////////////////////////
 
+	///////////////////----Divergence Free Adjustment - New Routine ------------/////////
+	//======================================================================
+	// construct all finite element functions
+	//======================================================================
+	sol = new double[N_Total_DomainDOF]();
+	rhs = new double[N_Total_DomainDOF]();
+	oldrhs = new double[N_Total_DomainDOF]();
+	Velocity = new TFEVectFunct2D(Velocity_FeSpace, UString, UString, sol, N_U, 2);
+	u1 = Velocity->GetComponent(0);
+	u2 = Velocity->GetComponent(1);
+	Pressure = new TFEFunction2D(Pressure_FeSpace, PString, PString, sol + 2 * N_U, N_P);
+	//  interpolate the initial solution
+	u1->Interpolate(InitialU1);
+	u2->Interpolate(InitialU2);
+	Pressure->Interpolate(InitialP);
+
+	//======================================================================
+	// SystemMatrix construction and solution
+	//======================================================================
+	// Disc type: GALERKIN
+	// Solver: AMG_SOLVE (or) GMG  (or) DIRECT
+	SystemMatrix = new TSystemTNSE2D(Velocity_FeSpace, Pressure_FeSpace, Velocity, Pressure, sol, rhs, Disctype, NSEType, DIRECT
+#ifdef __PRIVATE__
+									 ,
+									 Projection_space, NULL, NULL
+#endif
+	);
+
+	// define the aux
+	fesp[0] = Velocity_FeSpace;
+
+	fefct[0] = u1;
+	fefct[1] = u2;
+
+	switch (Disctype)
+	{
+	// turbulent viscosity must be computed
+	case SMAGORINSKY:
+	case VMS_PROJECTION:
+	case CLASSICAL_LES:
+	case GL00_CONVOLUTION:
+	case GL00_AUX_PROBLEM:
+
+		aux = new TAuxParam2D(TimeNSN_FESpacesVelo_GradVelo, TimeNSN_FctVelo_GradVelo,
+							  TimeNSN_ParamFctVelo_GradVelo,
+							  TimeNSN_FEValuesVelo_GradVelo,
+							  fesp, fefct,
+							  TimeNSFctVelo_GradVelo,
+							  TimeNSFEFctIndexVelo_GradVelo,
+							  TimeNSFEMultiIndexVelo_GradVelo,
+							  TimeNSN_ParamsVelo_GradVelo,
+							  TimeNSBeginParamVelo_GradVelo);
+
+		break;
+
+	default:
+		// 2 parameters are needed for assembling (u1_old, u2_old)
+		aux = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2, TimeNSN_ParamFct2,
+							  TimeNSN_FEValues2,
+							  fesp, fefct,
+							  TimeNSFct2,
+							  TimeNSFEFctIndex2, TimeNSFEMultiIndex2,
+							  TimeNSN_Params2, TimeNSBeginParam2);
+	}
+
+	// aux for calculating the error
+	if (TDatabase::ParamDB->MEASURE_ERRORS)
+	{
+		NSEaux_error = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2,
+									   TimeNSN_ParamFct2,
+									   TimeNSN_FEValues2,
+									   fesp, fefct,
+									   TimeNSFct2,
+									   TimeNSFEFctIndex2, TimeNSFEMultiIndex2,
+									   TimeNSN_Params2, TimeNSBeginParam2);
+	}
+	double hmin, hmax;
+	coll->GetHminHmax(&hmin, &hmax);
+	OutPut("h_min : " << hmin << " h_max : " << hmax << endl);
+	//      TDatabase::TimeDB->TIMESTEPLENGTH = hmin;
+	//       cout<<TDatabase::TimeDB->TIMESTEPLENGTH<<"\n";
+
+	//======================================================================
+
+	// initilize the system matrix with the functions defined in Example file
+	// last argument is aux that is used to pass additional fe functions (eg. mesh velocity)
+	SystemMatrix->Init(LinCoeffs, BoundCondition, U1BoundValue, U2BoundValue, aux, NSEaux_error);
+	/////////////////////////////////////////Monte Carlo//////////////////////////////////////
+
+
+
+	for (int RealNo = 0; RealNo < N_Realisations; RealNo++)
+	{ /// Realization Loop Begin
+		cout << " Real no " << RealNo << endl;
+		////////////////////////Divergence Free Adjustment - Run for one time step//////////////////////
+		// assemble M, A matrices and rhs
+
+		for (int i = 0; i < N_U; i++)
+			sol[i] = RealizationVector[RealNo + N_Realisations * i];
+		SystemMatrix->Assemble(sol, rhs);
+
+		//======================================================================
+		// time disc loop
+		//======================================================================
+		// parameters for time stepping scheme
+		m = 0;
+		N_SubSteps = 2;
+		oldtau = 1.;
+		end_time = TDatabase::TimeDB->DF_ENDTIME;
+		limit = TDatabase::ParamDB->SC_NONLIN_RES_NORM_MIN_SADDLE;
+		Max_It = TDatabase::ParamDB->SC_NONLIN_MAXIT_SADDLE;
+		memset(AllErrors, 0, 7. * SizeOfDouble);
+
+		// time loop starts
+		while (TDatabase::TimeDB->CURRENTTIME < end_time)
+		{ // time cycle
+			m++;
+			TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
+			for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
+			{
+				SetTimeDiscParameters(1);
+
+				if (m == 1)
+				{
+					OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
+					OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
+					OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
+					OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
+				}
+
+				tau = TDatabase::TimeDB->DF_TIMESTEPLENGTH;
+				TDatabase::TimeDB->CURRENTTIME += tau;
+
+				OutPut(endl
+					   << "DF ADJUSTMENT CURRENT TIME: ");
+				OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
+
+				// copy sol, rhs to olssol, oldrhs
+				memcpy(oldrhs, rhs, N_Total_DomainDOF * SizeOfDouble);
+
+				// assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
+				// not needed if rhs is not time-dependent
+				if (m != 1)
+				{
+					SystemMatrix->AssembleRhs(sol, rhs);
+				}
+				else
+				{
+					SystemMatrix->Assemble(sol, rhs);
+				}
+
+				// scale B matices and assemble NSE-rhs based on the \theta time stepping scheme
+				SystemMatrix->AssembleSystMat(tau / oldtau, oldrhs, rhs, sol);
+				oldtau = tau;
+
+				// calculate the residual
+				defect = new double[N_Total_DomainDOF];
+				memset(defect, 0, N_Total_DomainDOF * SizeOfDouble);
+
+				SystemMatrix->GetTNSEResidual(sol, defect);
+
+				// correction due to L^2_O Pressure space
+				if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
+					IntoL20Vector2D(defect + 2 * N_U, N_P, pressure_space_code);
+
+				residual = Ddot(N_Total_DomainDOF, defect, defect);
+				impuls_residual = Ddot(2 * N_U, defect, defect);
+				OutPut("Nonlinear iteration step   0");
+				OutPut(setw(14) << impuls_residual);
+				OutPut(setw(14) << residual - impuls_residual);
+				OutPut(setw(14) << sqrt(residual) << endl);
+
+				//======================================================================
+				// Solve the system
+				// Nonlinear iteration of fixed point type
+				//======================================================================
+				for (j = 1; j <= Max_It; j++)
+				{
+					// Solve the NSE system
+					SystemMatrix->Solve(sol);
+					for (int i = 0; i < N_U; i++)
+						 RealizationVector[RealNo + N_Realisations * i]=sol[i];
+
+					if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
+						IntoL20FEFunction(sol + 2 * N_U, N_P, Pressure_FeSpace, velocity_space_code, pressure_space_code);
+
+					// no nonlinear iteration for Stokes problem
+					if (TDatabase::ParamDB->FLOW_PROBLEM_TYPE == STOKES)
+						break;
+
+					// restore the mass matrix for the next nonlinear iteration
+					SystemMatrix->RestoreMassMat();
+
+					// assemble the system matrix with given aux, sol and rhs
+					SystemMatrix->AssembleANonLinear(sol, rhs);
+
+					// assemble system mat, S = M + dt\theta_1*A
+					SystemMatrix->AssembleSystMatNonLinear();
+
+					// get the residual
+					memset(defect, 0, N_Total_DomainDOF * SizeOfDouble);
+					SystemMatrix->GetTNSEResidual(sol, defect);
+
+					// correction due to L^2_O Pressure space
+					if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
+						IntoL20Vector2D(defect + 2 * N_U, N_P, pressure_space_code);
+
+					residual = Ddot(N_Total_DomainDOF, defect, defect);
+					impuls_residual = Ddot(2 * N_U, defect, defect);
+					OutPut("nonlinear iteration step " << setw(3) << j);
+					OutPut(setw(14) << impuls_residual);
+					OutPut(setw(14) << residual - impuls_residual);
+					OutPut(setw(14) << sqrt(residual) << endl);
+
+					if (sqrt(residual) <= limit)
+						break;
+
+				} // for(j=1;j<=Max_It;j++)
+				  /*           cout << " test VHM main " << endl;
+exit(0);      */
+				// restore the mass matrix for the next time step
+				SystemMatrix->RestoreMassMat();
+
+			} // for(l=0;l<N_SubSteps;
+			 
+
+
+		} // while(TDatabase::TimeDB->CURRENTTIME< e
+
+		//======================================================================
+		// produce final outout
+		//======================================================================
+
+		TDatabase::TimeDB->CURRENTTIME = 0.0;
+		//////////////////Divergence Adjustment Ends/////////////////////////////////////////////////
+	} /// Realization Loop End
+	////------------Divergence Free Adjustment - New Routine Ends -----//////////////
+
 	//
 
 	////////////////////////////////////// -------- START OF DO INITIALIZATION ------------ ////////////////////////////////////////////////////////////////
@@ -757,9 +995,9 @@ int main(int argc, char *argv[])
 											TimeNSFEFctIndex2, TimeNSFEMultiIndex2,
 											TimeNSN_Params2, TimeNSBeginParam2);
 	}
-	double hmin, hmax;
-	coll->GetHminHmax(&hmin, &hmax);
-	OutPut("h_min : " << hmin << " h_max : " << hmax << endl);
+	// double hmin, hmax;
+	// coll->GetHminHmax(&hmin, &hmax);
+	// OutPut("h_min : " << hmin << " h_max : " << hmax << endl);
 
 	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
 	//------------------------------------------ MEAN EQUATION SETUP END-----------------------------------------------------//
@@ -861,248 +1099,248 @@ int main(int argc, char *argv[])
 	CalcCoskewnessMatx(CoeffVector);
 	InvertCov();
 
-// 	////////////////////////Divergence Free Adjustment - Run for one time step//////////////////////
-// 	// assemble M, A matrices and rhs
+	// 	////////////////////////Divergence Free Adjustment - Run for one time step//////////////////////
+	// 	// assemble M, A matrices and rhs
 
-// 	// for (int subD = 0; subD < subDim; subD++)
-// 	TDatabase::TimeDB->CURRENTTIME = 0;
-// 	m = 0;
-// 	N_SubSteps = GetN_SubSteps();
-// 	oldtau = 1.;
-// 	end_time = TDatabase::TimeDB->DF_ENDTIME;
-// 	limit = TDatabase::ParamDB->SC_NONLIN_RES_NORM_MIN_SADDLE;
-// 	Max_It = TDatabase::ParamDB->SC_NONLIN_MAXIT_SADDLE;
-// 	memset(AllErrors, 0, 7. * SizeOfDouble);
+	// 	// for (int subD = 0; subD < subDim; subD++)
+	// 	TDatabase::TimeDB->CURRENTTIME = 0;
+	// 	m = 0;
+	// 	N_SubSteps = GetN_SubSteps();
+	// 	oldtau = 1.;
+	// 	end_time = TDatabase::TimeDB->DF_ENDTIME;
+	// 	limit = TDatabase::ParamDB->SC_NONLIN_RES_NORM_MIN_SADDLE;
+	// 	Max_It = TDatabase::ParamDB->SC_NONLIN_MAXIT_SADDLE;
+	// 	memset(AllErrors, 0, 7. * SizeOfDouble);
 
-// 	// time loop starts
-// 	while (TDatabase::TimeDB->CURRENTTIME < end_time)
-// 	{ // time cycle
-// 		m++;
-// 		TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
-// 		for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
-// 		{
-// 			SetTimeDiscParameters(1);
+	// 	// time loop starts
+	// 	while (TDatabase::TimeDB->CURRENTTIME < end_time)
+	// 	{ // time cycle
+	// 		m++;
+	// 		TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
+	// 		for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
+	// 		{
+	// 			SetTimeDiscParameters(1);
 
-// 			if (m == 1)
-// 			{
-// 				OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
-// 				OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
-// 				OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
-// 				OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
-// 			}
+	// 			if (m == 1)
+	// 			{
+	// 				OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
+	// 				OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
+	// 				OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
+	// 				OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
+	// 			}
 
-// 			tau = TDatabase::TimeDB->DF_TIMESTEPLENGTH;
+	// 			tau = TDatabase::TimeDB->DF_TIMESTEPLENGTH;
 
-// 			TDatabase::TimeDB->CURRENTTIME += tau;
+	// 			TDatabase::TimeDB->CURRENTTIME += tau;
 
-// 			OutPut(endl
-// 				   << "CURRENT TIME: ");
-// 			OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
+	// 			OutPut(endl
+	// 				   << "CURRENT TIME: ");
+	// 			OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
 
-// 			// copy sol, rhs to olssol, oldrhs
-// 			memcpy(old_rhsMean, rhsMean, N_Total_MeanDOF * SizeOfDouble);
-// 			memcpy(old_solMean, solMean, N_Total_MeanDOF * SizeOfDouble);
+	// 			// copy sol, rhs to olssol, oldrhs
+	// 			memcpy(old_rhsMean, rhsMean, N_Total_MeanDOF * SizeOfDouble);
+	// 			memcpy(old_solMean, solMean, N_Total_MeanDOF * SizeOfDouble);
 
-// 			// assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
-// 			// not needed if rhs is not time-dependent
-// 			DO_Mean_RHS(VelocityMean_FeSpace, Velocity_Mode, subDim, rhsMean, N_U);
+	// 			// assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
+	// 			// not needed if rhs is not time-dependent
+	// 			DO_Mean_RHS(VelocityMean_FeSpace, Velocity_Mode, subDim, rhsMean, N_U);
 
-// 			SystemMatrix_Mean->Assemble(solMean, rhsMean);
+	// 			SystemMatrix_Mean->Assemble(solMean, rhsMean);
 
-// 			// scale B matices and assemble NSE-rhs based on the \theta time stepping scheme
-// 			SystemMatrix_Mean->AssembleSystMat(tau / oldtau, old_rhsMean, rhsMean, solMean);
-// 			oldtau = tau;
+	// 			// scale B matices and assemble NSE-rhs based on the \theta time stepping scheme
+	// 			SystemMatrix_Mean->AssembleSystMat(tau / oldtau, old_rhsMean, rhsMean, solMean);
+	// 			oldtau = tau;
 
-// 			// calculate the residual
-// 			defectMean = new double[N_Total_MeanDOF]();
+	// 			// calculate the residual
+	// 			defectMean = new double[N_Total_MeanDOF]();
 
-// 			memset(defectMean, 0, N_Total_MeanDOF * SizeOfDouble);
+	// 			memset(defectMean, 0, N_Total_MeanDOF * SizeOfDouble);
 
-// 			SystemMatrix_Mean->GetTNSEResidual(solMean, defectMean);
+	// 			SystemMatrix_Mean->GetTNSEResidual(solMean, defectMean);
 
-// 			// correction due to L^2_O Pressure space
-// 			if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
-// 				IntoL20Vector2D(defectMean + 2 * N_U, N_P, pressure_space_code_mean);
+	// 			// correction due to L^2_O Pressure space
+	// 			if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
+	// 				IntoL20Vector2D(defectMean + 2 * N_U, N_P, pressure_space_code_mean);
 
-// 			residual = Ddot(N_Total_MeanDOF, defectMean, defectMean);
-// 			impuls_residual = Ddot(2 * N_U, defectMean, defectMean);
-// 			OutPut("Divergence-free adjustment step   0");
-// 			OutPut(setw(14) << impuls_residual);
-// 			OutPut(setw(14) << residual - impuls_residual);
-// 			OutPut(setw(14) << sqrt(residual) << endl);
+	// 			residual = Ddot(N_Total_MeanDOF, defectMean, defectMean);
+	// 			impuls_residual = Ddot(2 * N_U, defectMean, defectMean);
+	// 			OutPut("Divergence-free adjustment step   0");
+	// 			OutPut(setw(14) << impuls_residual);
+	// 			OutPut(setw(14) << residual - impuls_residual);
+	// 			OutPut(setw(14) << sqrt(residual) << endl);
 
-// 			//======================================================================
-// 			// Solve the system
-// 			// Nonlinear iteration of fixed point type
-// 			//======================================================================
-// 			for (j = 1; j <= Max_It; j++)
-// 			{
-// 				// Solve the NSE system
-// 				SystemMatrix_Mean->Solve(solMean);
+	// 			//======================================================================
+	// 			// Solve the system
+	// 			// Nonlinear iteration of fixed point type
+	// 			//======================================================================
+	// 			for (j = 1; j <= Max_It; j++)
+	// 			{
+	// 				// Solve the NSE system
+	// 				SystemMatrix_Mean->Solve(solMean);
 
-// 				if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
-// 					IntoL20FEFunction(solMean + 2 * N_U, N_P, PressureMean_FeSpace, velocity_space_code_mean, pressure_space_code_mean);
+	// 				if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
+	// 					IntoL20FEFunction(solMean + 2 * N_U, N_P, PressureMean_FeSpace, velocity_space_code_mean, pressure_space_code_mean);
 
-// 				// no nonlinear iteration for Stokes problem
-// 				if (TDatabase::ParamDB->FLOW_PROBLEM_TYPE == STOKES)
-// 					break;
+	// 				// no nonlinear iteration for Stokes problem
+	// 				if (TDatabase::ParamDB->FLOW_PROBLEM_TYPE == STOKES)
+	// 					break;
 
-// 				// restore the mass matrix for the next nonlinear iteration
-// 				SystemMatrix_Mean->RestoreMassMat();
+	// 				// restore the mass matrix for the next nonlinear iteration
+	// 				SystemMatrix_Mean->RestoreMassMat();
 
-// 				// assemble the system matrix with given aux, sol and rhs
-// 				SystemMatrix_Mean->AssembleANonLinear(solMean, rhsMean);
+	// 				// assemble the system matrix with given aux, sol and rhs
+	// 				SystemMatrix_Mean->AssembleANonLinear(solMean, rhsMean);
 
-// 				// assemble system mat, S = M + dt\theta_1*A
-// 				SystemMatrix_Mean->AssembleSystMatNonLinear();
+	// 				// assemble system mat, S = M + dt\theta_1*A
+	// 				SystemMatrix_Mean->AssembleSystMatNonLinear();
 
-// 				// get the residual
-// 				// calculate the residual
-// 				memset(defectMean, 0, N_Total_MeanDOF * SizeOfDouble);
+	// 				// get the residual
+	// 				// calculate the residual
+	// 				memset(defectMean, 0, N_Total_MeanDOF * SizeOfDouble);
 
-// 				SystemMatrix_Mean->GetTNSEResidual(solMean, defectMean);
+	// 				SystemMatrix_Mean->GetTNSEResidual(solMean, defectMean);
 
-// 				// correction due to L^2_O Pressure space
-// 				if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
-// 					IntoL20Vector2D(defectMean + 2 * N_U, N_P, pressure_space_code_mean);
+	// 				// correction due to L^2_O Pressure space
+	// 				if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
+	// 					IntoL20Vector2D(defectMean + 2 * N_U, N_P, pressure_space_code_mean);
 
-// 				residual = Ddot(N_Total_MeanDOF, defectMean, defectMean);
-// 				impuls_residual = Ddot(2 * N_U, defectMean, defectMean);
-// 				OutPut("divergence-free adjustment step " << setw(3) << j);
-// 				OutPut(setw(14) << impuls_residual);
-// 				OutPut(setw(14) << residual - impuls_residual);
-// 				OutPut(setw(14) << sqrt(residual) << endl);
+	// 				residual = Ddot(N_Total_MeanDOF, defectMean, defectMean);
+	// 				impuls_residual = Ddot(2 * N_U, defectMean, defectMean);
+	// 				OutPut("divergence-free adjustment step " << setw(3) << j);
+	// 				OutPut(setw(14) << impuls_residual);
+	// 				OutPut(setw(14) << residual - impuls_residual);
+	// 				OutPut(setw(14) << sqrt(residual) << endl);
 
-// 				if (sqrt(residual) <= limit)
-// 					break;
+	// 				if (sqrt(residual) <= limit)
+	// 					break;
 
-// 			} // for(j=1;j<=Max_It;j++)
-// 			  /*           cout << " test VHM main " << endl;
-// exit(0);      */
-// 			// restore the mass matrix for the next time step
-// 			SystemMatrix_Mean->RestoreMassMat();
+	// 			} // for(j=1;j<=Max_It;j++)
+	// 			  /*           cout << " test VHM main " << endl;
+	// exit(0);      */
+	// 			// restore the mass matrix for the next time step
+	// 			SystemMatrix_Mean->RestoreMassMat();
 
-// 		} // for(l=0;l<N_SubSteps;
+	// 		} // for(l=0;l<N_SubSteps;
 
-// 		for (int subSpaceNum = 0; subSpaceNum < subDim; subSpaceNum++)
-// 		{
+	// 		for (int subSpaceNum = 0; subSpaceNum < subDim; subSpaceNum++)
+	// 		{
 
-// 			DO_CoEfficient(Velocity_FeSpace, Velocity_Mode, FeVector_Coefficient, Velocity_Mean, Pressure_Mode, subDim, subSpaceNum, N_Realisations);
-// 		}
+	// 			DO_CoEfficient(Velocity_FeSpace, Velocity_Mode, FeVector_Coefficient, Velocity_Mean, Pressure_Mode, subDim, subSpaceNum, N_Realisations);
+	// 		}
 
-// 		CalcCovarianceMatx(CoeffVector);
-// 		CalcCoskewnessMatx(CoeffVector);
-// 		InvertCov();
+	// 		CalcCovarianceMatx(CoeffVector);
+	// 		CalcCoskewnessMatx(CoeffVector);
+	// 		InvertCov();
 
-// 		for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
-// 		{
-// 			SetTimeDiscParameters(1);
+	// 		for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
+	// 		{
+	// 			SetTimeDiscParameters(1);
 
-// 			if (m == 1)
-// 			{
-// 				OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
-// 				OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
-// 				OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
-// 				OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
-// 			}
+	// 			if (m == 1)
+	// 			{
+	// 				OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
+	// 				OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
+	// 				OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
+	// 				OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
+	// 			}
 
-// 			tau = TDatabase::TimeDB->DF_TIMESTEPLENGTH;
-// 			for (int subSpaceNum = 0; subSpaceNum < subDim; subSpaceNum++)
-// 			{ // Subspace loop
-// 				// subspace loop
-// 				double *modeSolution_i = solMode + subSpaceNum * (2 * N_M + N_P); // This works for column major
-// 				double *modeSolution_rhs = rhsMode + subSpaceNum * (2 * N_M + N_P);
-// 				// copy sol, rhs to olssol, oldrhs
-// 				memcpy(old_rhsMode, modeSolution_rhs, (2 * N_M + N_P) * SizeOfDouble);
-// 				// memcpy(old_solMode, modeSolution_i, N_Total_MeanDOF * SizeOfDouble);
+	// 			tau = TDatabase::TimeDB->DF_TIMESTEPLENGTH;
+	// 			for (int subSpaceNum = 0; subSpaceNum < subDim; subSpaceNum++)
+	// 			{ // Subspace loop
+	// 				// subspace loop
+	// 				double *modeSolution_i = solMode + subSpaceNum * (2 * N_M + N_P); // This works for column major
+	// 				double *modeSolution_rhs = rhsMode + subSpaceNum * (2 * N_M + N_P);
+	// 				// copy sol, rhs to olssol, oldrhs
+	// 				memcpy(old_rhsMode, modeSolution_rhs, (2 * N_M + N_P) * SizeOfDouble);
+	// 				// memcpy(old_solMode, modeSolution_i, N_Total_MeanDOF * SizeOfDouble);
 
-// 				// Assemble RHS
-// 				DO_Mode_RHS(VelocityMode_FeSpace, Velocity_Mean, Velocity_Mode, Pressure_Mode, subDim, modeSolution_rhs, subSpaceNum);
+	// 				// Assemble RHS
+	// 				DO_Mode_RHS(VelocityMode_FeSpace, Velocity_Mean, Velocity_Mode, Pressure_Mode, subDim, modeSolution_rhs, subSpaceNum);
 
-// 				SystemMatrixModeAll[subSpaceNum]->Assemble(modeSolution_i, modeSolution_rhs);
-// 				// scale B matices and assemble NSE-rhs based on the \theta time stepping scheme
+	// 				SystemMatrixModeAll[subSpaceNum]->Assemble(modeSolution_i, modeSolution_rhs);
+	// 				// scale B matices and assemble NSE-rhs based on the \theta time stepping scheme
 
-// 				SystemMatrixModeAll[subSpaceNum]->AssembleSystMat(tau / oldtau, old_rhsMode, modeSolution_rhs, modeSolution_i);
-// 				oldtau = tau;
+	// 				SystemMatrixModeAll[subSpaceNum]->AssembleSystMat(tau / oldtau, old_rhsMode, modeSolution_rhs, modeSolution_i);
+	// 				oldtau = tau;
 
-// 				// calculate the residual
-// 				defectMode = new double[2 * N_M + N_P]();
-// 				memset(defectMode, 0, (2 * N_M + N_P) * SizeOfDouble);
+	// 				// calculate the residual
+	// 				defectMode = new double[2 * N_M + N_P]();
+	// 				memset(defectMode, 0, (2 * N_M + N_P) * SizeOfDouble);
 
-// 				SystemMatrixModeAll[subSpaceNum]->GetTNSEResidual(modeSolution_i, defectMode);
+	// 				SystemMatrixModeAll[subSpaceNum]->GetTNSEResidual(modeSolution_i, defectMode);
 
-// 				// correction due to L^2_O Pressure space
-// 				if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
-// 					IntoL20Vector2D(defectMode + 2 * N_M, N_P, pressure_space_code_mode);
+	// 				// correction due to L^2_O Pressure space
+	// 				if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
+	// 					IntoL20Vector2D(defectMode + 2 * N_M, N_P, pressure_space_code_mode);
 
-// 				residual = Ddot(2 * N_M + N_P, defectMode, defectMode);
-// 				impuls_residual = Ddot(2 * N_M + N_P, defectMode, defectMode);
-// 				OutPut("divergence-free adjustment step   0");
-// 				OutPut(setw(14) << impuls_residual);
-// 				OutPut(setw(14) << residual - impuls_residual);
-// 				OutPut(setw(14) << sqrt(residual) << endl);
+	// 				residual = Ddot(2 * N_M + N_P, defectMode, defectMode);
+	// 				impuls_residual = Ddot(2 * N_M + N_P, defectMode, defectMode);
+	// 				OutPut("divergence-free adjustment step   0");
+	// 				OutPut(setw(14) << impuls_residual);
+	// 				OutPut(setw(14) << residual - impuls_residual);
+	// 				OutPut(setw(14) << sqrt(residual) << endl);
 
-// 				//======================================================================
-// 				// Solve the system
-// 				// Nonlinear iteration of fixed point type
-// 				//======================================================================
-// 				for (j = 1; j <= Max_It; j++)
-// 				{
-// 					// Solve the NSE system
-// 					SystemMatrixModeAll[subSpaceNum]->Solve(modeSolution_i);
-// 					for (int i = 0; i < subDim; i++)
-// 					{
-// 						for (int j = 0; j < 2 * N_M; j++)
-// 							solModeVeloCopy[2 * N_M * i + j] = solMode[i * (2 * N_M + N_P) + j];
-// 					}
+	// 				//======================================================================
+	// 				// Solve the system
+	// 				// Nonlinear iteration of fixed point type
+	// 				//======================================================================
+	// 				for (j = 1; j <= Max_It; j++)
+	// 				{
+	// 					// Solve the NSE system
+	// 					SystemMatrixModeAll[subSpaceNum]->Solve(modeSolution_i);
+	// 					for (int i = 0; i < subDim; i++)
+	// 					{
+	// 						for (int j = 0; j < 2 * N_M; j++)
+	// 							solModeVeloCopy[2 * N_M * i + j] = solMode[i * (2 * N_M + N_P) + j];
+	// 					}
 
-// 					if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
-// 						IntoL20FEFunction(modeSolution_i + 2 * N_M, N_P, PressureMode_FeSpace, velocity_space_code_mode, pressure_space_code_mode);
+	// 					if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
+	// 						IntoL20FEFunction(modeSolution_i + 2 * N_M, N_P, PressureMode_FeSpace, velocity_space_code_mode, pressure_space_code_mode);
 
-// 					// no nonlinear iteration for Stokes problem
-// 					if (TDatabase::ParamDB->FLOW_PROBLEM_TYPE == STOKES)
-// 						break;
+	// 					// no nonlinear iteration for Stokes problem
+	// 					if (TDatabase::ParamDB->FLOW_PROBLEM_TYPE == STOKES)
+	// 						break;
 
-// 					// restore the mass matrix for the next nonlinear iteration
-// 					SystemMatrixModeAll[subSpaceNum]->RestoreMassMat();
+	// 					// restore the mass matrix for the next nonlinear iteration
+	// 					SystemMatrixModeAll[subSpaceNum]->RestoreMassMat();
 
-// 					// assemble the system matrix with given aux, sol and rhs
-// 					SystemMatrixModeAll[subSpaceNum]->AssembleANonLinear(modeSolution_i, modeSolution_rhs);
+	// 					// assemble the system matrix with given aux, sol and rhs
+	// 					SystemMatrixModeAll[subSpaceNum]->AssembleANonLinear(modeSolution_i, modeSolution_rhs);
 
-// 					// assemble system mat, S = M + dt\theta_1*A
-// 					SystemMatrixModeAll[subSpaceNum]->AssembleSystMatNonLinear();
+	// 					// assemble system mat, S = M + dt\theta_1*A
+	// 					SystemMatrixModeAll[subSpaceNum]->AssembleSystMatNonLinear();
 
-// 					// get the residual
-// 					// calculate the residual
-// 					memset(defectMode, 0, (2 * N_M + N_P) * SizeOfDouble);
+	// 					// get the residual
+	// 					// calculate the residual
+	// 					memset(defectMode, 0, (2 * N_M + N_P) * SizeOfDouble);
 
-// 					SystemMatrixModeAll[subSpaceNum]->GetTNSEResidual(modeSolution_i, defectMode);
+	// 					SystemMatrixModeAll[subSpaceNum]->GetTNSEResidual(modeSolution_i, defectMode);
 
-// 					// correction due to L^2_O Pressure space
-// 					if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
-// 						IntoL20Vector2D(defectMode + 2 * N_M, N_P, pressure_space_code_mode);
+	// 					// correction due to L^2_O Pressure space
+	// 					if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
+	// 						IntoL20Vector2D(defectMode + 2 * N_M, N_P, pressure_space_code_mode);
 
-// 					residual = Ddot(2 * N_M + N_P, defectMode, defectMode);
-// 					impuls_residual = Ddot(2 * N_M + N_P, defectMode, defectMode);
-// 					OutPut("divergence-free adjustment step   0");
-// 					OutPut(setw(14) << impuls_residual);
-// 					OutPut(setw(14) << residual - impuls_residual);
-// 					OutPut(setw(14) << sqrt(residual) << endl);
+	// 					residual = Ddot(2 * N_M + N_P, defectMode, defectMode);
+	// 					impuls_residual = Ddot(2 * N_M + N_P, defectMode, defectMode);
+	// 					OutPut("divergence-free adjustment step   0");
+	// 					OutPut(setw(14) << impuls_residual);
+	// 					OutPut(setw(14) << residual - impuls_residual);
+	// 					OutPut(setw(14) << sqrt(residual) << endl);
 
-// 					if (sqrt(residual) <= limit)
-// 						break;
+	// 					if (sqrt(residual) <= limit)
+	// 						break;
 
-// 				} // for(j=1;j<=Max_It;j++)
+	// 				} // for(j=1;j<=Max_It;j++)
 
-// 				SystemMatrixModeAll[subSpaceNum]->RestoreMassMat();
+	// 				SystemMatrixModeAll[subSpaceNum]->RestoreMassMat();
 
-// 			} // Subspace Loop Ends
+	// 			} // Subspace Loop Ends
 
-// 		} // sub steps - mode end for(l=0;l<N_SubSteps;
+	// 		} // sub steps - mode end for(l=0;l<N_SubSteps;
 
-// 	} // while(TDatabase::TimeDB->CURRENTTIME< e)
+	// 	} // while(TDatabase::TimeDB->CURRENTTIME< e)
 
-// 	//////////////////Divergence Adjustment Ends/////////////////////////////////////////////////
+	// 	//////////////////Divergence Adjustment Ends/////////////////////////////////////////////////
 	TDatabase::TimeDB->CURRENTTIME = 0.0;
 
 	// done here
