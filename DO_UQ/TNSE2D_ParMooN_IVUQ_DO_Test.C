@@ -297,6 +297,11 @@ int main(int argc, char *argv[])
 				C[j * N_U + i] *= sig_r1 * sig_r2;
 			}
 
+			else if (TDatabase::ParamDB->stddev_switch == 3)
+			{
+				C[j * N_U + i] *= (1.0 + (r / LengthScale) + ((pow(r, 2)) / (3.0 * (pow(LengthScale, 2)))));
+			}
+
 			else
 			{
 				cout << "Error - No standard deviation function is defined for stddev_switch: " << TDatabase::ParamDB->stddev_switch << endl;

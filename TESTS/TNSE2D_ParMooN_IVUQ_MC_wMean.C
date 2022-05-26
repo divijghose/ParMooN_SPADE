@@ -158,12 +158,10 @@ int main(int argc, char *argv[])
 	//======================================================================
 	// construct all finite element functions
 	//======================================================================
-	sol = new double[N_TotalDOF];
-	rhs = new double[N_TotalDOF];
-	oldrhs = new double[N_TotalDOF];
+	sol = new double[N_TotalDOF]();
+	rhs = new double[N_TotalDOF]();
+	oldrhs = new double[N_TotalDOF]();
 
-	memset(sol, 0, N_TotalDOF * SizeOfDouble);
-	memset(rhs, 0, N_TotalDOF * SizeOfDouble);
 
 	Velocity = new TFEVectFunct2D(Velocity_FeSpace, UString, UString, sol, N_U, 2);
 	u1 = Velocity->GetComponent(0);
@@ -420,6 +418,9 @@ int main(int argc, char *argv[])
 
 	//////////////////////////////////End of Realization/////////////////////////////////////////
 
+double *solMean = new double[N_TotalDOF]();
+
+
 	//======================================================================
 	// SystemMatrix construction and solution
 	//======================================================================
@@ -522,8 +523,7 @@ int main(int argc, char *argv[])
 		std::string filename = "Realization_Nr_" + std::to_string(RealNo);
 		VtkBaseName = const_cast<char *>(filename.c_str());
 
-		std::string name = "Realization_Number_" + std::to_string(int(RealNo));
-		mkdir(name.c_str(), 0777);
+		
 
 		//======================================================================
 		// time disc loop
@@ -678,7 +678,7 @@ exit(0);      */
 
 		TDatabase::TimeDB->CURRENTTIME = 0.0;
 		//////////////////Divergence Adjustment Ends/////////////////////////////////////////////////
-	
+
 		// assemble M, A matrices and rhs
 		SystemMatrix->Assemble(sol, rhs);
 
@@ -687,7 +687,7 @@ exit(0);      */
 		//======================================================================
 
 		Output = new TOutput2D(2, 2, 1, 1, Domain);
-
+		img = 0;
 		Output->AddFEVectFunct(Velocity);
 		Output->AddFEFunction(Pressure);
 
@@ -695,15 +695,15 @@ exit(0);      */
 		{
 			os.seekp(std::ios::beg);
 			if (img < 10)
-				os << name.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
+				os << "VTK/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
 			else if (img < 100)
 				os << "VTK/" << VtkBaseName << ".000" << img << ".vtk" << ends;
 			else if (img < 1000)
-				os << name.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
+				os << "VTK/" << VtkBaseName << ".00" << img << ".vtk" << ends;
 			else if (img < 10000)
-				os << name.c_str() << "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
+				os << "VTK/" << VtkBaseName << ".0" << img << ".vtk" << ends;
 			else
-				os << name.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
+				os << "VTK/" << VtkBaseName << "." << img << ".vtk" << ends;
 
 			Output->WriteVtk(os.str().c_str());
 
@@ -863,15 +863,15 @@ exit(0);      */
 				{
 					os.seekp(std::ios::beg);
 					if (img < 10)
-						os << name.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
+						os << "VTK/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
 					else if (img < 100)
-						os << name.c_str() << "/" << VtkBaseName << ".000" << img << ".vtk" << ends;
+						os << "VTK/" << VtkBaseName << ".000" << img << ".vtk" << ends;
 					else if (img < 1000)
-						os << name.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
+						os << "VTK/" << VtkBaseName << ".00" << img << ".vtk" << ends;
 					else if (img < 10000)
-						os << name.c_str() << "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
+						os << "VTK/" << VtkBaseName << ".0" << img << ".vtk" << ends;
 					else
-						os << name.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
+						os << "VTK/" << VtkBaseName << "." << img << ".vtk" << ends;
 
 					Output->WriteVtk(os.str().c_str());
 					img++;
@@ -890,15 +890,15 @@ exit(0);      */
 		{
 			os.seekp(std::ios::beg);
 			if (img < 10)
-				os << name.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
+				os << "VTK/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
 			else if (img < 100)
-				os << name.c_str() << "/" << VtkBaseName << ".000" << img << ".vtk" << ends;
+				os << "VTK/" << VtkBaseName << ".000" << img << ".vtk" << ends;
 			else if (img < 1000)
-				os << name.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
+				os << "VTK/" << VtkBaseName << ".00" << img << ".vtk" << ends;
 			else if (img < 10000)
-				os << name.c_str() << "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
+				os << "VTK/" << VtkBaseName << ".0" << img << ".vtk" << ends;
 			else
-				os << name.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
+				os << "VTK/" << VtkBaseName << "." << img << ".vtk" << ends;
 			Output->WriteVtk(os.str().c_str());
 			img++;
 		}

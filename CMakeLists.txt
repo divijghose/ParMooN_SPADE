@@ -291,6 +291,12 @@ endif()
   set(CMAKE_CXX_FLAGS_DEBUG "${PARMOON_CXX_DEF} ")
   set(CMAKE_CXX_FLAGS_RELEASE " -s ${PARMOON_CXX_DEF}") 
   set(CMAKE_CUDA_FLAGS "${PARMOON_CUDA_DEF} " )
+
+  if("${EXE_BUILD_TYPE}" STREQUAL "DEBUG")
+  set(PARMOON_C_DEF " -g ${PARMOON_C_DEF}")
+  set(PARMOON_CXX_DEF "-g ${PARMOON_CXX_DEF}")
+
+  endif()
   
  
 include_directories("${CMAKE_SOURCE_DIR}/include/General")

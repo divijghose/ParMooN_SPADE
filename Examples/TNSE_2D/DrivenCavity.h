@@ -77,7 +77,7 @@ void U1BoundValue(int BdComp, double Param, double &value)
             if(abs(Param - 0) < 1e-6 || abs(Param - 1.0) < 1e-6 )
             value=0; // top moving side velocity
             else 
-              value = 1.0;
+              value = 1.5;
             break;
     case 3: 
             value=0;
