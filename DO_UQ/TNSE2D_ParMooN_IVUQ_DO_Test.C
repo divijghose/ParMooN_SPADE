@@ -299,7 +299,7 @@ int main(int argc, char *argv[])
 
 			else if (TDatabase::ParamDB->stddev_switch == 3)
 			{
-				C[j * N_U + i] *= (1.0 + (r / LengthScale) + ((pow(r, 2)) / (3.0 * (pow(LengthScale, 2)))));
+				C[j * N_U + i] *= (1.0+(r/LengthScale)+(pow(r/LengthScale,2)/3.0));
 			}
 
 			else
