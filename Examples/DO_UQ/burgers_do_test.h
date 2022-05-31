@@ -1,5 +1,3 @@
-
-
 /**
  * @file burgers_do_test.h
  * @brief Purpose:     Example file for solving the set of dynamically orthogonal field

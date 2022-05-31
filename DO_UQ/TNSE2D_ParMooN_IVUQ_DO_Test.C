@@ -299,7 +299,28 @@ int main(int argc, char *argv[])
 
 			else if (TDatabase::ParamDB->stddev_switch == 3)
 			{
-				C[j * N_U + i] *= (1.0+(r/LengthScale)+(pow(r/LengthScale,2)/3.0));
+				double E = TDatabase::ParamDB->stddev_denom;
+				double disp = TDatabase::ParamDB->stddev_disp;
+				double power = TDatabase::ParamDB->stddev_power;
+				double sig_r1 = exp(-pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E)) * exp(-pow((2 * actual_y - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E));
+				double sig_r2 = exp(-pow((2 * local_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E)) * exp(-pow((2 * local_y - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E));
+				// Co Variance
+				C[j * N_U + i] *= (1.0 + (r / LengthScale) + (pow(r / LengthScale, 2) / 3.0)) * sig_r1 * sig_r2;
+			}
+			else if (TDatabase::ParamDB->stddev_switch == 4)
+			{
+				double sig_r1 = sin(-1.0 * Pi * (2 * actual_x - 2)) * sin(-1.0 * Pi * (2 * actual_y - 2));
+				double sig_r2 = sin(-1.0 * Pi * (2 * local_x - 2)) * sin(-1.0 * Pi * (2 * local_y - 2));
+				// Co Variance
+				C[j * N_U + i] *= (1.0 + (r / LengthScale) + (pow(r / LengthScale, 2) / 3.0)) * sig_r1 * sig_r2;
+			}
+			else if (TDatabase::ParamDB->stddev_switch == 5)
+			{
+				double sig_r1 = exp(-1.0 / (1.0 - pow((2 * actual_x - 1), 4))) * exp(-1.0 / (1 - pow((2 * actual_y - 1), 4)));
+				double sig_r2 = exp(-1.0 / (1.0 - pow((2 * local_x - 1), 4))) * exp(-1.0 / (1 - pow((2 * local_y - 1), 4)));
+
+				// Co Variance
+				C[j * N_U + i] *= (1.0 + (r / LengthScale) + (pow(r / LengthScale, 2) / 3.0)) * sig_r1 * sig_r2;
 			}
 
 			else
@@ -542,8 +563,6 @@ int main(int argc, char *argv[])
 	SystemMatrix->Init(LinCoeffs, BoundCondition, U1BoundValue, U2BoundValue, aux, NSEaux_error);
 	/////////////////////////////////////////Monte Carlo//////////////////////////////////////
 
-
-
 	for (int RealNo = 0; RealNo < N_Realisations; RealNo++)
 	{ /// Realization Loop Begin
 		cout << " Real no " << RealNo << endl;
@@ -634,7 +653,7 @@ int main(int argc, char *argv[])
 					// Solve the NSE system
 					SystemMatrix->Solve(sol);
 					for (int i = 0; i < N_U; i++)
-						 RealizationVector[RealNo + N_Realisations * i]=sol[i];
+						RealizationVector[RealNo + N_Realisations * i] = sol[i];
 
 					if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
 						IntoL20FEFunction(sol + 2 * N_U, N_P, Pressure_FeSpace, velocity_space_code, pressure_space_code);
@@ -677,8 +696,6 @@ exit(0);      */
 				SystemMatrix->RestoreMassMat();
 
 			} // for(l=0;l<N_SubSteps;
-			 
-
 
 		} // while(TDatabase::TimeDB->CURRENTTIME< e
 
@@ -759,7 +776,7 @@ exit(0);      */
 	cout << " SUBSPACE DIMENSION : " << s + 1 << endl;
 
 	int subDim = s + 1;
-	
+
 	////////Subspace dimension calculated//////////////////
 
 	/////Projection Matrix///////////

@@ -630,8 +630,8 @@ int main(int argc, char *argv[])
 
 	for (int subD = 0; subD < subDim; subD++)
 	{
-		fefctModeAll[subDim][0] = VelocityModeAll[subD]->GetComponent(0);
-		fefctModeAll[subDim][1] = VelocityModeAll[subD]->GetComponent(1);
+		fefctModeAll[subD][0] = VelocityModeAll[subD]->GetComponent(0);//changed ger from subDim to subD
+		fefctModeAll[subD][1] = VelocityModeAll[subD]->GetComponent(1);
 
 		BEaux_modeAll[subD] = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2, TimeNSN_ParamFct2,
 											  TimeNSN_FEValues2, fespMode, fefctModeAll[subDim], TimeNSFct2, TimeNSFEFctIndex2,

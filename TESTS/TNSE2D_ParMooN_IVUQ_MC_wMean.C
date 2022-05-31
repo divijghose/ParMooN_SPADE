@@ -420,7 +420,6 @@ int main(int argc, char *argv[])
 
 double *solMean = new double[N_TotalDOF]();
 
-
 	//======================================================================
 	// SystemMatrix construction and solution
 	//======================================================================

@@ -1,0 +1,17 @@
+{
+    "tasks": [
+    {
+    "label": "ParMooN_Make",
+    "command": "make",
+    "args": [
+    "-j8"
+    ],
+    "options": {
+    "cwd": "${fileDirname}/BUILD"
+    },
+    "type": "shell",
+    "detail": "Thivin-ParmOon Make"
+    }
+    ],
+    "version": "2.0.0"
+    }
