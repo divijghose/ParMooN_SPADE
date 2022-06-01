@@ -253,6 +253,7 @@ struct TParaDB
   double* COSKEWNESS_MATRIX_DO;
   double* COVARIANCE_INVERSE_DO;
   int N_Subspace_Dim;
+  int Max_Subspace_Dim;
 
 
 

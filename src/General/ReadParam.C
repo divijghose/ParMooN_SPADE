@@ -674,6 +674,12 @@ int TDomain::ReadParam(char *ParamFile)
       dat >> TDatabase::ParamDB->SVPERCENT;
       N_Param++;
     }
+
+    if (!strcmp(line, "Max_Subspace_Dim:"))
+    {
+      dat >> TDatabase::ParamDB->Max_Subspace_Dim;
+      N_Param++;
+    }
    
 ////////////////////////////////////////////////////////////////    
     if (!strcmp(line, "FILTER_WIDTH_CONSTANT:"))

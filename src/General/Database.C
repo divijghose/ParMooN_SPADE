@@ -678,6 +678,7 @@ void TDatabase::SetDefaultParameters()
 
   /////************Default DO Parameters******///// (Added by Divij)
   ParamDB->stddev_power = 5;
+  ParamDB->Max_Subspace_Dim=5;
 
   
 
