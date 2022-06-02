@@ -57,8 +57,6 @@ int main(int argc, char *argv[])
     double *sol, *rhs, *oldrhs, t1, t2, errors[5], Linfty;
     double tau, end_time, *defect, olderror, olderror1, hmin, hmax;
 
-    double *solMean, *rhsMean, *old_rhsMean;
-
     bool UpdateStiffnessMat, UpdateRhs, ConvectionFirstTime;
 
     char *VtkBaseName;
@@ -72,7 +70,6 @@ int main(int argc, char *argv[])
     TFEDatabase2D *FEDatabase = new TFEDatabase2D();
     TCollection *coll;
     TFESpace2D *Scalar_FeSpace, *fesp[1];
-    TFEFunction2D *Scalar_FeFunction_Mean;
     TFEFunction2D *Scalar_FeFunction;
     TOutput2D *Output;
     TOutput2D *OutputMean;
@@ -409,10 +406,16 @@ int main(int argc, char *argv[])
     {
         for (int j = 0; j < N_Realisations; j++)
         {
-            RealizationVector[mappingArray[i] + N_DOF * j] = SolutionVector[j + N_Realisations * i];
+            RealizationVectorCopy[mappingArray[i] + N_DOF * j] = SolutionVector[j + N_Realisations * i];
         }
     }
-    memcpy(RealizationVectorCopy, RealizationVector, N_DOF * N_Realisations * SizeOfDouble);
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_Realisations; j++)
+        {
+            RealizationVector[mappingArray[i] * N_Realisations + j] = SolutionVector[i * N_Realisations + j];
+        }
+    }
 
     // -------- Output parameters------------//
     VtkBaseName = TDatabase::ParamDB->VTKBASENAME;
@@ -516,12 +519,14 @@ int main(int argc, char *argv[])
     UpdateStiffnessMat = TRUE; // check BilinearCoeffs in example file
     UpdateRhs = TRUE;          // check BilinearCoeffs in example file
     ConvectionFirstTime = TRUE;
-
+    double CurrEndTime = 0;
+    double CurrStartTime = 0;
     // time loop starts
     while (TDatabase::TimeDB->CURRENTTIME < end_time)
     {
         m++;
         TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
+        CurrStartTime = TDatabase::TimeDB->CURRENTTIME;
         for (int i = 0; i < N_DOF; i++)
         {
             solMCMean[i] = 0.0;
@@ -529,7 +534,7 @@ int main(int argc, char *argv[])
         for (int RealNo = 0; RealNo < N_Realisations; RealNo++)
         { // Realization Loop Starts
             cout << " Realization Number:  " << RealNo << endl;
-
+            TDatabase::TimeDB->CURRENTTIME = CurrStartTime;
             std::string str = std::to_string(RealNo);
             std::string filename = "Realization_Nr_" + std::to_string(RealNo);
             VtkBaseName = const_cast<char *>(filename.c_str());
@@ -606,24 +611,26 @@ int main(int argc, char *argv[])
                 }
 
             } // for(l=0;l< N_SubSteps;l++)
-            if (TDatabase::ParamDB->WRITE_VTK)
-            {
-                os.seekp(std::ios::beg);
-                if (imgMCMean < 10)
-                    os << "VTK/" << VtkBaseNameMCMean << ".0000" << imgMCMean << ".vtk" << ends;
-                else if (imgMCMean < 100)
-                    os << "VTK/" << VtkBaseNameMCMean << ".000" << imgMCMean << ".vtk" << ends;
-                else if (imgMCMean < 1000)
-                    os << "VTK/" << VtkBaseNameMCMean << ".00" << imgMCMean << ".vtk" << ends;
-                else if (imgMCMean < 10000)
-                    os << "VTK/" << VtkBaseNameMCMean << ".0" << imgMCMean << ".vtk" << ends;
-                else
-                    os << "VTK/" << VtkBaseNameMCMean << "." << imgMCMean << ".vtk" << ends;
-                OutputMCMean->WriteVtk(os.str().c_str());
-                imgMCMean++;
-            }
+            CurrEndTime = TDatabase::TimeDB->CURRENTTIME;
 
         } // Realization Loop Ends
+        TDatabase::TimeDB->CURRENTTIME = CurrEndTime;
+        if (TDatabase::ParamDB->WRITE_VTK)
+        {
+            os.seekp(std::ios::beg);
+            if (imgMCMean < 10)
+                os << "VTK/" << VtkBaseNameMCMean << ".0000" << imgMCMean << ".vtk" << ends;
+            else if (imgMCMean < 100)
+                os << "VTK/" << VtkBaseNameMCMean << ".000" << imgMCMean << ".vtk" << ends;
+            else if (imgMCMean < 1000)
+                os << "VTK/" << VtkBaseNameMCMean << ".00" << imgMCMean << ".vtk" << ends;
+            else if (imgMCMean < 10000)
+                os << "VTK/" << VtkBaseNameMCMean << ".0" << imgMCMean << ".vtk" << ends;
+            else
+                os << "VTK/" << VtkBaseNameMCMean << "." << imgMCMean << ".vtk" << ends;
+            OutputMCMean->WriteVtk(os.str().c_str());
+            imgMCMean++;
+        }
 
     } // while(TDatabase::TimeDB->CURRENTTIME< end_time)
 
@@ -696,11 +703,10 @@ int main(int argc, char *argv[])
         s++;
     }
 
-    cout << " SUBSPACE DIMENSION : " << s + 1 << endl;
-
     int subDim = s + 1;
     if (subDim > TDatabase::ParamDB->Max_Subspace_Dim)
         subDim = TDatabase::ParamDB->Max_Subspace_Dim;
+    cout << " SUBSPACE DIMENSION : " << subDim << endl;
 
     ////////Subspace dimension calculated//////////////////
 
@@ -746,28 +752,51 @@ int main(int argc, char *argv[])
 
     ////////////////////////////////////////////DO - Initialization Ends//////////////////////////////////////
 
-    solMean = new double[N_DOF];
-    rhsMean = new double[N_DOF];
-    old_rhsMean = new double[N_DOF];
+    double *solMean = new double[N_DOF]();
+    double *rhsMean = new double[N_DOF]();
+    double *old_rhsMean = new double[N_DOF]();
 
-    memset(solMean, 0, N_DOF * SizeOfDouble);
-    memset(rhsMean, 0, N_DOF * SizeOfDouble);
-    memset(old_rhsMean, 0, N_DOF * SizeOfDouble);
+    TFEFunction2D *Scalar_FeFunction_Mean;
+    Scalar_FeFunction_Mean = new TFEFunction2D(Scalar_FeSpace, (char *)"C_Mean", (char *)"Mean Solution", solMean, N_DOF);
 
-    Scalar_FeFunction_Mean = new TFEFunction2D(Scalar_FeSpace, (char *)"C_Mean", (char *)"sol", solMean, N_DOF);
-
-    Scalar_FeFunction_Mean->Interpolate(InitialCondition);
+    // Scalar_FeFunction_Mean->Interpolate(InitialCondition);
     for (int i = 0; i < N_DOF; i++)
     {
         // solMean[mappingArray[i]]=MeanVector[i];
         solMean[i] = MeanVector[i];
     } //======================================================================
+    double *solModeAll = new double[N_DOF * subDim]();
+    double *rhsModeAll = new double[N_DOF * subDim]();
+    double *oldsolModeAll = new double[N_DOF]();
+    double *oldrhsModeAll = new double[N_DOF]();
+    for (int j = 0; j < subDim; j++)
+    {
+        for (int i = 0; i < N_DOF; i++)
+        {
+            // solMode[j*N_DOF+mappingArray[i]] = ModeVector[j*N_DOF+i];
+            solModeAll[j * N_DOF + i] = ModeVector[j * N_DOF + i];
+        }
+    }
+
+    TFEVectFunct2D **Vector_FeFunction_Mode = new TFEVectFunct2D *[subDim];
+    for (int s = 0; s < subDim; s++)
+    {
+        Vector_FeFunction_Mode[s] = new TFEVectFunct2D(Scalar_FeSpace, (char *)"C_Mode", (char *)"Mode Solution", solModeAll + s * N_DOF, N_DOF,1);
+    }
+
+    
     // /DO - SystemMatrix construction and solution
     //======================================================================
     // Disc type: GALERKIN (or) SDFEM  (or) UPWIND (or) SUPG (or) LOCAL_PROJECTION
     // Solver: AMG_SOLVE (or) GMG  (or) DIRECT
     TSystemTCD2D *SystemMatrix_Mean = new TSystemTCD2D(Scalar_FeSpace, GALERKIN, DIRECT);
     TSystemTCD2D *SystemMatrix_Mode = new TSystemTCD2D(Scalar_FeSpace, GALERKIN, DIRECT);
+    TSystemTCD2D **SystemMatrix_ModeAll = new TSystemTCD2D *[subDim];
+    for (int s = 0; s < subDim; s++)
+    {
+        SystemMatrix_ModeAll[s] = new TSystemTCD2D(Scalar_FeSpace, GALERKIN, DIRECT);
+        SystemMatrix_ModeAll[s]->Init(DO_Mode_Equation_Coefficients, BoundCondition, BoundValue);
+    }
 
     // initilize the system matrix with the functions defined in Example file
     SystemMatrix_Mean->Init(DO_Mean_Equation_Coefficients, BoundCondition, BoundValue);
@@ -778,22 +807,6 @@ int main(int argc, char *argv[])
     // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
     //------------------------------------------ MEAN EQUATION SETUP -----------------------------------------------------//
     // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
-
-    int N_terms_Mean = 3; // Number of Shape function derivatives required ( in this case 3, N, NX, NY )
-    MultiIndex2D Derivatives_MatrixARhs_Mean[3] = {D00, D10, D01};
-    int SpacesNumbers_MatrixARhs_Mean[3] = {0, 0, 0};
-    int N_Matrices_MatrixARhs_Mean = 1;
-    int RowSpace_MatrixARhs_Mean[1] = {0};
-    int ColumnSpace_MatrixARhs_Mean[1] = {0};
-    int N_Rhs_MatrixARhs_Mean = 1;
-    int RhsSpace_MatrixARhs_Mean[1] = {0};
-
-    SystemMatrix_Mean->Init_WithDiscreteform(DO_Mean_Equation_Coefficients, BoundCondition, BoundValue, "DO_LINEAR_MEAN", "DO_LINEAR_MEAN",
-                                             N_terms_Mean, Derivatives_MatrixARhs_Mean, SpacesNumbers_MatrixARhs_Mean,
-                                             N_Matrices_MatrixARhs_Mean, N_Rhs_MatrixARhs_Mean,
-                                             RowSpace_MatrixARhs_Mean, ColumnSpace_MatrixARhs_Mean, RhsSpace_MatrixARhs_Mean,
-                                             DO_Mean_Equation_Assembly, DO_Mean_Equation_Coefficients,
-                                             NULL);
 
     // Aux Setup for the RHS -- There is no Aux for the Mean equation, So set the values as NULL
     fesp[0] = Scalar_FeSpace;
@@ -821,20 +834,6 @@ int main(int argc, char *argv[])
     // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
     //-------------------------------------- MODE EQUATION SETUP -----------------------------------------------------//
     // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
-    int N_terms_Mode = 3; // Number of Shape function derivatives required ( in this case 3, N, NX, NY )
-    MultiIndex2D Derivatives_MatrixARhs_Mode[3] = {D00, D10, D01};
-    int SpacesNumbers_MatrixARhs_Mode[3] = {0, 0, 0};
-    int N_Matrices_MatrixARhs_Mode = 1;
-    int RowSpace_MatrixARhs_Mode[1] = {0};
-    int ColumnSpace_MatrixARhs_Mode[1] = {0};
-    int N_Rhs_MatrixARhs_Mode = 1;
-    int RhsSpace_MatrixARhs_Mode[1] = {0};
-    SystemMatrix_Mode->Init_WithDiscreteform(DO_Mode_Equation_Coefficients, BoundCondition, BoundValue, "DO_LINEAR_Mode", "DO_LINEAR_Mode",
-                                             N_terms_Mode, Derivatives_MatrixARhs_Mode, SpacesNumbers_MatrixARhs_Mode,
-                                             N_Matrices_MatrixARhs_Mode, N_Rhs_MatrixARhs_Mode,
-                                             RowSpace_MatrixARhs_Mode, ColumnSpace_MatrixARhs_Mode, RhsSpace_MatrixARhs_Mode,
-                                             DO_Mode_Equation_Assembly, DO_Mode_Equation_Coefficients,
-                                             NULL);
 
     double *solMode = new double[N_DOF * subDim]();
     double *rhsMode = new double[N_DOF * subDim]();
@@ -850,7 +849,7 @@ int main(int argc, char *argv[])
     }
 
     // 	// double* ModeVector_OldRHS = new double[N_DOF]();
-    TFEVectFunct2D *FEFVector_Mode = new TFEVectFunct2D(Scalar_FeSpace, (char *)"C_Mode", (char *)"sol", solMode, N_DOF, subDim);
+    TFEVectFunct2D *FEVector_Mode = new TFEVectFunct2D(Scalar_FeSpace, (char *)"C_Mode", (char *)"sol", solMode, N_DOF, subDim);
 
     // // Set up a FE VECT FUNCTION TO STORE ALL THE Components of CTilde
 
@@ -890,6 +889,11 @@ int main(int argc, char *argv[])
 
     SystemMatrix_Mode->AssembleMRhs(NULL, solMode, rhsMode);
 
+    for (int s = 0; s < subDim; s++)
+    {
+        SystemMatrix_ModeAll[s]->AssembleMRhs(NULL, solModeAll + s * N_DOF, rhsModeAll + s * N_DOF);
+    }
+
     // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     //======================================================================
     // produce outout at t=0
@@ -898,10 +902,6 @@ int main(int argc, char *argv[])
     std::string strMean = std::to_string(N_Realisations);
     std::string filenameMean = "Mean_NRealisations_" + std::to_string(N_Realisations);
     VtkBaseNameMean = const_cast<char *>(filenameMean.c_str());
-
-    std::string strMode = std::to_string(N_Realisations);
-    std::string filenameMode = "Mode_NRealisations_" + std::to_string(N_Realisations);
-    VtkBaseNameMode = const_cast<char *>(filenameMode.c_str());
 
     std::string fileoutCoeff;
     std::string fileoutMean;
@@ -912,10 +912,18 @@ int main(int argc, char *argv[])
     OutputMean->AddFEFunction(Scalar_FeFunction_Mean);
 
     OutputMode = new TOutput2D(2, 2, 1, 1, Domain);
-    OutputMode->AddFEVectFunct(FEFVector_Mode);
+    OutputMode->AddFEVectFunct(FEVector_Mode);
+
+    TOutput2D **OutputModeAll = new TOutput2D *[subDim];
+    for (int s = 0; s < subDim; s++)
+    {
+        OutputModeAll[s] = new TOutput2D(2, 2, 1, 1, Domain);
+        OutputModeAll[s]->AddFEVectFunct(Vector_FeFunction_Mode[s]);
+    }
 
     int meanimg = 0;
     int modeimg = 0;
+    int *imgMode = new int[subDim]();
 
     if (TDatabase::ParamDB->WRITE_VTK)
     {
@@ -933,22 +941,27 @@ int main(int argc, char *argv[])
         OutputMean->WriteVtk(os.str().c_str());
         meanimg++;
     }
-
-    if (TDatabase::ParamDB->WRITE_VTK)
+    for (int s = 0; s < subDim; s++)
     {
-        os.seekp(std::ios::beg);
-        if (modeimg < 10)
-            os << "VTK/" << VtkBaseNameMode << ".0000" << modeimg << ".vtk" << ends;
-        else if (modeimg < 100)
-            os << "VTK/" << VtkBaseNameMode << ".000" << modeimg << ".vtk" << ends;
-        else if (modeimg < 1000)
-            os << "VTK/" << VtkBaseNameMode << ".00" << modeimg << ".vtk" << ends;
-        else if (modeimg < 10000)
-            os << "VTK/" << VtkBaseNameMode << ".0" << modeimg << ".vtk" << ends;
-        else
-            os << "VTK/" << VtkBaseNameMode << "." << modeimg << ".vtk" << ends;
-        OutputMode->WriteVtk(os.str().c_str());
-        modeimg++;
+        std::string filenameMode = "Mode_" + std::to_string(s + 1) + "_NRealisations_" + std::to_string(N_Realisations);
+        VtkBaseNameMode = const_cast<char *>(filenameMode.c_str());
+
+        if (TDatabase::ParamDB->WRITE_VTK)
+        {
+            os.seekp(std::ios::beg);
+            if (imgMode[s] < 10)
+                os << "VTK/" << VtkBaseNameMode << ".0000" << imgMode[s] << ".vtk" << ends;
+            else if (imgMode[s] < 100)
+                os << "VTK/" << VtkBaseNameMode << ".000" << imgMode[s] << ".vtk" << ends;
+            else if (imgMode[s] < 1000)
+                os << "VTK/" << VtkBaseNameMode << ".00" << imgMode[s] << ".vtk" << ends;
+            else if (imgMode[s] < 10000)
+                os << "VTK/" << VtkBaseNameMode << ".0" << imgMode[s] << ".vtk" << ends;
+            else
+                os << "VTK/" << VtkBaseNameMode << "." << imgMode[s] << ".vtk" << ends;
+            OutputModeAll[s]->WriteVtk(os.str().c_str());
+            imgMode[s]++;
+        }
     }
 
     // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -1027,12 +1040,14 @@ int main(int argc, char *argv[])
     UpdateStiffnessMat = TRUE; // check BilinearCoeffs in example file
     UpdateRhs = TRUE;          // check BilinearCoeffs in example file
     ConvectionFirstTime = TRUE;
-
+    CurrStartTime = 0;
+    CurrEndTime = 0;
     // time loop starts
     while (TDatabase::TimeDB->CURRENTTIME < end_time)
     {
         m++;
         TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
+        CurrStartTime=TDatabase::TimeDB->CURRENTTIME;
 
         for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
         {
@@ -1063,20 +1078,48 @@ int main(int argc, char *argv[])
             for (int subSpaceNum = 0; subSpaceNum < subDim; subSpaceNum++)
             {
                 // solve the system matrix
-                DO_CoEfficient(Scalar_FeSpace, FEFVector_Mode, FeVector_Coefficient, subDim, subSpaceNum, N_Realisations);
+                DO_CoEfficient(Scalar_FeSpace, FEVector_Mode, FeVector_Coefficient, subDim, subSpaceNum, N_Realisations);
                 double *modeSolution_i = solMode + subSpaceNum * N_DOF;   // This works for column major
                 double *modeSolution_rhs = rhsMode + subSpaceNum * N_DOF; // This works for column major
 
-                memcpy(old_rhsMode, modeSolution_rhs, N_DOF * SizeOfDouble);
+                memcpy(old_rhsMode, rhsModeAll + subSpaceNum * N_DOF, N_DOF * SizeOfDouble);
 
-                SystemMatrix_Mode->AssembleARhs(NULL, modeSolution_i, modeSolution_rhs);
+                SystemMatrix_ModeAll[subSpaceNum]->AssembleARhs(NULL, solModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF);
 
                 // get the UPDATED RHS VALUE FROM FUNCTION
-                DO_Mode_RHS(Scalar_FeSpace, FEFVector_Mode, subDim, modeSolution_rhs, subSpaceNum);
+                DO_Mode_RHS(Scalar_FeSpace, FEVector_Mode, subDim, rhsModeAll + subSpaceNum * N_DOF, subSpaceNum);
 
-                SystemMatrix_Mode->AssembleSystMat(old_rhsMode, modeSolution_i, modeSolution_rhs, modeSolution_i);
-                SystemMatrix_Mode->Solve(modeSolution_i, modeSolution_rhs);
-                SystemMatrix_Mode->RestoreMassMat();
+                SystemMatrix_ModeAll[subSpaceNum]->AssembleSystMat(old_rhsMode, solModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF, solModeAll + subSpaceNum * N_DOF);
+                SystemMatrix_ModeAll[subSpaceNum]->Solve(solModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF);
+                SystemMatrix_ModeAll[subSpaceNum]->RestoreMassMat();
+
+                if (m == 1 || m % TDatabase::TimeDB->STEPS_PER_IMAGE == 0)
+                {
+                    for (int s = 0; s < subDim; s++)
+                    {
+
+                        std::string filenameMode = "Mode_" + std::to_string(s + 1) + "_NRealisations_" + std::to_string(N_Realisations);
+                        VtkBaseNameMode = const_cast<char *>(filenameMode.c_str());
+
+                        if (TDatabase::ParamDB->WRITE_VTK)
+                        {
+                            os.seekp(std::ios::beg);
+                            if (imgMode[s] < 10)
+                                os << "VTK/" << VtkBaseNameMode << ".0000" << imgMode[s] << ".vtk" << ends;
+                            else if (imgMode[s] < 100)
+                                os << "VTK/" << VtkBaseNameMode << ".000" << imgMode[s] << ".vtk" << ends;
+                            else if (imgMode[s] < 1000)
+                                os << "VTK/" << VtkBaseNameMode << ".00" << imgMode[s] << ".vtk" << ends;
+                            else if (imgMode[s] < 10000)
+                                os << "VTK/" << VtkBaseNameMode << ".0" << imgMode[s] << ".vtk" << ends;
+                            else
+                                os << "VTK/" << VtkBaseNameMode << "." << imgMode[s] << ".vtk" << ends;
+                            OutputModeAll[s]->WriteVtk(os.str().c_str());
+                            imgMode[s]++;
+                        }
+                    }
+
+                } // produce output loop end
 
             } // subSpaceNumLoop
 
@@ -1157,26 +1200,10 @@ int main(int argc, char *argv[])
                 OutputMean->WriteVtk(os.str().c_str());
                 meanimg++;
             }
+        }
 
-            if (TDatabase::ParamDB->WRITE_VTK)
-            {
-                os.seekp(std::ios::beg);
-                if (modeimg < 10)
-                    os << "VTK/" << VtkBaseNameMode << ".0000" << modeimg << ".vtk" << ends;
-                else if (modeimg < 100)
-                    os << "VTK/" << VtkBaseNameMode << ".000" << modeimg << ".vtk" << ends;
-                else if (modeimg < 1000)
-                    os << "VTK/" << VtkBaseNameMode << ".00" << modeimg << ".vtk" << ends;
-                else if (modeimg < 10000)
-                    os << "VTK/" << VtkBaseNameMode << ".0" << modeimg << ".vtk" << ends;
-                else
-                    os << "VTK/" << VtkBaseNameMode << "." << modeimg << ".vtk" << ends;
-                OutputMode->WriteVtk(os.str().c_str());
-                modeimg++;
-            }
-
-        } // produce output loop end
-          //======================================================================
+        // produce output loop end
+        //======================================================================
         // measure errors to known solution
         //======================================================================
         if (TDatabase::ParamDB->MEASURE_ERRORS)
@@ -1208,40 +1235,6 @@ int main(int argc, char *argv[])
     //======================================================================
     // produce final outout
     //======================================================================
-
-    if (TDatabase::ParamDB->WRITE_VTK)
-    {
-        os.seekp(std::ios::beg);
-        if (meanimg < 10)
-            os << "VTK/" << VtkBaseNameMean << ".0000" << meanimg << ".vtk" << ends;
-        else if (meanimg < 100)
-            os << "VTK/" << VtkBaseNameMean << ".000" << meanimg << ".vtk" << ends;
-        else if (meanimg < 1000)
-            os << "VTK/" << VtkBaseNameMean << ".00" << meanimg << ".vtk" << ends;
-        else if (meanimg < 10000)
-            os << "VTK/" << VtkBaseNameMean << ".0" << meanimg << ".vtk" << ends;
-        else
-            os << "VTK/" << VtkBaseNameMean << "." << meanimg << ".vtk" << ends;
-        OutputMean->WriteVtk(os.str().c_str());
-        meanimg++;
-    }
-
-    if (TDatabase::ParamDB->WRITE_VTK)
-    {
-        os.seekp(std::ios::beg);
-        if (modeimg < 10)
-            os << "VTK/" << VtkBaseNameMode << ".0000" << modeimg << ".vtk" << ends;
-        else if (modeimg < 100)
-            os << "VTK/" << VtkBaseNameMode << ".000" << modeimg << ".vtk" << ends;
-        else if (modeimg < 1000)
-            os << "VTK/" << VtkBaseNameMode << ".00" << modeimg << ".vtk" << ends;
-        else if (modeimg < 10000)
-            os << "VTK/" << VtkBaseNameMode << ".0" << modeimg << ".vtk" << ends;
-        else
-            os << "VTK/" << VtkBaseNameMode << "." << modeimg << ".vtk" << ends;
-        OutputMode->WriteVtk(os.str().c_str());
-        modeimg++;
-    }
 
     cout << "Subspace Dimension = " << subDim << endl;
     CloseFiles();
