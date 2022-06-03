@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     double *solMean, *rhsMean, *old_rhsMean;
 
     bool UpdateStiffnessMat, UpdateRhs, ConvectionFirstTime;
-    
+
     char *VtkBaseName;
     char *VtkBaseNameMean;
     char *VtkBaseNameMode;
@@ -419,7 +419,6 @@ int main(int argc, char *argv[])
     // mkl_dimatcopy('R','T', N_DOF,N_Realisations,1.0,SolutionVector,N_DOF,N_Realisations);
     // cout << " COPY DONE "<<endl;
 
-
     for (int i = 0; i < N_DOF; i++)
     {
         for (int j = 0; j < N_Realisations; j++)
@@ -432,10 +431,7 @@ int main(int argc, char *argv[])
 
     cout << N_Realisations << " REALISATIONS COMPUTED " << endl;
 
-
     /////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
-
-    
 
     ////////////////////////////////////// -------- START OF DO INITIALIZATION ------------ ////////////////////////////////////////////////////////////////
 
@@ -567,13 +563,35 @@ int main(int argc, char *argv[])
     memset(rhsMean, 0, N_DOF * SizeOfDouble);
     memset(old_rhsMean, 0, N_DOF * SizeOfDouble);
 
+    double *solModeAll, *rhsModeAll, *oldsolModeAll, *oldrhsModeAll;
+    solModeAll = new double[N_DOF * subDim]();
+    rhsModeAll = new double[N_DOF * subDim]();
+    oldsolModeAll = new double[N_DOF]();
+    oldrhsModeAll = new double[N_DOF]();
+
     Scalar_FeFunction_Mean = new TFEFunction2D(Scalar_FeSpace, (char *)"C_Mean", (char *)"sol", solMean, N_DOF);
+
+    TFEFunction2D **Scalar_FeFunction_ModeAll = new TFEFunction2D *[subDim];
+    for (int s = 0; s < subDim; s++)
+    {
+        Scalar_FeFunction_ModeAll[s] = new TFEFunction2D(Scalar_FeSpace, (char *)"C_Mode", (char *)"Mode Solution", solModeAll + s * N_DOF, N_DOF);
+        Scalar_FeFunction_ModeAll[s]->Interpolate(InitialCondition);
+    }
 
     Scalar_FeFunction_Mean->Interpolate(InitialCondition);
     for (int i = 0; i < N_DOF; i++)
     {
         // solMean[mappingArray[i]]=MeanVector[i];
         solMean[i] = MeanVector[i];
+    }
+
+    for (int j = 0; j < subDim; j++)
+    {
+        for (int i = 0; i < N_DOF; i++)
+        {
+            // solMode[j*N_DOF+mappingArray[i]] = ModeVector[j*N_DOF+i];
+            solModeAll[j * N_DOF + i] = ModeVector[j * N_DOF + i];
+        }
     }
 
     // TDatabase::ParamDB->COVARIANCE_MATRIX_DO = CalcCovarianceMatx(CoeffVector,N_Realisations,subDim);//Not needed for linear advection
@@ -590,27 +608,34 @@ int main(int argc, char *argv[])
     SystemMatrix_Mean->Init(DO_Mean_Equation_Coefficients, BoundCondition, BoundValue);
     SystemMatrix_Mode->Init(DO_Mode_Equation_Coefficients, BoundCondition, BoundValue);
 
+    TSystemTCD2D **SystemMatrix_ModeAll = new TSystemTCD2D *[subDim];
+    for (int s = 0; s < subDim; s++)
+    {
+        SystemMatrix_ModeAll[s] = new TSystemTCD2D(Scalar_FeSpace, GALERKIN, DIRECT);
+        SystemMatrix_ModeAll[s]->Init(DO_Mode_Equation_Coefficients, BoundCondition, BoundValue);
+    }
+
     //
 
     // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
     //------------------------------------------ MEAN EQUATION SETUP -----------------------------------------------------//
     // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
 
-    int N_terms_Mean = 3; // Number of Shape function derivatives required ( in this case 3, N, NX, NY )
-    MultiIndex2D Derivatives_MatrixARhs_Mean[3] = {D00, D10, D01};
-    int SpacesNumbers_MatrixARhs_Mean[3] = {0, 0, 0};
-    int N_Matrices_MatrixARhs_Mean = 1;
-    int RowSpace_MatrixARhs_Mean[1] = {0};
-    int ColumnSpace_MatrixARhs_Mean[1] = {0};
-    int N_Rhs_MatrixARhs_Mean = 1;
-    int RhsSpace_MatrixARhs_Mean[1] = {0};
+    // int N_terms_Mean = 3; // Number of Shape function derivatives required ( in this case 3, N, NX, NY )
+    // MultiIndex2D Derivatives_MatrixARhs_Mean[3] = {D00, D10, D01};
+    // int SpacesNumbers_MatrixARhs_Mean[3] = {0, 0, 0};
+    // int N_Matrices_MatrixARhs_Mean = 1;
+    // int RowSpace_MatrixARhs_Mean[1] = {0};
+    // int ColumnSpace_MatrixARhs_Mean[1] = {0};
+    // int N_Rhs_MatrixARhs_Mean = 1;
+    // int RhsSpace_MatrixARhs_Mean[1] = {0};
 
-    SystemMatrix_Mean->Init_WithDiscreteform(DO_Mean_Equation_Coefficients, BoundCondition, BoundValue, "DO_LINEAR_MEAN", "DO_LINEAR_MEAN",
-                                             N_terms_Mean, Derivatives_MatrixARhs_Mean, SpacesNumbers_MatrixARhs_Mean,
-                                             N_Matrices_MatrixARhs_Mean, N_Rhs_MatrixARhs_Mean,
-                                             RowSpace_MatrixARhs_Mean, ColumnSpace_MatrixARhs_Mean, RhsSpace_MatrixARhs_Mean,
-                                             DO_Mean_Equation_Assembly, DO_Mean_Equation_Coefficients,
-                                             NULL);
+    // SystemMatrix_Mean->Init_WithDiscreteform(DO_Mean_Equation_Coefficients, BoundCondition, BoundValue, "DO_LINEAR_MEAN", "DO_LINEAR_MEAN",
+    //                                          N_terms_Mean, Derivatives_MatrixARhs_Mean, SpacesNumbers_MatrixARhs_Mean,
+    //                                          N_Matrices_MatrixARhs_Mean, N_Rhs_MatrixARhs_Mean,
+    //                                          RowSpace_MatrixARhs_Mean, ColumnSpace_MatrixARhs_Mean, RhsSpace_MatrixARhs_Mean,
+    //                                          DO_Mean_Equation_Assembly, DO_Mean_Equation_Coefficients,
+    //                                          NULL);
 
     // Aux Setup for the RHS -- There is no Aux for the Mean equation, So set the values as NULL
     fesp[0] = Scalar_FeSpace;
@@ -638,20 +663,20 @@ int main(int argc, char *argv[])
     // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
     //-------------------------------------- MODE EQUATION SETUP -----------------------------------------------------//
     // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
-    int N_terms_Mode = 3; // Number of Shape function derivatives required ( in this case 3, N, NX, NY )
-    MultiIndex2D Derivatives_MatrixARhs_Mode[3] = {D00, D10, D01};
-    int SpacesNumbers_MatrixARhs_Mode[3] = {0, 0, 0};
-    int N_Matrices_MatrixARhs_Mode = 1;
-    int RowSpace_MatrixARhs_Mode[1] = {0};
-    int ColumnSpace_MatrixARhs_Mode[1] = {0};
-    int N_Rhs_MatrixARhs_Mode = 1;
-    int RhsSpace_MatrixARhs_Mode[1] = {0};
-    SystemMatrix_Mode->Init_WithDiscreteform(DO_Mode_Equation_Coefficients, BoundCondition, BoundValue, "DO_LINEAR_Mode", "DO_LINEAR_Mode",
-                                             N_terms_Mode, Derivatives_MatrixARhs_Mode, SpacesNumbers_MatrixARhs_Mode,
-                                             N_Matrices_MatrixARhs_Mode, N_Rhs_MatrixARhs_Mode,
-                                             RowSpace_MatrixARhs_Mode, ColumnSpace_MatrixARhs_Mode, RhsSpace_MatrixARhs_Mode,
-                                             DO_Mode_Equation_Assembly, DO_Mode_Equation_Coefficients,
-                                             NULL);
+    // int N_terms_Mode = 3; // Number of Shape function derivatives required ( in this case 3, N, NX, NY )
+    // MultiIndex2D Derivatives_MatrixARhs_Mode[3] = {D00, D10, D01};
+    // int SpacesNumbers_MatrixARhs_Mode[3] = {0, 0, 0};
+    // int N_Matrices_MatrixARhs_Mode = 1;
+    // int RowSpace_MatrixARhs_Mode[1] = {0};
+    // int ColumnSpace_MatrixARhs_Mode[1] = {0};
+    // int N_Rhs_MatrixARhs_Mode = 1;
+    // int RhsSpace_MatrixARhs_Mode[1] = {0};
+    // SystemMatrix_Mode->Init_WithDiscreteform(DO_Mode_Equation_Coefficients, BoundCondition, BoundValue, "DO_LINEAR_Mode", "DO_LINEAR_Mode",
+    //                                          N_terms_Mode, Derivatives_MatrixARhs_Mode, SpacesNumbers_MatrixARhs_Mode,
+    //                                          N_Matrices_MatrixARhs_Mode, N_Rhs_MatrixARhs_Mode,
+    //                                          RowSpace_MatrixARhs_Mode, ColumnSpace_MatrixARhs_Mode, RhsSpace_MatrixARhs_Mode,
+    //                                          DO_Mode_Equation_Assembly, DO_Mode_Equation_Coefficients,
+    //                                          NULL);
 
     double *solMode = new double[N_DOF * subDim]();
     double *rhsMode = new double[N_DOF * subDim]();
@@ -707,6 +732,11 @@ int main(int argc, char *argv[])
 
     SystemMatrix_Mode->AssembleMRhs(NULL, solMode, rhsMode);
 
+    for (int s = 0; s < subDim; s++)
+    {
+        SystemMatrix_ModeAll[s]->AssembleMRhs(NULL, solModeAll + s * N_DOF, rhsModeAll + s * N_DOF);
+    }
+
     // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     //======================================================================
     // produce outout at t=0
@@ -715,10 +745,6 @@ int main(int argc, char *argv[])
     std::string strMean = std::to_string(N_Realisations);
     std::string filenameMean = "Mean_NRealisations_" + std::to_string(N_Realisations);
     VtkBaseNameMean = const_cast<char *>(filenameMean.c_str());
-
-    std::string strMode = std::to_string(N_Realisations);
-    std::string filenameMode = "Mode_NRealisations_" + std::to_string(N_Realisations);
-    VtkBaseNameMode = const_cast<char *>(filenameMode.c_str());
 
     std::string fileoutCoeff;
     std::string fileoutMean;
@@ -731,8 +757,16 @@ int main(int argc, char *argv[])
     OutputMode = new TOutput2D(2, 2, 1, 1, Domain);
     OutputMode->AddFEVectFunct(FEFVector_Mode);
 
+    TOutput2D **OutputModeAll = new TOutput2D *[subDim];
+    for (int s = 0; s < subDim; s++)
+    {
+        OutputModeAll[s] = new TOutput2D(2, 2, 1, 1, Domain);
+        OutputModeAll[s]->AddFEFunction(Scalar_FeFunction_ModeAll[s]);
+    }
+
     int meanimg = 0;
     int modeimg = 0;
+    int *imgMode = new int[subDim]();
 
     if (TDatabase::ParamDB->WRITE_VTK)
     {
@@ -750,27 +784,28 @@ int main(int argc, char *argv[])
         OutputMean->WriteVtk(os.str().c_str());
         meanimg++;
     }
-
-
-
-    if (TDatabase::ParamDB->WRITE_VTK)
+    for (int s = 0; s < subDim; s++)
     {
-        os.seekp(std::ios::beg);
-        if (modeimg < 10)
-            os << "VTK/" << VtkBaseNameMode << ".0000" << modeimg << ".vtk" << ends;
-        else if (modeimg < 100)
-            os << "VTK/" << VtkBaseNameMode << ".000" << modeimg << ".vtk" << ends;
-        else if (modeimg < 1000)
-            os << "VTK/" << VtkBaseNameMode << ".00" << modeimg << ".vtk" << ends;
-        else if (modeimg < 10000)
-            os << "VTK/" << VtkBaseNameMode << ".0" << modeimg << ".vtk" << ends;
-        else
-            os << "VTK/" << VtkBaseNameMode << "." << modeimg << ".vtk" << ends;
-        OutputMode->WriteVtk(os.str().c_str());
-        modeimg++;
+        std::string filenameMode = "Mode_" + std::to_string(s) + "_NRealisations_" + std::to_string(N_Realisations);
+        VtkBaseNameMode = const_cast<char *>(filenameMode.c_str());
+        if (TDatabase::ParamDB->WRITE_VTK)
+        {
+            os.seekp(std::ios::beg);
+            if (imgMode[s] < 10)
+                os << "VTK/" << VtkBaseNameMode << ".0000" << imgMode[s] << ".vtk" << ends;
+            else if (imgMode[s] < 100)
+                os << "VTK/" << VtkBaseNameMode << ".000" << imgMode[s] << ".vtk" << ends;
+            else if (imgMode[s] < 1000)
+                os << "VTK/" << VtkBaseNameMode << ".00" << imgMode[s] << ".vtk" << ends;
+            else if (imgMode[s] < 10000)
+                os << "VTK/" << VtkBaseNameMode << ".0" << imgMode[s] << ".vtk" << ends;
+            else
+                os << "VTK/" << VtkBaseNameMode << "." << imgMode[s] << ".vtk" << ends;
+            OutputModeAll[s]->WriteVtk(os.str().c_str());
+            imgMode[s]++;
+        }
     }
 
-   
     // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     coll->GetHminHmax(&hmin, &hmax);
     OutPut("h_min : " << hmin << " h_max : " << hmax << endl);
@@ -794,53 +829,53 @@ int main(int argc, char *argv[])
     // parameters for time stepping scheme
     m = 0;
     fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m);
-            std::ofstream fileMean;
-            fileMean.open(fileoutMean);
+    std::ofstream fileMean;
+    fileMean.open(fileoutMean);
 
-            for (int i = 0; i < N_DOF; i++)
-            {
+    for (int i = 0; i < N_DOF; i++)
+    {
 
-                fileMean << MeanVector[i] << ",";
-                fileMean << endl;
-            }
+        fileMean << MeanVector[i] << ",";
+        fileMean << endl;
+    }
 
     fileMean.close();
 
     fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m);
-            std::ofstream fileMode;
-            fileMode.open(fileoutMode);
+    std::ofstream fileMode;
+    fileMode.open(fileoutMode);
 
-            for (int i = 0; i < N_DOF; i++)
-            {
-                for (int j = 0; j < subDim; j++)
-                {
-                    fileMode << solMode[j * subDim + i];
-                    if (j != subDim - 1)
-                        fileMode << ",";
-                }
-                fileMode << endl;
-            }
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < subDim; j++)
+        {
+            fileMode << solMode[j * subDim + i];
+            if (j != subDim - 1)
+                fileMode << ",";
+        }
+        fileMode << endl;
+    }
 
     fileMode.close();
 
     fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m);
-            std::ofstream fileCoeff;
-            fileCoeff.open(fileoutCoeff);
+    std::ofstream fileCoeff;
+    fileCoeff.open(fileoutCoeff);
 
-            for (int i = 0; i < N_Realisations; i++)
-            {
-                for (int j = 0; j < subDim; j++)
-                {
-                    fileCoeff << CoeffVector[j * subDim + i];
-                    if (j != subDim - 1)
-                        fileCoeff << ",";
-                }
-                fileCoeff << endl;
-            }
+    for (int i = 0; i < N_Realisations; i++)
+    {
+        for (int j = 0; j < subDim; j++)
+        {
+            fileCoeff << CoeffVector[j * subDim + i];
+            if (j != subDim - 1)
+                fileCoeff << ",";
+        }
+        fileCoeff << endl;
+    }
 
     fileCoeff.close();
 
-    //xxxxxx
+    // xxxxxx
     N_SubSteps = GetN_SubSteps();
     end_time = TDatabase::TimeDB->ENDTIME;
 
@@ -884,19 +919,17 @@ int main(int argc, char *argv[])
             {
                 // solve the system matrix
                 DO_CoEfficient(Scalar_FeSpace, FEFVector_Mode, FeVector_Coefficient, subDim, subSpaceNum, N_Realisations);
-                double *modeSolution_i = solMode + subSpaceNum * N_DOF;   // This works for column major
-                double *modeSolution_rhs = rhsMode + subSpaceNum * N_DOF; // This works for column major
 
-                memcpy(old_rhsMode, modeSolution_rhs, N_DOF * SizeOfDouble);
+                memcpy(old_rhsMode, rhsModeAll + subSpaceNum * N_DOF, N_DOF * SizeOfDouble);
 
-                SystemMatrix_Mode->AssembleARhs(NULL, modeSolution_i, modeSolution_rhs);
+                SystemMatrix_ModeAll[s]->AssembleARhs(NULL, solModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF);
 
                 // get the UPDATED RHS VALUE FROM FUNCTION
-                DO_Mode_RHS(Scalar_FeSpace, FEFVector_Mode, subDim, modeSolution_rhs, subSpaceNum);
+                DO_Mode_RHS(Scalar_FeSpace, FEFVector_Mode, subDim, rhsModeAll + subSpaceNum * N_DOF, subSpaceNum);
 
-                SystemMatrix_Mode->AssembleSystMat(old_rhsMode, modeSolution_i, modeSolution_rhs, modeSolution_i);
-                SystemMatrix_Mode->Solve(modeSolution_i, modeSolution_rhs);
-                SystemMatrix_Mode->RestoreMassMat();
+                SystemMatrix_ModeAll[s]->AssembleSystMat(old_rhsMode, solModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF, solModeAll + subSpaceNum * N_DOF);
+                SystemMatrix_ModeAll[s]->Solve(solModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF);
+                SystemMatrix_ModeAll[s]->RestoreMassMat();
 
             } // subSpaceNumLoop
 
@@ -934,14 +967,12 @@ int main(int argc, char *argv[])
 
             fileMode.close();
 
-           
-
             SystemMatrix_Mean->AssembleSystMat(old_rhsMean, solMean, rhsMean, solMean);
             ////  --
             SystemMatrix_Mean->Solve(solMean, rhsMean);
             SystemMatrix_Mean->RestoreMassMat();
 
-             fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m);
+            fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m);
             std::ofstream fileMean;
             fileMean.open(fileoutMean);
 
@@ -979,24 +1010,27 @@ int main(int argc, char *argv[])
                 OutputMean->WriteVtk(os.str().c_str());
                 meanimg++;
             }
-
-            if (TDatabase::ParamDB->WRITE_VTK)
+            for (int s = 0; s < subDim; s++)
             {
-                os.seekp(std::ios::beg);
-                if (modeimg < 10)
-                    os << "VTK/" << VtkBaseNameMode << ".0000" << modeimg << ".vtk" << ends;
-                else if (modeimg < 100)
-                    os << "VTK/" << VtkBaseNameMode << ".000" << modeimg << ".vtk" << ends;
-                else if (modeimg < 1000)
-                    os << "VTK/" << VtkBaseNameMode << ".00" << modeimg << ".vtk" << ends;
-                else if (modeimg < 10000)
-                    os << "VTK/" << VtkBaseNameMode << ".0" << modeimg << ".vtk" << ends;
-                else
-                    os << "VTK/" << VtkBaseNameMode << "." << modeimg << ".vtk" << ends;
-                OutputMode->WriteVtk(os.str().c_str());
-                modeimg++;
+                std::string filenameMode = "Mode_" + std::to_string(s) + "_NRealisations_" + std::to_string(N_Realisations);
+                VtkBaseNameMode = const_cast<char *>(filenameMode.c_str());
+                if (TDatabase::ParamDB->WRITE_VTK)
+                {
+                    os.seekp(std::ios::beg);
+                    if (imgMode[s] < 10)
+                        os << "VTK/" << VtkBaseNameMode << ".0000" << imgMode[s] << ".vtk" << ends;
+                    else if (imgMode[s] < 100)
+                        os << "VTK/" << VtkBaseNameMode << ".000" << imgMode[s] << ".vtk" << ends;
+                    else if (imgMode[s] < 1000)
+                        os << "VTK/" << VtkBaseNameMode << ".00" << imgMode[s] << ".vtk" << ends;
+                    else if (imgMode[s] < 10000)
+                        os << "VTK/" << VtkBaseNameMode << ".0" << imgMode[s] << ".vtk" << ends;
+                    else
+                        os << "VTK/" << VtkBaseNameMode << "." << imgMode[s] << ".vtk" << ends;
+                    OutputModeAll[s]->WriteVtk(os.str().c_str());
+                    imgMode[s]++;
+                }
             }
-
         } // produce output loop end
           //======================================================================
         // measure errors to known solution
@@ -1047,248 +1081,256 @@ int main(int argc, char *argv[])
         OutputMean->WriteVtk(os.str().c_str());
         meanimg++;
     }
-
-    if (TDatabase::ParamDB->WRITE_VTK)
+    for (int s = 0; s < subDim; s++)
     {
-        os.seekp(std::ios::beg);
-        if (modeimg < 10)
-            os << "VTK/" << VtkBaseNameMode << ".0000" << modeimg << ".vtk" << ends;
-        else if (modeimg < 100)
-            os << "VTK/" << VtkBaseNameMode << ".000" << modeimg << ".vtk" << ends;
-        else if (modeimg < 1000)
-            os << "VTK/" << VtkBaseNameMode << ".00" << modeimg << ".vtk" << ends;
-        else if (modeimg < 10000)
-            os << "VTK/" << VtkBaseNameMode << ".0" << modeimg << ".vtk" << ends;
-        else
-            os << "VTK/" << VtkBaseNameMode << "." << modeimg << ".vtk" << ends;
-        OutputMode->WriteVtk(os.str().c_str());
-        modeimg++;
+        std::string filenameMode = "Mode_" + std::to_string(s) + "_NRealisations_" + std::to_string(N_Realisations);
+        VtkBaseNameMode = const_cast<char *>(filenameMode.c_str());
+        if (TDatabase::ParamDB->WRITE_VTK)
+        {
+            os.seekp(std::ios::beg);
+            if (imgMode[s] < 10)
+                os << "VTK/" << VtkBaseNameMode << ".0000" << imgMode[s] << ".vtk" << ends;
+            else if (imgMode[s] < 100)
+                os << "VTK/" << VtkBaseNameMode << ".000" << imgMode[s] << ".vtk" << ends;
+            else if (imgMode[s] < 1000)
+                os << "VTK/" << VtkBaseNameMode << ".00" << imgMode[s] << ".vtk" << ends;
+            else if (imgMode[s] < 10000)
+                os << "VTK/" << VtkBaseNameMode << ".0" << imgMode[s] << ".vtk" << ends;
+            else
+                os << "VTK/" << VtkBaseNameMode << "." << imgMode[s] << ".vtk" << ends;
+            OutputModeAll[s]->WriteVtk(os.str().c_str());
+            imgMode[s]++;
+        }
     }
 
     cout << "Subspace Dimension = " << subDim << endl;
     CloseFiles();
 
-    //////////////////////// Monte Carlo Runs /////////////////////////////////////////////
-    TDatabase::TimeDB->CURRENTTIME = 0;
-    sol = new double[N_DOF];
-    rhs = new double[N_DOF];
-    oldrhs = new double[N_DOF];
+    // //////////////////////// Monte Carlo Runs /////////////////////////////////////////////
+    // TDatabase::TimeDB->CURRENTTIME = 0;
+    // sol = new double[N_DOF];
+    // rhs = new double[N_DOF];
+    // oldrhs = new double[N_DOF];
 
-    memset(sol, 0, N_DOF * SizeOfDouble);
-    memset(rhs, 0, N_DOF * SizeOfDouble);
+    // memset(sol, 0, N_DOF * SizeOfDouble);
+    // memset(rhs, 0, N_DOF * SizeOfDouble);
 
-    Scalar_FeFunction = new TFEFunction2D(Scalar_FeSpace, (char *)"sol", (char *)"sol", sol, N_DOF);
-    VtkBaseName = TDatabase::ParamDB->VTKBASENAME;
+    // Scalar_FeFunction = new TFEFunction2D(Scalar_FeSpace, (char *)"sol", (char *)"sol", sol, N_DOF);
+    // VtkBaseName = TDatabase::ParamDB->VTKBASENAME;
 
-    Output = new TOutput2D(2, 2, 1, 1, Domain);
-    Output->AddFEFunction(Scalar_FeFunction);
+    // Output = new TOutput2D(2, 2, 1, 1, Domain);
+    // Output->AddFEFunction(Scalar_FeFunction);
 
-    std::ofstream fileout;
-    std::string name = "init";
-    fileout.open(name);
+    // std::ofstream fileout;
+    // std::string name = "init";
+    // fileout.open(name);
 
-    std::ofstream fileout_final;
-    std::string name1 = "Final";
-    fileout_final.open(name1);
+    // std::ofstream fileout_final;
+    // std::string name1 = "Final";
+    // fileout_final.open(name1);
 
-    //======================================================================
-    // SystemMatrix construction and solution
-    //======================================================================
-    // Disc type: GALERKIN (or) SDFEM  (or) UPWIND (or) SUPG (or) LOCAL_PROJECTION
-    // Solver: AMG_SOLVE (or) GMG  (or) DIRECT
-    SystemMatrix = new TSystemTCD2D(Scalar_FeSpace, GALERKIN, DIRECT);
+    // //======================================================================
+    // // SystemMatrix construction and solution
+    // //======================================================================
+    // // Disc type: GALERKIN (or) SDFEM  (or) UPWIND (or) SUPG (or) LOCAL_PROJECTION
+    // // Solver: AMG_SOLVE (or) GMG  (or) DIRECT
+    // SystemMatrix = new TSystemTCD2D(Scalar_FeSpace, GALERKIN, DIRECT);
 
-    // initilize the system matrix with the functions defined in Example file
-    SystemMatrix->Init(BilinearCoeffs, BoundCondition, BoundValue);
+    // // initilize the system matrix with the functions defined in Example file
+    // SystemMatrix->Init(BilinearCoeffs, BoundCondition, BoundValue);
 
-    // Setup array for random number
-    srand(time(NULL));
-    int N_samples = 100;
-    int *indexArray = new int[N_samples];
-    for (int i = 0; i < N_samples; i++)
-        indexArray[i] = rand() % N_DOF;
+    // // Setup array for random number
+    // srand(time(NULL));
+    // int N_samples = 100;
+    // int *indexArray = new int[N_samples];
+    // for (int i = 0; i < N_samples; i++)
+    //     indexArray[i] = rand() % N_DOF;
 
-    for (int RealNo = 0; RealNo < N_Realisations; RealNo++)
-    {
-        // cout << " ============================================================================================================= " <<endl;
-        cout << " Real no " << RealNo << endl;
-        // cout << " ============================================================================================================= " <<endl;
+    // for (int RealNo = 0; RealNo < N_Realisations; RealNo++)
+    // {
+    //     // cout << " ============================================================================================================= " <<endl;
+    //     cout << " Real no " << RealNo << endl;
+    //     // cout << " ============================================================================================================= " <<endl;
 
-        // Scalar_FeFunction->Interpolate(InitialCondition);
-        std::string str = std::to_string(RealNo);
-        std::string filename = "Realization_Nr_" + std::to_string(RealNo);
-        VtkBaseName = const_cast<char *>(filename.c_str());
-        img = 0;
+    //     // Scalar_FeFunction->Interpolate(InitialCondition);
+    //     std::string str = std::to_string(RealNo);
+    //     std::string filename = "Realization_Nr_" + std::to_string(RealNo);
+    //     VtkBaseName = const_cast<char *>(filename.c_str());
+    //     img = 0;
 
-        if(TDatabase::ParamDB->WRITE_VTK){
-        mkdir(filename.c_str(), 0777);}
+    //     if (TDatabase::ParamDB->WRITE_VTK)
+    //     {
+    //         mkdir(filename.c_str(), 0777);
+    //     }
 
-        for (int i = 0; i < N_DOF; i++)
-            sol[i] = RealizationVector[RealNo + N_Realisations * i];
-        if(TDatabase::ParamDB->WRITE_VTK){
-        os.seekp(std::ios::beg);
-        if (img < 10)
-            os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
-        else if (img < 100)
-            os << filename.c_str() << "/" << VtkBaseName << ".000" << img << ".vtk" << ends;
-        else if (img < 1000)
-            os << filename.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
-        else if (img < 10000)
-            os << filename.c_str() << "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
-        else
-            os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
-        Output->WriteVtk(os.str().c_str());
-        img++;
-        }
+    //     for (int i = 0; i < N_DOF; i++)
+    //         sol[i] = RealizationVector[RealNo + N_Realisations * i];
+    //     if (TDatabase::ParamDB->WRITE_VTK)
+    //     {
+    //         os.seekp(std::ios::beg);
+    //         if (img < 10)
+    //             os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
+    //         else if (img < 100)
+    //             os << filename.c_str() << "/" << VtkBaseName << ".000" << img << ".vtk" << ends;
+    //         else if (img < 1000)
+    //             os << filename.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
+    //         else if (img < 10000)
+    //             os << filename.c_str() << "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
+    //         else
+    //             os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
+    //         Output->WriteVtk(os.str().c_str());
+    //         img++;
+    //     }
 
-        for (int k = 0; k < N_samples; k++)
-        {
-            fileout << sol[indexArray[k]];
-            if (k != N_DOF - 1)
-                fileout << ",";
-        }
-        fileout << endl;
+    //     for (int k = 0; k < N_samples; k++)
+    //     {
+    //         fileout << sol[indexArray[k]];
+    //         if (k != N_DOF - 1)
+    //             fileout << ",";
+    //     }
+    //     fileout << endl;
 
-        // assemble the system matrix with given aux, sol and rhs
-        // aux is used to pass  addition fe functions (eg. mesh velocity) that is nedded for assembling,
-        // otherwise, just pass with NULL
-        SystemMatrix->AssembleMRhs(NULL, sol, rhs);
+    //     // assemble the system matrix with given aux, sol and rhs
+    //     // aux is used to pass  addition fe functions (eg. mesh velocity) that is nedded for assembling,
+    //     // otherwise, just pass with NULL
+    //     SystemMatrix->AssembleMRhs(NULL, sol, rhs);
 
-        //======================================================================
-        // time disc loop
-        //======================================================================
-        // parameters for time stepping scheme
-        m = 0;
-        N_SubSteps = GetN_SubSteps();
-        end_time = TDatabase::TimeDB->ENDTIME;
+    //     //======================================================================
+    //     // time disc loop
+    //     //======================================================================
+    //     // parameters for time stepping scheme
+    //     m = 0;
+    //     N_SubSteps = GetN_SubSteps();
+    //     end_time = TDatabase::TimeDB->ENDTIME;
 
-        UpdateStiffnessMat = TRUE; // check BilinearCoeffs in example file
-        UpdateRhs = TRUE;          // check BilinearCoeffs in example file
-        ConvectionFirstTime = TRUE;
+    //     UpdateStiffnessMat = TRUE; // check BilinearCoeffs in example file
+    //     UpdateRhs = TRUE;          // check BilinearCoeffs in example file
+    //     ConvectionFirstTime = TRUE;
 
-        // time loop starts
-        while (TDatabase::TimeDB->CURRENTTIME < end_time)
-        {
-            m++;
-            TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
+    //     // time loop starts
+    //     while (TDatabase::TimeDB->CURRENTTIME < end_time)
+    //     {
+    //         m++;
+    //         TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
 
-            for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
-            {
-                SetTimeDiscParameters(1);
+    //         for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
+    //         {
+    //             SetTimeDiscParameters(1);
 
-                if (m == 1)
-                {
-                    // OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
-                    // OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
-                    // OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
-                    // OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
-                }
+    //             if (m == 1)
+    //             {
+    //                 // OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
+    //                 // OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
+    //                 // OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
+    //                 // OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
+    //             }
 
-                tau = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
-                TDatabase::TimeDB->CURRENTTIME += tau;
+    //             tau = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
+    //             TDatabase::TimeDB->CURRENTTIME += tau;
 
-                // OutPut(endl<< "CURRENT TIME: ");
-                // OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
+    //             // OutPut(endl<< "CURRENT TIME: ");
+    //             // OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
 
-                // copy rhs to oldrhs
-                memcpy(oldrhs, rhs, N_DOF * SizeOfDouble);
+    //             // copy rhs to oldrhs
+    //             memcpy(oldrhs, rhs, N_DOF * SizeOfDouble);
 
-                // unless the stiffness matrix or rhs change in time, it is enough to
-                // assemble only once at the begning
-                if (UpdateStiffnessMat || UpdateRhs || ConvectionFirstTime)
-                {
-                    SystemMatrix->AssembleARhs(NULL, sol, rhs);
+    //             // unless the stiffness matrix or rhs change in time, it is enough to
+    //             // assemble only once at the begning
+    //             if (UpdateStiffnessMat || UpdateRhs || ConvectionFirstTime)
+    //             {
+    //                 SystemMatrix->AssembleARhs(NULL, sol, rhs);
 
-                    // M:= M + (tau*THETA1)*A
-                    // rhs: =(tau*THETA4)*rhs +(tau*THETA3)*oldrhs +[M-(tau*THETA2)A]*oldsol
-                    // note! sol contains only the previous time step value, so just pass
-                    // sol for oldsol
-                    SystemMatrix->AssembleSystMat(oldrhs, sol, rhs, sol);
-                    ConvectionFirstTime = FALSE;
-                }
+    //                 // M:= M + (tau*THETA1)*A
+    //                 // rhs: =(tau*THETA4)*rhs +(tau*THETA3)*oldrhs +[M-(tau*THETA2)A]*oldsol
+    //                 // note! sol contains only the previous time step value, so just pass
+    //                 // sol for oldsol
+    //                 SystemMatrix->AssembleSystMat(oldrhs, sol, rhs, sol);
+    //                 ConvectionFirstTime = FALSE;
+    //             }
 
-                // solve the system matrix
-                SystemMatrix->Solve(sol, rhs);
+    //             // solve the system matrix
+    //             SystemMatrix->Solve(sol, rhs);
 
-                fileoutMC = "MonteCarlo/MC_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m);
-                std::ofstream fileMC;
-                fileMC.open(fileoutMC, std::fstream::app);
+    //             fileoutMC = "MonteCarlo/MC_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m);
+    //             std::ofstream fileMC;
+    //             fileMC.open(fileoutMC, std::fstream::app);
 
-                for (int i = 0; i < N_DOF; i++)
-                {
-                    fileMC << sol[i] << ",";
-                }
-                fileMC << endl;
-                cout << "Realization " << RealNo << " added" << endl;
+    //             for (int i = 0; i < N_DOF; i++)
+    //             {
+    //                 fileMC << sol[i] << ",";
+    //             }
+    //             fileMC << endl;
+    //             cout << "Realization " << RealNo << " added" << endl;
 
-                fileMC.close();
+    //             fileMC.close();
 
-                // restore the mass matrix for the next time step
-                // unless the stiffness matrix or rhs change in time, it is not necessary to assemble the system matrix in every time step
-                if (UpdateStiffnessMat || UpdateRhs)
-                {
-                    SystemMatrix->RestoreMassMat();
-                }
+    //             // restore the mass matrix for the next time step
+    //             // unless the stiffness matrix or rhs change in time, it is not necessary to assemble the system matrix in every time step
+    //             if (UpdateStiffnessMat || UpdateRhs)
+    //             {
+    //                 SystemMatrix->RestoreMassMat();
+    //             }
 
-                if (TDatabase::ParamDB->WRITE_VTK)
-                {
-                    os.seekp(std::ios::beg);
-                    if (img < 10)
-                        os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
-                    else if (img < 100)
-                        os << filename.c_str() << "/" << VtkBaseName << ".000" << img << ".vtk" << ends;
-                    else if (img < 1000)
-                        os << filename.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
-                    else if (img < 10000)
-                        os << filename.c_str() << "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
-                    else
-                        os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
-                    Output->WriteVtk(os.str().c_str());
-                    img++;
-                }
+    //             if (TDatabase::ParamDB->WRITE_VTK)
+    //             {
+    //                 os.seekp(std::ios::beg);
+    //                 if (img < 10)
+    //                     os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
+    //                 else if (img < 100)
+    //                     os << filename.c_str() << "/" << VtkBaseName << ".000" << img << ".vtk" << ends;
+    //                 else if (img < 1000)
+    //                     os << filename.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
+    //                 else if (img < 10000)
+    //                     os << filename.c_str() << "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
+    //                 else
+    //                     os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
+    //                 Output->WriteVtk(os.str().c_str());
+    //                 img++;
+    //             }
 
-            } // for(l=0;l< N_SubSteps;l++)
+    //         } // for(l=0;l< N_SubSteps;l++)
 
-        } // while(TDatabase::TimeDB->CURRENTTIME< end_time)
+    //     } // while(TDatabase::TimeDB->CURRENTTIME< end_time)
 
-        //======================================================================
-        // produce final outout
-        //======================================================================
-        if(TDatabase::ParamDB->WRITE_VTK){
-        os.seekp(std::ios::beg);
-        if (img < 10)
-            os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
-        else if (img < 100)
-            os << filename.c_str() << "/" << VtkBaseName << ".000" << img << ".vtk" << ends;
-        else if (img < 1000)
-            os << filename.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
-        else if (img < 10000)
-            os << filename.c_str() << "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
-        else
-            os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
-        Output->WriteVtk(os.str().c_str());
-        img++;
-        }
+    //     //======================================================================
+    //     // produce final outout
+    //     //======================================================================
+    //     if (TDatabase::ParamDB->WRITE_VTK)
+    //     {
+    //         os.seekp(std::ios::beg);
+    //         if (img < 10)
+    //             os << filename.c_str() << "/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
+    //         else if (img < 100)
+    //             os << filename.c_str() << "/" << VtkBaseName << ".000" << img << ".vtk" << ends;
+    //         else if (img < 1000)
+    //             os << filename.c_str() << "/" << VtkBaseName << ".00" << img << ".vtk" << ends;
+    //         else if (img < 10000)
+    //             os << filename.c_str() << "/" << VtkBaseName << ".0" << img << ".vtk" << ends;
+    //         else
+    //             os << filename.c_str() << "/" << VtkBaseName << "." << img << ".vtk" << ends;
+    //         Output->WriteVtk(os.str().c_str());
+    //         img++;
+    //     }
 
-        // cout << " Solution Norm After: " << Ddot(N_DOF,sol,sol) <<endl;
+    //     // cout << " Solution Norm After: " << Ddot(N_DOF,sol,sol) <<endl;
 
-        for (int k = 0; k < N_samples; k++)
-        {
-            fileout_final << sol[indexArray[k]];
-            if (k != N_DOF - 1)
-                fileout_final << ",";
-        }
-        fileout_final << endl;
+    //     for (int k = 0; k < N_samples; k++)
+    //     {
+    //         fileout_final << sol[indexArray[k]];
+    //         if (k != N_DOF - 1)
+    //             fileout_final << ",";
+    //     }
+    //     fileout_final << endl;
 
-        // set Current Time as Zero
-        TDatabase::TimeDB->CURRENTTIME = 0;
-        // delete SystemMatrix;
-    }
-    fileout.close();
+    //     // set Current Time as Zero
+    //     TDatabase::TimeDB->CURRENTTIME = 0;
+    //     // delete SystemMatrix;
+    // }
+    // fileout.close();
 
-    CloseFiles();
+    // CloseFiles();
 
-    /////////////////////// Monte Carlo Run Ends /////////////////////////////////////////
+    // /////////////////////// Monte Carlo Run Ends /////////////////////////////////////////
 
     return 0;
 } // end main
