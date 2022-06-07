@@ -52,7 +52,7 @@ set(AParMooN_GEO "2D" CACHE STRING "Change AParMooN_GEO, to select the Dimensio 
 
 ######### DO Test Programs #####################
 
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TCD2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model")
+set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TCD2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model")
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TCD2D_ParMooN_IVUQ_DO_Mean.C" CACHE STRING "Enter to select the Main file of the model")
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TBE2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model")
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TBE2D_ParMooN_IVUQ_DO_Mean.C" CACHE STRING "Enter to select the Main file of the model")
@@ -62,7 +62,7 @@ set(AParMooN_GEO "2D" CACHE STRING "Change AParMooN_GEO, to select the Dimensio 
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/TESTS/TNSE2D_ParMooN_IVUQ_DO_DFPre.C" CACHE STRING "Enter to select the Main file of the model")
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/TESTS/TNSE2D_ParMooN_IVUQ_DO_DFPost.C" CACHE STRING "Enter to select the Main file of the model")
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/TESTS/TNSE2D_ParMooN_IVUQ_MC_wMean.C" CACHE STRING "Enter to select the Main file of the model")
-set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/TESTS/TCD2D_ParMooN_MC_Mean.C" CACHE STRING "Enter to select the Main file of the model")
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/TESTS/TCD2D_ParMooN_MC_Mean.C" CACHE STRING "Enter to select the Main file of the model")
 
 
 
@@ -110,7 +110,7 @@ set(AParMooN_MPI_IMPLEMENTATION "INTELMPI" CACHE STRING "select the MPI Implemen
 
 ####### DO Output Folders ##########
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TNSE2D_IVUQ_DO" CACHE STRING "select the model")
-#set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TCD2D_IVUQ_DO" CACHE STRING "select the model")
+set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TCD2D_IVUQ_DO" CACHE STRING "select the model")
 
 
 ##### Test Output Folders ###########################
@@ -124,7 +124,7 @@ set(AParMooN_MPI_IMPLEMENTATION "INTELMPI" CACHE STRING "select the MPI Implemen
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/Test/TNSE2D_IVUQ_DO_DFPre" CACHE STRING "select the model")
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/Test/TNSE2D_IVUQ_DO_DFPost" CACHE STRING "select the model")
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/Test/TNSE2D_IVUQ_MC" CACHE STRING "select the model")
-set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/Test/TCD2D_MC_Mean" CACHE STRING "select the model")
+#set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/Test/TCD2D_MC_Mean" CACHE STRING "select the model")
 
 
 

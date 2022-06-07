@@ -733,10 +733,10 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
 	int lenPhi = FEVector_Phi->GetLength();
 	// cout << "************** Length of Phi = " << lenPhi << endl;
 	double *phi_New = new double[lenPhi]();
-	double *C_Array_i = C_Array + i_index * lenMode;
+	double *C_Array_i = C_Array + (i_index * lenMode);
 	// double* phi_Array_i = Phi_Array + i_index*lenMode; ??
-	double *phi_Array_i = Phi_Array + i_index * lenPhi;
-	double *phi_Old_i = Phi_Old + i_index * lenPhi;
+	double *phi_Array_i = Phi_Array + (i_index * lenPhi);
+	double *phi_Old_i = Phi_Old + (i_index * lenPhi);
 
 	for (int cellId = 0; cellId < N_Cells; cellId++)
 	{ // cell loop
@@ -865,11 +865,11 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
 			double C_y_a[N_Points2];
 
 			for (int quadPt = 0; quadPt < N_Points2; quadPt++)
-				C_a[quadPt] = 0;
+				C_a[quadPt] = 0.;
 			for (int quadPt = 0; quadPt < N_Points2; quadPt++)
-				C_x_a[quadPt] = 0;
+				C_x_a[quadPt] = 0.;
 			for (int quadPt = 0; quadPt < N_Points2; quadPt++)
-				C_y_a[quadPt] = 0;
+				C_y_a[quadPt] = 0.;
 
 			// Obtain all values for C_a
 			for (int quadPt = 0; quadPt < N_Points2; quadPt++)
@@ -918,6 +918,8 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
 				phi_New[i] += val * phi_Array_a[i] * -1.0;
 			}
 
+			val=0.0;//new addn
+
 		} //"a" loop ends
 
 	} // cell loop
@@ -929,5 +931,7 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
 	}
 
 	delete[] phi_New;
+	//
+	
 
 } // function end
