@@ -233,9 +233,8 @@ int main(int argc, char *argv[])
     //     if (!foundFlag)
     //         cerr << " DOF NOT FOUND FOR " << i << " position : " << setw(8) << org_x_coord[i] << setw(8) << org_y_coord[i] << endl;
     // }
-
     // // int N_DOF =  N * N;
-    // double *x = new double[N_DOF];
+    // double *x = new double[N_DOF];   
     // double *y = new double[N_DOF];
 
     // for (int i = 0; i < N_DOF; i++)
@@ -410,14 +409,14 @@ int main(int argc, char *argv[])
     //     }
     // }
 
-    // // cout << " N_Realisations : " << N_Realisations << endl;
-    // // cout << " MULT START " << endl;
+    // cout << " N_Realisations : " << N_Realisations << endl;
+    // cout << " MULT START " << endl;
     // cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_DOF, N_Realisations, modDim, 1.0, Ut, modDim, Z, N_Realisations, 0.0, RealizationVector, N_Realisations);
-    // // cout << " MULT DONE " << endl;
-    // // printMatrix(SolutionVector, N_DOF,N_Realisations);
+    // cout << " MULT DONE " << endl;
+    // printMatrix(SolutionVector, N_DOF,N_Realisations);
 
-    // // mkl_dimatcopy('R','T', N_DOF,N_Realisations,1.0,SolutionVector,N_DOF,N_Realisations);
-    // // cout << " COPY DONE "<<endl;
+    // mkl_dimatcopy('R','T', N_DOF,N_Realisations,1.0,SolutionVector,N_DOF,N_Realisations);
+    // cout << " COPY DONE "<<endl;
 
     // for (int i = 0; i < N_DOF; i++)
     // {
@@ -455,14 +454,14 @@ int main(int argc, char *argv[])
     else
         cout << "Could not open the file\n";
 
-    // for (int i = 0; i < content.size(); i++)
-    // {
-    //     for (int j = 0; j < content[i].size(); j++)
-    //     {
-    //         cout << content[i][j] << " ";
-    //     }
-    //     cout << "\n";
-    // }
+    for (int i = 0; i < content.size(); i++)
+    {
+        for (int j = 0; j < content[i].size(); j++)
+        {
+            cout << content[i][j] << " ";
+        }
+        cout << "\n";
+    }
 
     for (int i = 0; i < N_DOF; i++)
     {
