@@ -350,9 +350,10 @@ int main(int argc, char *argv[])
     double *Ut = new double[N_DOF * modDim]();
     double *Z = new double[N_Realisations * modDim]();
 
-    double *SolutionVector = new double[N_DOF * N_Realisations]();
     double *RealizationVector = new double[N_DOF * N_Realisations]();
+    double *RealizationVectorTemp = new double[N_DOF * N_Realisations]();
     double *RealizationVectorCopy = new double[N_DOF * N_Realisations]();
+
 
     // -------------- Generate Random Number Based on Normal Distribution -------------------------//
     int k = 0;
@@ -391,36 +392,28 @@ int main(int argc, char *argv[])
     }
 
     cout << " N_Realisations : " << N_Realisations << endl;
-    cout << " MULT START " << endl;
-    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_DOF, N_Realisations, modDim, 1.0, Ut, modDim, Z, N_Realisations, 0.0, SolutionVector, N_Realisations);
-    cout << " MULT DONE " << endl;
+    // cout << " MULT START " << endl;
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_DOF, N_Realisations, modDim, 1.0, Ut, modDim, Z, N_Realisations, 0.0, RealizationVector, N_Realisations);
+    // cout << " MULT DONE " << endl;
     // printMatrix(SolutionVector, N_DOF,N_Realisations);
 
     // mkl_dimatcopy('R','T', N_DOF,N_Realisations,1.0,SolutionVector,N_DOF,N_Realisations);
-    cout << " COPY DONE " << endl;
+    // cout << " COPY DONE " << endl;
 
-    cout << " REALISATIONS COMPUTED " << endl;
+      for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_Realisations; j++)
+        {
+            RealizationVectorTemp[mappingArray[i] * N_Realisations + j] = RealizationVector[j + N_Realisations * i];
+        }
+    }
+    memcpy(RealizationVector, RealizationVectorTemp, N_DOF * N_Realisations * SizeOfDouble);
+    memcpy(RealizationVectorCopy, RealizationVector, N_DOF * N_Realisations * SizeOfDouble);
 
     /////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
-    for (int i = 0; i < N_DOF; i++)
-    {
-        for (int j = 0; j < N_Realisations; j++)
-        {
-            RealizationVectorCopy[mappingArray[i] + N_DOF * j] = SolutionVector[j + N_Realisations * i];
-        }
-    }
+    cout << " REALISATIONS COMPUTED " << endl;
 
-    /////////////-------------------- DO-Routines--------------////////
-    double *RealizationVectorTemp = new double[N_DOF * N_Realisations]();
-    for (int i = 0; i < N_DOF; i++)
-    {
-        for (int j = 0; j < N_Realisations; j++)
-        {
-            RealizationVectorTemp[mappingArray[i] * N_Realisations + j] = SolutionVector[j + N_Realisations * i];
-        }
-    }
-
-    memcpy(RealizationVector, RealizationVectorTemp, N_DOF * N_Realisations * SizeOfDouble);
+ 
 
     TDatabase::TimeDB->CURRENTTIME = 0;
     // -------- Output parameters------------//
@@ -436,6 +429,26 @@ int main(int argc, char *argv[])
     std::ofstream fileout_final;
     std::string name1 = "Final";
     fileout_final.open(name1);
+
+
+    std::ofstream fileRealizations;
+    std::string nameRlzn = "Realization.txt";
+    fileRealizations.open(nameRlzn);
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_Realisations; j++)
+        {
+            fileRealizations << RealizationVector[j + N_Realisations * i];
+
+            if (j != N_Realisations - 1)
+            {
+                fileRealizations << ",";
+            }
+        }
+        fileRealizations << endl;
+    }
+
+    fileRealizations.close();
 
     //======================================================================
     // SystemMatrix construction and solution
@@ -484,7 +497,7 @@ int main(int argc, char *argv[])
         VtkBaseName = const_cast<char *>(filename.c_str());
         for (int i = 0; i < N_DOF; i++)
         {
-            sol[i] = RealizationVectorCopy[RealNo * N_DOF + i];
+            sol[i] = RealizationVector[i*N_Realisations+RealNo];
             solMCMean[i] += sol[i] / N_Realisations;
             SystemMatrix->AssembleMRhs(NULL, sol, rhs);
         }
@@ -546,7 +559,7 @@ int main(int argc, char *argv[])
             VtkBaseName = const_cast<char *>(filename.c_str());
             for (int i = 0; i < N_DOF; i++)
             {
-                sol[i] = RealizationVectorCopy[RealNo * N_DOF + i];
+                sol[i] = RealizationVector[i*N_Realisations+RealNo];
             }
 
             for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
@@ -588,7 +601,7 @@ int main(int argc, char *argv[])
                 SystemMatrix->Solve(sol, rhs);
                 for (int i = 0; i < N_DOF; i++)
                 {
-                    RealizationVectorCopy[RealNo * N_DOF + i] = sol[i];
+                    RealizationVector[i*N_Realisations+RealNo] = sol[i];
                     solMCMean[i] += sol[i] / N_Realisations;
                 }
 
