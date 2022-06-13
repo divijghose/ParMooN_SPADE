@@ -354,7 +354,6 @@ int main(int argc, char *argv[])
     double *RealizationVectorTemp = new double[N_DOF * N_Realisations]();
     double *RealizationVectorCopy = new double[N_DOF * N_Realisations]();
 
-
     // -------------- Generate Random Number Based on Normal Distribution -------------------------//
     int k = 0;
     int skip = N_DOF - modDim;
@@ -400,11 +399,11 @@ int main(int argc, char *argv[])
     // mkl_dimatcopy('R','T', N_DOF,N_Realisations,1.0,SolutionVector,N_DOF,N_Realisations);
     // cout << " COPY DONE " << endl;
 
-      for (int i = 0; i < N_DOF; i++)
+    for (int i = 0; i < N_DOF; i++)
     {
         for (int j = 0; j < N_Realisations; j++)
         {
-            RealizationVectorTemp[mappingArray[i] * N_Realisations + j] = RealizationVector[j + N_Realisations * i];
+            RealizationVectorTemp[(mappingArray[i] * N_Realisations) + j] = RealizationVector[j + (N_Realisations * i)];
         }
     }
     memcpy(RealizationVector, RealizationVectorTemp, N_DOF * N_Realisations * SizeOfDouble);
@@ -413,7 +412,83 @@ int main(int argc, char *argv[])
     /////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
     cout << " REALISATIONS COMPUTED " << endl;
 
- 
+    std::ofstream fileRealizations;
+    std::string nameRlzn = "Realization.txt";
+    fileRealizations.open(nameRlzn);
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_Realisations; j++)
+        {
+            fileRealizations << RealizationVector[j + (N_Realisations * i)];
+            // cout << RealizationVector[j + (N_Realisations * i)];
+
+            if (j != N_Realisations - 1)
+            {
+                fileRealizations << ",";
+                // cout << ",";
+            }
+        }
+        fileRealizations << endl;
+        // cout << endl;
+    }
+    fileRealizations.close();
+    cout << "All Realizations Written to Realization.txt" << endl;
+
+    // cout << "Read In" << endl;
+    // std::vector<std::vector<std::string>> content;
+    // std::vector<std::string> row;
+    // std::string line, word;
+
+    // std::ifstream file("Realization.txt");
+    // if (file.is_open())
+    // {
+    //     while (getline(file, line))
+    //     {
+    //         row.clear();
+
+    //         std::stringstream str(line);
+
+    //         while (getline(str, word, ','))
+    //             row.push_back(word);
+    //         content.push_back(row);
+    //     }
+    // }
+    // else
+    //     cout << "Could not open the file\n";
+
+    // for (int i = 0; i < content.size(); i++)
+    // {
+    //     for (int j = 0; j < content[i].size(); j++)
+    //     {
+    //         cout << content[i][j] << " ";
+    //     }
+    //     cout << "\n";
+    // }
+
+    // cout << "Re Read ****" << endl;
+    // for (int i = 0; i < N_DOF; i++)
+    // {
+    //     for (int j = 0; j < N_Realisations; j++)
+    //     {
+    //         RealizationVector[i * N_Realisations + j] = std::stod(content[i][j]);
+    //     }
+    // }
+
+    // for (int i = 0; i < N_DOF; i++)
+    // {
+    //     for (int j = 0; j < N_Realisations; j++)
+    //     {
+    //         cout << RealizationVector[j + (N_Realisations * i)];
+
+    //         if (j != N_Realisations - 1)
+    //         {
+    //             cout << ",";
+    //         }
+    //     }
+    //     cout << endl;
+    // }
+
+    exit(0);
 
     TDatabase::TimeDB->CURRENTTIME = 0;
     // -------- Output parameters------------//
@@ -429,26 +504,6 @@ int main(int argc, char *argv[])
     std::ofstream fileout_final;
     std::string name1 = "Final";
     fileout_final.open(name1);
-
-
-    std::ofstream fileRealizations;
-    std::string nameRlzn = "Realization.txt";
-    fileRealizations.open(nameRlzn);
-    for (int i = 0; i < N_DOF; i++)
-    {
-        for (int j = 0; j < N_Realisations; j++)
-        {
-            fileRealizations << RealizationVector[j + N_Realisations * i];
-
-            if (j != N_Realisations - 1)
-            {
-                fileRealizations << ",";
-            }
-        }
-        fileRealizations << endl;
-    }
-
-    fileRealizations.close();
 
     //======================================================================
     // SystemMatrix construction and solution
@@ -497,7 +552,7 @@ int main(int argc, char *argv[])
         VtkBaseName = const_cast<char *>(filename.c_str());
         for (int i = 0; i < N_DOF; i++)
         {
-            sol[i] = RealizationVector[i*N_Realisations+RealNo];
+            sol[i] = RealizationVectorCopy[i * N_Realisations + RealNo];
             solMCMean[i] += sol[i] / N_Realisations;
             SystemMatrix->AssembleMRhs(NULL, sol, rhs);
         }
@@ -559,7 +614,7 @@ int main(int argc, char *argv[])
             VtkBaseName = const_cast<char *>(filename.c_str());
             for (int i = 0; i < N_DOF; i++)
             {
-                sol[i] = RealizationVector[i*N_Realisations+RealNo];
+                sol[i] = RealizationVectorCopy[i * N_Realisations + RealNo];
             }
 
             for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
@@ -601,7 +656,7 @@ int main(int argc, char *argv[])
                 SystemMatrix->Solve(sol, rhs);
                 for (int i = 0; i < N_DOF; i++)
                 {
-                    RealizationVector[i*N_Realisations+RealNo] = sol[i];
+                    RealizationVectorCopy[i * N_Realisations + RealNo] = sol[i];
                     solMCMean[i] += sol[i] / N_Realisations;
                 }
 

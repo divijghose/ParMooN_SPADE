@@ -262,7 +262,7 @@ int main(int argc, char *argv[])
 
             else
             {
-                cout << "Error " << endl;
+                cout << "Error - No standard deviation function is defined for stddev_switch: " << TDatabase::ParamDB->stddev_switch << endl;
                 exit(0);
             }
 
@@ -344,8 +344,8 @@ int main(int argc, char *argv[])
     double *Ut = new double[N_DOF * modDim]();
     double *Z = new double[N_Realisations * modDim]();
 
-    double *SolutionVector = new double[N_DOF * N_Realisations]();
     double *RealizationVector = new double[N_DOF * N_Realisations]();
+    double *RealizationVectorTemp = new double[N_DOF * N_Realisations]();
 
     // -------------- Generate Random Number Based on Normal Distribution -------------------------//
     int k = 0;
@@ -385,29 +385,23 @@ int main(int argc, char *argv[])
 
     cout << " N_Realisations : " << N_Realisations << endl;
     cout << " MULT START " << endl;
-    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_DOF, N_Realisations, modDim, 1.0, Ut, modDim, Z, N_Realisations, 0.0, SolutionVector, N_Realisations);
-    cout << " MULT DONE " << endl;
-    // printMatrix(SolutionVector, N_DOF,N_Realisations);
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_DOF, N_Realisations, modDim, 1.0, Ut, modDim, Z, N_Realisations, 0.0, RealizationVector, N_Realisations);
+    // cout << " MULT DONE " << endl;
+    // printMatrix(RealizationVector, N_DOF,N_Realisations);
 
-    // mkl_dimatcopy('R','T', N_DOF,N_Realisations,1.0,SolutionVector,N_DOF,N_Realisations);
-    cout << " COPY DONE " << endl;
+    // mkl_dimatcopy('R','T', N_DOF,N_Realisations,1.0,RealizationVector,N_DOF,N_Realisations);
+    // cout << " COPY DONE " << endl;
 
-    cout << " REALISATIONS COMPUTED " << endl;
     for (int i = 0; i < N_DOF; i++)
     {
         for (int j = 0; j < N_Realisations; j++)
         {
-            RealizationVector[mappingArray[i] * N_Realisations + j] = SolutionVector[j + N_Realisations * i];
+            RealizationVectorTemp[mappingArray[i] * N_Realisations + j] = RealizationVector[j + N_Realisations * i];
         }
     }
+    memcpy(RealizationVector, RealizationVectorTemp, N_DOF * N_Realisations * SizeOfDouble);
     /////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
-    // for (int i = 0; i < N_DOF; i++)
-    // {
-    //     for (int j = 0; j < N_Realisations; j++)
-    //     {
-    //         RealizationVector[mappingArray[i] + N_DOF * j] = SolutionVector[j + N_Realisations * i];
-    //     }
-    // }
+    cout << " REALISATIONS COMPUTED " << endl;
 
     // -------- Output parameters------------//
     VtkBaseName = TDatabase::ParamDB->VTKBASENAME;
@@ -430,7 +424,7 @@ int main(int argc, char *argv[])
     {
         for (int j = 0; j < N_Realisations; j++)
         {
-            fileRealizations << RealizationVector[j +N_Realisations*i];
+            fileRealizations << RealizationVector[j + N_Realisations * i];
 
             if (j != N_Realisations - 1)
             {
@@ -442,73 +436,7 @@ int main(int argc, char *argv[])
 
     fileRealizations.close();
 
-    // std::ifstream in("Realization.txt");
-    // std::string input;
-    // std::vector<std::string> collection;
-    // while (in >> input)
-    // {
-    //     collection.push_back(input);
-    //     std::cout << input << endl;
-    // }
 
-    // std::cout << "Contents of collection:\n";
-    // for (auto &x : collection)
-    //     std::cout << x << '\n';
-    // cout << "Read In" << endl;
-    // std::vector<std::vector<std::string>> content;
-    // std::vector<std::string> row;
-    // std::string line, word;
-
-    // std::ifstream file("Realization.txt");
-    // if (file.is_open())
-    // {
-    //     while (getline(file, line))
-    //     {
-    //         row.clear();
-
-    //         std::stringstream str(line);
-
-    //         while (getline(str, word, ','))
-    //             row.push_back(word);
-    //         content.push_back(row);
-    //     }
-    // }
-    // else
-    //     cout << "Could not open the file\n";
-
-    // for (int i = 0; i < content.size(); i++)
-    // {
-    //     for (int j = 0; j < content[i].size(); j++)
-    //     {
-    //         cout << content[i][j] << " ";
-    //     }
-    //     cout << "\n";
-    // }
-
-    // double *RealizationVectorNew = new double[N_DOF * N_Realisations]();
-    // for (int i = 0; i < N_DOF; i++)
-    // {
-    //     for (int j = 0; j < N_Realisations; j++)
-    //     {
-    //         RealizationVectorNew[i + N_DOF * j] = std::stod(content[i][j]);
-    //     }
-    // }
-    // cout << "Retrieve" << endl;
-    // for (int i = 0; i < N_DOF; i++)
-    // {
-    //     for (int j = 0; j < N_Realisations; j++)
-    //     {
-    //         cout << RealizationVectorNew[j * N_DOF + i];
-
-    //         if (j != N_Realisations - 1)
-    //         {
-    //             cout << ",";
-    //         }
-    //     }
-    //     cout << endl;
-    // }
-
-    exit(0);
 
     //======================================================================
     // SystemMatrix construction and solution
@@ -541,8 +469,9 @@ int main(int argc, char *argv[])
         mkdir(filename.c_str(), 0777);
 
         for (int i = 0; i < N_DOF; i++)
-            // sol[mappingArray[i]] = SolutionVector[RealNo  +  N_Realisations * i];
-            sol[i] = RealizationVector[RealNo * N_DOF + i];
+            // sol[mappingArray[i]] = RealizationVector[RealNo  +  N_Realisations * i];
+            // sol[i] = RealizationVector[RealNo * N_DOF + i];
+            sol[i] = RealizationVector[i * N_Realisations + RealNo];
 
         os.seekp(std::ios::beg);
         if (img < 10)

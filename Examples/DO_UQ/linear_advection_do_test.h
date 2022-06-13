@@ -918,7 +918,7 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
 				phi_New[i] += val * phi_Array_a[i] * -1.0;
 			}
 
-			val=0.0;//new addn
+			// val=0.0;//new addn
 
 		} //"a" loop ends
 
