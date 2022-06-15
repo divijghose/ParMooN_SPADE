@@ -516,7 +516,7 @@ int main(int argc, char *argv[])
     //         RealizationVector[i*N_Realisations+j] = std::stod(content[i][j]);
     //     }
     // }
-   
+
     ////////////////////////////////////// -------- START OF DO INITIALIZATION ------------ ////////////////////////////////////////////////////////////////
 
     double *MeanVector = new double[N_DOF * 1](); // overline{C}_{dof} = \sum_{i=1}^{N_Realisations}(C^{i}_{dof})/N_Realisations
@@ -840,6 +840,27 @@ int main(int argc, char *argv[])
 
     OutputMode = new TOutput2D(2, 2, 1, 1, Domain);
     OutputMode->AddFEVectFunct(FEFVector_Mode);
+
+    // // rEMOVE THIS CODE 
+    // TOutput2D *OutputMapping = new TOutput2D(2, 2, 1, 1, Domain);
+
+    // std::vector<double> mapperForVTK(N_DOF,0.0);
+
+    // TFEFunction2D* mapperFEFunction = new TFEFunction2D(Scalar_FeSpace, (char *)"Mapper", (char *)"Mapper", mapperForVTK.data(),N_DOF);
+    // OutputMapping->AddFEFunction(mapperFEFunction);
+
+    // for ( int i = 0 ; i < N_DOF; i++)
+    // {
+    //     mapperForVTK[i] = i;
+    // }
+    // os.seekp(std::ios::beg);
+    // os << "VTK/" << "Reconstructed"  << ".vtk" << ends;
+    // OutputMapping->WriteVtk(os.str().c_str());
+
+
+    // exit(0);
+    
+
 
     TOutput2D **OutputModeAll = new TOutput2D *[subDim];
     for (int s = 0; s < subDim; s++)
@@ -1324,7 +1345,7 @@ int main(int argc, char *argv[])
 
     cout << "Subspace Dimension = " << subDim << endl;
 
-     double *RealizationVectorCopy = new double[N_DOF * N_Realisations]();
+    double *RealizationVectorCopy = new double[N_DOF * N_Realisations]();
     memcpy(RealizationVectorCopy, RealizationVector, N_DOF * N_Realisations * SizeOfDouble);
 
     sol = new double[N_DOF]();
@@ -1429,6 +1450,34 @@ int main(int argc, char *argv[])
     // SystemMatrixMean->AssembleMRhs(NULL, solMCMean, rhsMCMean);
 
     m = 0;
+    std::ofstream fileMC;
+
+    if (m < 10)
+        fileoutMC = "MonteCarlo/MC_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
+    else if (m < 100)
+        fileoutMC = "MonteCarlo/MC_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
+    else if (m < 1000)
+        fileoutMC = "MonteCarlo/MC_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
+    else if (m < 10000)
+        fileoutMC = "MonteCarlo/MC_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
+    else
+        fileoutMC = "MonteCarlo/MC_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
+
+    fileMC.open(fileoutMC);
+
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_Realisations; j++)
+        {
+            fileMC << RealizationVectorCopy[i * N_Realisations + j];
+            if (j != N_Realisations - 1)
+                fileMC << ",";
+        }
+        fileMC << endl;
+    }
+
+    fileMC.close();
+
     N_SubSteps = GetN_SubSteps();
     end_time = TDatabase::TimeDB->ENDTIME;
 
@@ -1526,6 +1575,32 @@ int main(int argc, char *argv[])
                     imgMC[RealNo]++;
                 }
 
+                if (m < 10)
+                    fileoutMC = "MonteCarlo/MC_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
+                else if (m < 100)
+                    fileoutMC = "MonteCarlo/MC_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
+                else if (m < 1000)
+                    fileoutMC = "MonteCarlo/MC_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
+                else if (m < 10000)
+                    fileoutMC = "MonteCarlo/MC_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
+                else
+                    fileoutMC = "MonteCarlo/MC_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
+
+                fileMC.open(fileoutMC);
+
+                for (int i = 0; i < N_DOF; i++)
+                {
+                    for (int j = 0; j < N_Realisations; j++)
+                    {
+                        fileMC << RealizationVectorCopy[i * N_Realisations + j];
+                        if (j != N_Realisations - 1)
+                            fileMC << ",";
+                    }
+                    fileMC << endl;
+                }
+
+                fileMC.close();
+
             } // for(l=0;l< N_SubSteps;l++)
             CurrEndTime = TDatabase::TimeDB->CURRENTTIME;
 
@@ -1548,9 +1623,42 @@ int main(int argc, char *argv[])
             imgMCMean++;
         }
 
+        if (m < 10)
+            fileoutMC = "MonteCarlo/MC_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
+        else if (m < 100)
+            fileoutMC = "MonteCarlo/MC_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
+        else if (m < 1000)
+            fileoutMC = "MonteCarlo/MC_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
+        else if (m < 10000)
+            fileoutMC = "MonteCarlo/MC_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
+        else
+            fileoutMC = "MonteCarlo/MC_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
+
+        fileMC.open(fileoutMC);
+
+        for (int i = 0; i < N_DOF; i++)
+        {
+            for (int j = 0; j < N_Realisations; j++)
+            {
+                fileMC << RealizationVectorCopy[i * N_Realisations + j];
+                if (j != N_Realisations - 1)
+                    fileMC << ",";
+            }
+            fileMC << endl;
+        }
+
+        fileMC.close();
+
     } // while(TDatabase::TimeDB->CURRENTTIME< end_time)
 
     TDatabase::TimeDB->CURRENTTIME = 0;
+    std::string PyInFile = "PyIn.txt";
+
+    std::ofstream PyIn;
+    PyIn.open(PyInFile);
+    PyIn << N_Realisations << endl
+         << subDim << endl
+         << m << endl;
 
     CloseFiles();
 

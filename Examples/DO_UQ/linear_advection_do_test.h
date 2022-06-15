@@ -856,6 +856,7 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
 
 		for (int a = 0; a < N_S; a++)
 		{ //"a" loop
+			val = 0.0;
 			double *C_Array_a = C_Array + a * lenMode;
 			// double* phi_Array_a = Phi_Array + a*lenMode;??
 			double *phi_Array_a = Phi_Array + a * lenPhi;
@@ -918,8 +919,6 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
 				phi_New[i] += val * phi_Array_a[i] * -1.0;
 			}
 
-			// val=0.0;//new addn
-
 		} //"a" loop ends
 
 	} // cell loop
@@ -927,11 +926,10 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
 	double timeStep = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
 	for (int i = 0; i < lenPhi; i++)
 	{
-		phi_Array_i[i] = phi_Old_i[i] + timeStep * phi_New[i];
+		phi_Array_i[i] = phi_Old_i[i] + 10*timeStep * phi_New[i];
 	}
 
 	delete[] phi_New;
 	//
-	
 
 } // function end

@@ -59,4 +59,4 @@ for i in range(maxTimeStep):
     plt.savefig("Pair_Plots/PairPlot_t"+str(i)+".png", facecolor='white')
     plt.close(p.fig)
 
-print("All Pair Plot Images for"+str(N_R)+" Realizations, stochastic subspace dimension "+ str(subDim)+", timesteps "+str(maxTimeStep)+" printed")
+print("All Pair Plot Images for "+str(N_R)+" Realizations, stochastic subspace dimension "+ str(subDim)+", timesteps "+str(maxTimeStep)+" printed")
