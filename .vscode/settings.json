@@ -159,7 +159,11 @@
         "TNSE2D_ParMooN_IVUQ_DO_NoDF.C": "cpp",
         "TNSE2D_ParMooN_IVUQ_DO_DFPre.C": "cpp",
         "TNSE2D_ParMooN_IVUQ_DO_DFPost.C": "cpp",
-        "TNSE2D_ParMooN_IVUQ_MC_wMean.C": "cpp"
+        "TNSE2D_ParMooN_IVUQ_MC_wMean.C": "cpp",
+        "TCD2D_ParMooN_MC_Mean.C": "cpp",
+        "ConvDiff2D.C": "cpp",
+        "TC2D_ParMooN_IVUQ_DO.C": "cpp",
+        "TC2D_ParMooN_IVUQ_DO_Test.C": "cpp"
     },
     "cmake.configureOnOpen": false,
     "C_Cpp.dimInactiveRegions": false
