@@ -1,8 +1,9 @@
 /**
  * @file TC2D_ParMooN_IVUQ_DO_Test.C
  * @brief Purpose:     Main program for scalar equations with new
- *                     kernels of ParMooN, for solution of *                     time-dependent linear advection equation with
- *                     uncertainty quantification
+ *                     kernels of ParMooN, for solution of 
+ *                     time-dependent linear advection equation 
+ *                     with uncertainty quantification
                        Features included in this main program -
                        1. Monte Carlo Realization Generation for scalar quantity of interest
                        2. Initialization of Mean, Modes and Coefficients for solution of Dynamically Orthogonal System of Equations
@@ -64,7 +65,7 @@
 // =======================================================================
 // include current example
 // =======================================================================
-#include "../Examples/DO_UQ/linear_advection_do_test.h"
+#include "../Examples/DO_UQ/linear_advection_do.h"
 
 int main(int argc, char *argv[])
 {

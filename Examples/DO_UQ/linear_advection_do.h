@@ -1,6 +1,6 @@
 
 /**
- * @file linear_advection_do_test.h
+ * @file linear_advection_do.h
  * @brief Purpose:     Example file for solving the set of dynamically orthogonal field
 					   equations for linear advection.
 					   Features included in this example file :
@@ -922,6 +922,7 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
 		} //"a" loop ends
 
 	} // cell loop
+
 	double timeStep = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
 	for (int i = 0; i < lenPhi; i++)
 	{
