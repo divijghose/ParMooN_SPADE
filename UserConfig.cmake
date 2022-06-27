@@ -15,6 +15,62 @@ set(AParMooN_GEO "2D" CACHE STRING "Change AParMooN_GEO, to select the Dimensio 
 ####################################------Selection of main program start ------##################################
 # Uncomment the main program you would like to run:
 
+##### -------------------------------------------(A) DO Programs------------------------------------------------#####
+#1. Time Dependent Linear Advection DO 
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TLA2D_ParMooN_IVUQ_DO.C" CACHE STRING "Enter to select the Main file of the model") 
+
+#2. Time Dependent Convection-Diffusion DO 
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TCD2D_ParMooN_IVUQ_DO.C" CACHE STRING "Enter to select the Main file of the model")
+
+#3. Time Dependent Burgers' DO 
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TBE2D_ParMooN_IVUQ_DO.C" CACHE STRING "Enter to select the Main file of the model")
+
+#4. Time Dependent Navier-Stokes' DO 
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TNSE2D_ParMooN_IVUQ_DO.C" CACHE STRING "Enter to select the Main file of the model")
+
+
+##### -----------------------------------------(B) DO Test Programs----------------------------------------------#####
+#1. Time Dependent Linear Advection DO 
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/Trials/TLA2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model") 
+
+#2. Time Dependent Convection-Diffusion DO 
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/Trials/TCD2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model")
+
+#3. Time Dependent Burgers' DO 
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/Trials/TBE2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model")
+
+#4. Time Dependent Navier-Stokes' DO 
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/Trials/TNSE2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model")
+
+
+
+#5. Miscellaneous test programs
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TCD2D_ParMooN_IVUQ_DO_Mean.C" CACHE STRING "Enter to select the Main file of the model")
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TBE2D_ParMooN_IVUQ_DO_Mean.C" CACHE STRING "Enter to select the Main file of the model")
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TBE2D_ParMooN_MC_Test.C" CACHE STRING "Enter to select the Main file of the model") 
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TNSE2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model")
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/TESTS/TNSE2D_ParMooN_IVUQ_DO_NoDF.C" CACHE STRING "Enter to select the Main file of the model")
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/TESTS/TNSE2D_ParMooN_IVUQ_DO_DFPre.C" CACHE STRING "Enter to select the Main file of the model")
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/TESTS/TNSE2D_ParMooN_IVUQ_DO_DFPost.C" CACHE STRING "Enter to select the Main file of the model")
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/TESTS/TNSE2D_ParMooN_IVUQ_MC_wMean.C" CACHE STRING "Enter to select the Main file of the model")
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/TESTS/TCD2D_ParMooN_MC_Mean.C" CACHE STRING "Enter to select the Main file of the model")
+
+##### ---------------------------------------(C) Monte Carlo Programs--------------------------------------------#####
+#1. Time Dependent Linear Advection DO 
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TLA2D_ParMooN_MC.C" CACHE STRING "Enter to select the Main file of the model")
+
+#2. Time Dependent Convection-Diffusion DO 
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TCD2D_ParMooN_MC.C" CACHE STRING "Enter to select the Main file of the model")
+
+#3. Time Dependent Burgers' DO 
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TBE2D_ParMooN_MC.C" CACHE STRING "Enter to select the Main file of the model") 
+
+#4. Time Dependent Navier-Stokes' DO (Initial Value Uncertainty)
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TNSE2D_ParMooN_IVUQ_MC.C" CACHE STRING "Enter to select the Main file of the model")
+#4. Time Dependent Navier-Stokes' DO (Parameter Uncertainty)
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TNSE2D_ParMooN_RE_NR_MC.C" CACHE STRING "Enter to select the Main file of the model")
+
+
 ### 2 Dimensional Problems ###
 
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/2DPrograms/CD2D_ParMooN.C" CACHE STRING "Enter to select the Main file of the model") #Steady State Convection-Diffusion Equation
@@ -47,26 +103,6 @@ set(AParMooN_GEO "2D" CACHE STRING "Change AParMooN_GEO, to select the Dimensio 
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TNSE2D_ParMooN_RE_NR_MC.C" CACHE STRING "Enter to select the Main file of the model")
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TBE2D_ParMooN_MC.C" CACHE STRING "Enter to select the Main file of the model") #Time-dependent Burgers' Equation
 
-##### ------------------------------------------- DO Programs------------------------------------------------#####
-#1. Time Dependent Linear Advection DO 
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TC2D_ParMooN_IVUQ_DO.C" CACHE STRING "Enter to select the Main file of the model") 
-
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TNSE2D_ParMooN_IVUQ_DO.C" CACHE STRING "Enter to select the Main file of the model")
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TCD2D_ParMooN_IVUQ_DO.C" CACHE STRING "Enter to select the Main file of the model")
-
-######### DO Test Programs #####################
-
-set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/Trials/TCD2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model")
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TCD2D_ParMooN_IVUQ_DO_Mean.C" CACHE STRING "Enter to select the Main file of the model")
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TBE2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model")
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TBE2D_ParMooN_IVUQ_DO_Mean.C" CACHE STRING "Enter to select the Main file of the model")
-# set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/Monte_Carlo/TBE2D_ParMooN_MC_Test.C" CACHE STRING "Enter to select the Main file of the model") #Time-dependent Burgers' Equation
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TNSE2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model")
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/TESTS/TNSE2D_ParMooN_IVUQ_DO_NoDF.C" CACHE STRING "Enter to select the Main file of the model")
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/TESTS/TNSE2D_ParMooN_IVUQ_DO_DFPre.C" CACHE STRING "Enter to select the Main file of the model")
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/TESTS/TNSE2D_ParMooN_IVUQ_DO_DFPost.C" CACHE STRING "Enter to select the Main file of the model")
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/TESTS/TNSE2D_ParMooN_IVUQ_MC_wMean.C" CACHE STRING "Enter to select the Main file of the model")
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/TESTS/TCD2D_ParMooN_MC_Mean.C" CACHE STRING "Enter to select the Main file of the model")
 
 
 
@@ -114,14 +150,15 @@ set(AParMooN_MPI_IMPLEMENTATION "INTELMPI" CACHE STRING "select the MPI Implemen
 
 ####### DO Output Folders ##########
 #1. Output folder for time-dependent linear advection DO solution
-#set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TC2D_IVUQ_DO" CACHE STRING "select the model") 
+#set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TLA2D_IVUQ_DO" CACHE STRING "select the model") 
 
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TNSE2D_IVUQ_DO" CACHE STRING "select the model")
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TCD2D_IVUQ_DO" CACHE STRING "select the model")
 
 
 ##### Test Output Folders ###########################
-set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TCD2D_IVUQ_DO_Test" CACHE STRING "select the model")
+#set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TLA2D_IVUQ_DO_Test" CACHE STRING "select the model")
+set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TCD2D_IVUQ_DO_Test1" CACHE STRING "select the model")
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TCD2D_IVUQ_DO_Mean" CACHE STRING "select the model")
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TBE2D_IVUQ_DO_Test" CACHE STRING "select the model")
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TBE2D_IVUQ_DO_Mean" CACHE STRING "select the model")
