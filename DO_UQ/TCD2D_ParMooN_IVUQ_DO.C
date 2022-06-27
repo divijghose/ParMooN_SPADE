@@ -63,7 +63,7 @@
 // include current example
 // =======================================================================
 // #include "../Examples/TCD_2D/exp.h"
-#include "../Examples/DO_UQ/linear_advection_do.h"
+#include "../Examples/DO_UQ/convection_diffusion_do_test.h"
 // #include "../Examples/TCD_2D/SinCos1.h"
 // #include "../Examples_All/TCD_2D/Time3.h"
 // #include "../Examples/TCD_2D/exp_0.h"

@@ -10,11 +10,11 @@
 //
 // =======================================================================
 #if defined(_MPI) || defined(_SMPI)
-#  include "mpi.h"
+#include "mpi.h"
 #endif
 
 #ifdef _HYBRID
-  #include <omp.h>
+#include <omp.h>
 #endif
 
 #ifndef __DATABASE__
@@ -43,7 +43,7 @@ struct TParaDB
   /** parameters data output and input files                            */
   //======================================================================
   TDomain *Domain;
-  
+
   //======================================================================
   /** parameters data output and input files                            */
   //======================================================================
@@ -54,9 +54,9 @@ struct TParaDB
   char *MAPFILE;
   char *OUTFILE;
   char *PODFILE;
-   
+
   int SAVESOL;
-  
+
   char *BASENAME;
   char *VTKBASENAME;
   char *PSBASENAME;
@@ -70,10 +70,10 @@ struct TParaDB
   char *READ_DATA_FILENAME;
   char *MATLAB_MATRIX;
   char *SMESHFILE;
-  
+
   char *POD_FILENAME;
   char *SNAP_FILENAME;
-  
+
   //======================================================================
   /** parameters for controling the program */
   //======================================================================
@@ -95,46 +95,46 @@ struct TParaDB
   int COMPUTE_VORTICITY_DIVERGENCE;
   int MESH_TYPE;
   int USE_PRM;
- 
-  int timeprofiling;  //(time profiling)
-  
-    //======================================================================
+
+  int timeprofiling; //(time profiling)
+
+  //======================================================================
   /** Time parameters for multigrid                    */
   //======================================================================
   double time_system_assemble;
-  
+
   double time_solve;
   double time_solve_start;
   double time_solve_end;
-  
+
   double time_vanka;
   double time_vanka_start;
   double time_vanka_end;
-  
+
   double time_vanka_solve;
   double time_vanka_solve_start;
   double time_vanka_solve_end;
-  
+
   double time_communication;
   double time_communication_start;
   double time_communication_end;
-  
+
   double time_GMRES;
   double time_GMRES_start;
   double time_GMRES_end;
-  
+
   double time_MG;
   double time_MG_start;
   double time_MG_end;
-  
+
   double time_projection;
   double time_projection_start;
   double time_projection_end;
-  
+
   double time_restriction;
   double time_restriction_start;
   double time_restriction_end;
-  
+
   //======================================================================
   /** parameters for setting finite element spaces                      */
   //======================================================================
@@ -142,7 +142,7 @@ struct TParaDB
   int TEST_ORDER;
   int ANSATZ_ORDER_INTL;
   int TEST_ORDER_INTL;
-  
+
   int VELOCITY_SPACE;
   int PRESSURE_SPACE;
   int PRESSURE_SEPARATION;
@@ -193,10 +193,10 @@ struct TParaDB
   int CELL_MEASURE;
   // parameter for non-conforming elements
   int NC_TYPE;
-  
+
   // DISCTYPE for internal space, PBE
-  int  INTL_DISCTYPE;
-  
+  int INTL_DISCTYPE;
+
   /** upwind methods */
   int UPWIND_ORDER;
   double UPWIND_FLUX_DAMP;
@@ -215,14 +215,14 @@ struct TParaDB
   double TAU3;
 
   /** SUPG or SDFEM method */
-  int    SDFEM_TYPE;
+  int SDFEM_TYPE;
   double DELTA0;
   double DELTA1;
   double DELTA2;
   double SDFEM_POWER0;
-  int    SDFEM_NORM_B;
+  int SDFEM_NORM_B;
   double ADJOINT_FACTOR_4_OMEGA_EQ_0;
-  int    CIP_TYPE;
+  int CIP_TYPE;
   /** parameters for SOLD methods */
   int SOLD_TYPE;
   int SOLD_PARAMETER_TYPE;
@@ -249,14 +249,12 @@ struct TParaDB
   //======================================================================
   // ******** Parameters for Dynamically Orthogonal Solver Runs *********// (Added by Divij)
   //======================================================================
-  double* COVARIANCE_MATRIX_DO;
-  double* COSKEWNESS_MATRIX_DO;
-  double* COVARIANCE_INVERSE_DO;
+  double *COVARIANCE_MATRIX_DO;
+  double *COSKEWNESS_MATRIX_DO;
+  double *COVARIANCE_INVERSE_DO;
   int N_Subspace_Dim;
   int Max_Subspace_Dim;
-
-
-
+  int Subspace_Manual;
 
   //======================================================================
   /** parameters for vectorial FE (Raviart-Thomas, Brezzi-Douglas-Marini) */
@@ -291,10 +289,10 @@ struct TParaDB
   int LP_STREAMLINE_ORDER_DIFFERENCE;
   int LP_DIVERGENCE_ORDER_DIFFERENCE;
   int LP_PRESSURE_ORDER_DIFFERENCE;
-  
+
   int LP_CROSSWIND_COEFF_TYPE;
   double LP_CROSSWIND_COEFF;
-  double LP_CROSSWIND_EXPONENT; 
+  double LP_CROSSWIND_EXPONENT;
 
   //======================================================================
   /** parameter for a posteriori parameter computation with adjoint problem */
@@ -330,7 +328,6 @@ struct TParaDB
   double RESIDUAL_LP_ADJOINT;
   int MIN_MAX_ADJOINT;
   int INITIAL_STEEPEST_DESCENT_ADJOINT;
-
 
   /** parameter for superconvergence */
   int SUPERCONVERGENCE_ORDER;
@@ -372,11 +369,11 @@ struct TParaDB
   int FEM_FCT_LINEAR_TYPE;
   int FEM_FCT_PRELIMITING;
 
-  int FEM_FCT_GROUP_FEM; 
-  int GROUP_FEM; 
-   /** parameter for WENO scheme */
+  int FEM_FCT_GROUP_FEM;
+  int GROUP_FEM;
+  /** parameter for WENO scheme */
   int WENO_TYPE;
-  
+
   //======================================================================
   /** PARAMETERS FOR STOKES AND NAVIER-STOKES PROBLEMS                  */
   //======================================================================
@@ -397,10 +394,10 @@ struct TParaDB
   //======================================================================
   /** PARAMETERS FOR DARCY PROBLEM                  */
   //======================================================================
-  int DARCYTYPE; 
+  int DARCYTYPE;
   double SIGMA_PERM;
   //======================================================================
-  
+
   double FR_NR;
   double WB_NR;
   double PR_NR;
@@ -409,7 +406,7 @@ struct TParaDB
   double WEI_NR;
   int Axial3D;
   int Axial3DAxis;
-  
+
   /** parameters for LES */
   double FILTER_WIDTH_CONSTANT;
   double FILTER_WIDTH_POWER;
@@ -423,7 +420,7 @@ struct TParaDB
   double TURBULENT_VISCOSITY_POWER;
   double TURBULENT_VISCOSITY_SIGMA;
   int TURBULENT_MOD_TYPE;
-  
+
   double viscosity_max;
   double viscosity_min;
 
@@ -450,7 +447,7 @@ struct TParaDB
   //======================================================================
   double FRICTION_CONSTANT;
   double FRICTION_POWER;
-  int    FRICTION_TYPE;
+  int FRICTION_TYPE;
   double FRICTION_U0;
   double PENETRATION_CONSTANT;
   double PENETRATION_POWER;
@@ -458,7 +455,7 @@ struct TParaDB
   //======================================================================
   /** parameters for div-div stabilization */
   //======================================================================
-  int    DIV_DIV_STAB_TYPE;
+  int DIV_DIV_STAB_TYPE;
   double DIV_DIV_STAB_C1;
   double DIV_DIV_STAB_C2;
 
@@ -466,83 +463,83 @@ struct TParaDB
   // ******** parameters for scalar system *********//
   //======================================================================
   // parameters for nonlinear iteration
-  int    SC_NONLIN_ITE_TYPE_SCALAR;
-  int    SC_NONLIN_MAXIT_SCALAR;
+  int SC_NONLIN_ITE_TYPE_SCALAR;
+  int SC_NONLIN_MAXIT_SCALAR;
   double SC_NONLIN_RES_NORM_MIN_SCALAR;
   double SC_NONLIN_DAMP_FACTOR_SCALAR;
 
   // parameters for linear iteration
-  int    SC_SOLVER_SCALAR;
-  int    SC_PRECONDITIONER_SCALAR;
-  int    SC_LIN_MAXIT_SCALAR;
+  int SC_SOLVER_SCALAR;
+  int SC_PRECONDITIONER_SCALAR;
+  int SC_LIN_MAXIT_SCALAR;
   double SC_LIN_RED_FACTOR_SCALAR;
   double SC_LIN_RES_NORM_MIN_SCALAR;
-  int    SC_FLEXIBLE_KRYLOV_SPACE_SOLVER;
+  int SC_FLEXIBLE_KRYLOV_SPACE_SOLVER;
 
-  int    SC_LIN_MAXIT_SCALAR_SOLD;
+  int SC_LIN_MAXIT_SCALAR_SOLD;
   double SC_LIN_RED_FACTOR_SCALAR_SOLD;
   double SC_LIN_RES_NORM_MIN_SCALAR_SOLD;
 
   // parameters which are used in multigrid for scalar problems
-  int    SC_MG_TYPE_SCALAR;
-  int    SC_MG_CYCLE_SCALAR;
-  int    SC_SMOOTHER_SCALAR;
-  int    SC_PRE_SMOOTH_SCALAR;
-  int    SC_POST_SMOOTH_SCALAR;
+  int SC_MG_TYPE_SCALAR;
+  int SC_MG_CYCLE_SCALAR;
+  int SC_SMOOTHER_SCALAR;
+  int SC_PRE_SMOOTH_SCALAR;
+  int SC_POST_SMOOTH_SCALAR;
   double SC_SMOOTH_DAMP_FACTOR_SCALAR;
   double SC_SMOOTH_DAMP_FACTOR_FINE_SCALAR;
   double SC_SMOOTH_DAMP_FACTOR_COARSE_SCALAR;
-  int    SC_COARSE_SMOOTHER_SCALAR;
-  int    SC_COARSE_MAXIT_SCALAR;
+  int SC_COARSE_SMOOTHER_SCALAR;
+  int SC_COARSE_MAXIT_SCALAR;
   double SC_COARSE_RED_FACTOR_SCALAR;
   double SC_GMG_DAMP_FACTOR_SCALAR;
   double SC_GMG_DAMP_FACTOR_FINE_SCALAR;
-  int    SC_FIRST_SOLUTION_LEVEL_SCALAR;
-  int    SC_COARSEST_LEVEL_SCALAR;
+  int SC_FIRST_SOLUTION_LEVEL_SCALAR;
+  int SC_COARSEST_LEVEL_SCALAR;
 
-  int    SC_STEP_LENGTH_CONTROL_FINE_SCALAR;
-  int    SC_STEP_LENGTH_CONTROL_ALL_SCALAR;
+  int SC_STEP_LENGTH_CONTROL_FINE_SCALAR;
+  int SC_STEP_LENGTH_CONTROL_ALL_SCALAR;
 
   //======================================================================
   // ******** parameters for saddle point system *********//
   //======================================================================
   // parameters for nonlinear iteration
-  int    SC_NONLIN_ITE_TYPE_SADDLE;
-  int    SC_NONLIN_MAXIT_SADDLE;
+  int SC_NONLIN_ITE_TYPE_SADDLE;
+  int SC_NONLIN_MAXIT_SADDLE;
   double SC_NONLIN_RES_NORM_MIN_SADDLE;
   double SC_NONLIN_DAMP_FACTOR_SADDLE;
-  int    SC_NONLIN_RES_NORM_MIN_SCALE_SADDLE;
+  int SC_NONLIN_RES_NORM_MIN_SCALE_SADDLE;
 
   // parameters for linear iteration
-  int    SC_SOLVER_SADDLE;
-  int    SC_PRECONDITIONER_SADDLE;
-  int    SC_LIN_MAXIT_SADDLE;
+  int SC_SOLVER_SADDLE;
+  int SC_PRECONDITIONER_SADDLE;
+  int SC_LIN_MAXIT_SADDLE;
   double SC_LIN_RED_FACTOR_SADDLE;
   double SC_LIN_RES_NORM_MIN_SADDLE;
 
   // parameters which are used in multigrid for saddle point problems
-  int    SC_MG_TYPE_SADDLE;
-  int    SC_MG_CYCLE_SADDLE;
-  int    SC_SMOOTHER_SADDLE;
-  int    SC_PRE_SMOOTH_SADDLE;
-  int    SC_POST_SMOOTH_SADDLE;
+  int SC_MG_TYPE_SADDLE;
+  int SC_MG_CYCLE_SADDLE;
+  int SC_SMOOTHER_SADDLE;
+  int SC_PRE_SMOOTH_SADDLE;
+  int SC_POST_SMOOTH_SADDLE;
   double SC_SMOOTH_DAMP_FACTOR_SADDLE;
   double SC_SMOOTH_DAMP_FACTOR_FINE_SADDLE;
   double SC_SMOOTH_DAMP_FACTOR_COARSE_SADDLE;
-  int    SC_COARSE_SMOOTHER_SADDLE;
-  int    SC_COARSE_MAXIT_SADDLE;
+  int SC_COARSE_SMOOTHER_SADDLE;
+  int SC_COARSE_MAXIT_SADDLE;
   double SC_COARSE_RED_FACTOR_SADDLE;
   double SC_GMG_DAMP_FACTOR_SADDLE;
   double SC_GMG_DAMP_FACTOR_FINE_SADDLE;
 
-  int    SC_FIRST_SOLUTION_LEVEL_SADDLE;
-  int    SC_COARSEST_LEVEL_SADDLE;
+  int SC_FIRST_SOLUTION_LEVEL_SADDLE;
+  int SC_COARSEST_LEVEL_SADDLE;
 
-  int    SC_STEP_LENGTH_CONTROL_FINE_SADDLE;
-  int    SC_STEP_LENGTH_CONTROL_ALL_SADDLE;
-  int    SC_LARGEST_DIRECT_SOLVE;
-  int    SC_DOWNWIND_TYPE;
-  
+  int SC_STEP_LENGTH_CONTROL_FINE_SADDLE;
+  int SC_STEP_LENGTH_CONTROL_ALL_SADDLE;
+  int SC_LARGEST_DIRECT_SOLVE;
+  int SC_DOWNWIND_TYPE;
+
   //======================================================================
   /** AMG solver parameters */
   //======================================================================
@@ -550,52 +547,52 @@ struct TParaDB
   // coarsen context
   double CC_ALPHA;
   double CC_BETA;
-  int    CC_MINCLUSTER;
-  int    CC_MAXCLUSTER;
-  int    CC_MAXDISTANCE;
-  int    CC_MAXCONNECTIVITY;
-  int    CC_DEPTHTARGET;
-  int    CC_COARSENTARGET;
+  int CC_MINCLUSTER;
+  int CC_MAXCLUSTER;
+  int CC_MAXDISTANCE;
+  int CC_MAXCONNECTIVITY;
+  int CC_DEPTHTARGET;
+  int CC_COARSENTARGET;
   double CC_COARSENRATE;
-  int    CC_MAJOR;
-  int    CC_DEPENDENCY;
+  int CC_MAJOR;
+  int CC_DEPENDENCY;
   double CC_RESCALE;
-  int    CC_VERBOSE;
+  int CC_VERBOSE;
 
   // solver context
-  int    SC_SYSTEM_TYPE;
-  int    SC_AMG_PREC_IT;
+  int SC_SYSTEM_TYPE;
+  int SC_AMG_PREC_IT;
   double SC_AMG_PREC_RED_FACTOR;
-  int    SC_EX_MAXIT;
-  int    SC_GMRES_RESTART;
-  int    SC_LCD_START_VECTOR;
+  int SC_EX_MAXIT;
+  int SC_GMRES_RESTART;
+  int SC_LCD_START_VECTOR;
   double SC_ILU_BETA;
   double SC_SOR_OMEGA;
   double SC_SMOOTHER_RED_FACTOR;
   double SC_OMEGA_COARSE_0;
   double SC_OMEGA_P_0;
   double SC_ILUT_TOL;
-  int    SC_ILUT_ABSOLUTE_FILLIN;
+  int SC_ILUT_ABSOLUTE_FILLIN;
   double SC_ILUT_RELATIVE_FILLIN;
-  int    SC_ILUT_SORT;
-  int    SC_SCHUR_INV_OF_A;
-  int    SC_SCHUR_INV_OF_A_MAXIT;
+  int SC_ILUT_SORT;
+  int SC_SCHUR_INV_OF_A;
+  int SC_SCHUR_INV_OF_A_MAXIT;
   double SC_SCHUR_ITERATION_DAMP;
-  int    SC_SCHUR_ITERATION_MAXIT;
-  int    SC_SCHUR_STEP_LENGTH_CONTROL;
-  int    SC_MIXED_BCGS_CGS_SWITCH_TOL;
+  int SC_SCHUR_ITERATION_MAXIT;
+  int SC_SCHUR_STEP_LENGTH_CONTROL;
+  int SC_MIXED_BCGS_CGS_SWITCH_TOL;
   double SC_DIV_FACTOR;
   double SC_NONLIN_DIV_FACTOR;
-  int    SC_SMOOTHING_STEPS;
-  int    SC_N1_PARAM;
-  int    SC_N2_PARAM;
-  int    SC_MINIT;
+  int SC_SMOOTHING_STEPS;
+  int SC_N1_PARAM;
+  int SC_N2_PARAM;
+  int SC_MINIT;
   double SC_VAS_LAZ_DELTA;
-  int    SC_ROW_EQUILIBRATION;
-  int    SC_VERBOSE;
-  int    SC_VERBOSE_AMG;
+  int SC_ROW_EQUILIBRATION;
+  int SC_VERBOSE;
+  int SC_VERBOSE_AMG;
 
-  int    SC_BRAESS_SARAZIN_MATRIX;
+  int SC_BRAESS_SARAZIN_MATRIX;
   double SC_BRAESS_SARAZIN_ALPHA;
 
   double CHAR_L0;
@@ -622,7 +619,7 @@ struct TParaDB
   double P13;
   double P14;
   double P15;
-  
+
   int MG_DEBUG;
   int DOF_Average;
   int DOF_Reorder;
@@ -631,16 +628,15 @@ struct TParaDB
   /** PARAMETERS FOR APPLICATIONS */
   //======================================================================
 
-  int TENSOR_TYPE;                        // conformation stress tensor or deformation tensor in DEVSS
-  int FREE_SURFACE_FLOW;                 // Impinging droplet (free surface flow)
-  int TWO_PHASE_FLOW;                    // Two Phase flow
-  int PHASE1_TYPE;                      // 1 - Newtonian, 2 - Oldroyd, 3- Giesekus
-  int PHASE2_TYPE;                      // 1 - Newtonian, 2 - Oldroyd, 3- Giesekus
-  
+  int TENSOR_TYPE;       // conformation stress tensor or deformation tensor in DEVSS
+  int FREE_SURFACE_FLOW; // Impinging droplet (free surface flow)
+  int TWO_PHASE_FLOW;    // Two Phase flow
+  int PHASE1_TYPE;       // 1 - Newtonian, 2 - Oldroyd, 3- Giesekus
+  int PHASE2_TYPE;       // 1 - Newtonian, 2 - Oldroyd, 3- Giesekus
 
- //========================================================================
- // **  Parameters for 1D FEM Formualtion */
- //========================================================================
+  //========================================================================
+  // **  Parameters for 1D FEM Formualtion */
+  //========================================================================
   int N_ELEMENTS_1D;
   double START_X;
   double END_X;
@@ -649,48 +645,48 @@ struct TParaDB
   //======================================================================
   /** parameters for free surface calculation */
   //======================================================================
-  bool INTERFACE_FLOW;                             // free surface or Interface flow or not
-  int FS_MAGNETLAW;                               // 0 = Langevin, 1 = Vislovich
-  double FS_L;                                    // characteristic length
-  double FS_U;                                    // characteristic velocity
-  double FS_T;                                    // characteristic time: T = L/U
+  bool INTERFACE_FLOW; // free surface or Interface flow or not
+  int FS_MAGNETLAW;    // 0 = Langevin, 1 = Vislovich
+  double FS_L;         // characteristic length
+  double FS_U;         // characteristic velocity
+  double FS_T;         // characteristic time: T = L/U
 
-  double FS_ETA;                                  // dynamic viscosity
-  double FS_RHO;                                  // fluid density
-  double FS_ALPHA;                                // coefficient of surface tension
-  double FS_G;                                    // acceleration due to gravity
+  double FS_ETA;   // dynamic viscosity
+  double FS_RHO;   // fluid density
+  double FS_ALPHA; // coefficient of surface tension
+  double FS_G;     // acceleration due to gravity
 
-  double FS_MS;                                   // saturation magnetisation
-  double FS_CHI0;                                 // initial susceptibility
+  double FS_MS;   // saturation magnetisation
+  double FS_CHI0; // initial susceptibility
 
-  double FS_HM;                                   // mean field strength
-  double FS_DELTA_H;                              // amplitude for field oscillations
-  double FS_F;                                    // oscillation frequency
+  double FS_HM;      // mean field strength
+  double FS_DELTA_H; // amplitude for field oscillations
+  double FS_F;       // oscillation frequency
 
-  double FS_H0;                                   // characteristic field strength
-  double FS_H1;                                   // field inside for plane interface
-  double FS_H2;                                   // field outside for plane interface
+  double FS_H0; // characteristic field strength
+  double FS_H1; // field inside for plane interface
+  double FS_H2; // field outside for plane interface
 
-  double FS_LH;                                   // layer height
-  double FS_GAMMA;                                // Langevin parameter
-  double FS_HT;                                   // parameter for Vislovich approximation
+  double FS_LH;    // layer height
+  double FS_GAMMA; // Langevin parameter
+  double FS_HT;    // parameter for Vislovich approximation
 
-  double FS_WE;                                   // Weber number = Re*Ca
+  double FS_WE; // Weber number = Re*Ca
 
-  char *FS_INNAME;                                // file name for reading surface position
-  char *FS_OUTNAME;                               // file name for writing surface position
+  char *FS_INNAME;  // file name for reading surface position
+  char *FS_OUTNAME; // file name for writing surface position
 
-  int FS_WRITE;                                   // != 0 => write free surface
-  int FS_READ;                                    // != 0 => read free surface
- 
-  double HEAT_TANGENTIAL_STRESS_FACTOR;           // C_1/\sigma_sa
-  double HEAT_SOLID_SURFACE_FACTOR;               // eps = (1/PE_NR)HEAT_SOLID_SURFACE_FACTOR
-  double EQ_CONTACT_ANGLE;                        // equilibrium contact angle
-  double AD_CONTACT_ANGLE;                        // advancing contact angle 
-  double RE_CONTACT_ANGLE;                        // receding contact angle 
-  double DY_CONTACT_ANGLE;                        // dynamic contact angle 
-  int CONTACT_ANGLE_TYPE;                         // type of contact angle   
-  
+  int FS_WRITE; // != 0 => write free surface
+  int FS_READ;  // != 0 => read free surface
+
+  double HEAT_TANGENTIAL_STRESS_FACTOR; // C_1/\sigma_sa
+  double HEAT_SOLID_SURFACE_FACTOR;     // eps = (1/PE_NR)HEAT_SOLID_SURFACE_FACTOR
+  double EQ_CONTACT_ANGLE;              // equilibrium contact angle
+  double AD_CONTACT_ANGLE;              // advancing contact angle
+  double RE_CONTACT_ANGLE;              // receding contact angle
+  double DY_CONTACT_ANGLE;              // dynamic contact angle
+  int CONTACT_ANGLE_TYPE;               // type of contact angle
+
   //======================================================================
   /** parameters for turbulent channel flow */
   //======================================================================
@@ -702,7 +698,7 @@ struct TParaDB
   double CYLINDER_22000_YPLUS_SIDES;
   double CYLINDER_22000_YPLUS_FRONT;
   double CYLINDER_22000_YPLUS_BACK;
-  
+
   //======================================================================
   /** parameters for BULK computations */
   //======================================================================
@@ -752,29 +748,29 @@ struct TParaDB
   double SSMUM_OUTER_RADIUS;
   double SSMUM_ROT_PER_SECOND;
   double SSMUM_ANGLE;
-  int SSMUM_MAX_CELLS_LAYERS;  
+  int SSMUM_MAX_CELLS_LAYERS;
   int SSMUM_INTERPOLATION;
 
   //======================================================================
   /** parameters for WINDTUNNEL computations */
   //======================================================================
-  double WINDTUNNEL_SHIFT; 
-  int WINDTUNNEL_CONFIGURATION; 
+  double WINDTUNNEL_SHIFT;
+  int WINDTUNNEL_CONFIGURATION;
   int WINDTUNNEL_INTERPOLATION;
   int WINDTUNNEL_STEADY;
   int WINDTUNNEL_SPATIAL;
-  double WINDTUNNEL_BROWNIAN ;
+  double WINDTUNNEL_BROWNIAN;
   int WINDTUNNEL_POL_ORDER;
   int WINDTUNNEL_SHEAR_FACTOR_TYPE;
-  double  WINDTUNNEL_SHEAR_FACTOR;
+  double WINDTUNNEL_SHEAR_FACTOR;
   int WINDTUNNEL_QUAD_METHOD;
   int WINDTUNNEL_MEASURE_MASS;
   int WINDTUNNEL_LAYER_NUMBER_X;
   int WINDTUNNEL_DIM_Y;
   int WINDTUNNEL_DIM_Z;
   int WINDTUNNEL_DIM_R;
-  //double WINDTUNNEL_Y[WINDTUNNEL_DIM_Y_CONST];
-  //double WINDTUNNEL_Z[WINDTUNNEL_DIM_Z_CONST];
+  // double WINDTUNNEL_Y[WINDTUNNEL_DIM_Y_CONST];
+  // double WINDTUNNEL_Z[WINDTUNNEL_DIM_Z_CONST];
   double WINDTUNNEL_BOUND_VAL[WINDTUNNEL_DIM_Y_CONST][WINDTUNNEL_DIM_Z_CONST][2];
   double WINDTUNNEL_BOUND_KOEFF[WINDTUNNEL_DIM_Y_CONST][WINDTUNNEL_DIM_Z_CONST];
   double WINDTUNNEL_DROP_VELO[WINDTUNNEL_LAYER_NUMBER_X_CONST][WINDTUNNEL_DIM_Y_CONST][WINDTUNNEL_DIM_Z_CONST];
@@ -789,8 +785,8 @@ struct TParaDB
   double WINDTUNNEL_F_INFTY;
   double WINDTUNNEL_kinematic_viscosity;
   double WINDTUNNEL_dynamic_viscosity;
-  double WINDTUNNEL_density; 
-  //double WINDTUNNEL_BOUND_KOEFF[WINDTUNNEL_DIM_Y_CONST][WINDTUNNEL_DIM_Z_CONST];
+  double WINDTUNNEL_density;
+  // double WINDTUNNEL_BOUND_KOEFF[WINDTUNNEL_DIM_Y_CONST][WINDTUNNEL_DIM_Z_CONST];
 
   //======================================================================
   /** parameters for urea synthesis computations */
@@ -839,11 +835,11 @@ struct TParaDB
   double UREA_PIPE_RADIUS;
   int PB_DISC_TYPE;
   int PB_TIME_DISC;
-  
+
   //======================================================================
   /** parameters for kdp synthesis computations */
   //======================================================================
-  
+
   int KDP_MODEL;
   double KDP_D_P_0_2;
   double KDP_D_P_MAX_2;
@@ -882,24 +878,24 @@ struct TParaDB
 
   int KDP_CONC_MAXIT;
   double KDP_inflow_time;
-  
+
   //======================================================================
   /** parameters for Stokes--Darcy (StoDa) coupling */
   //======================================================================
-  int StoDa_interfaceType; //Beavers-Joseph-Saffman or u.t=0
-  double StoDa_alpha; // from Beavers-Joseph-Saffman condition on interface
-  int StoDa_problemType; // Neumann--Neumann, Robin--Robin, ...
-  int StoDa_updatingStrategy; // update of the etas
-  double StoDa_theta_f; //damping in Stokes (flow) part
-  double StoDa_theta_p; //damping in Darcy (porous) part
-  double StoDa_gamma_f; // parameter for Robin condition on interface
-  double StoDa_gamma_p; // parameter for Robin condition on interface
-  double StoDa_weakGamma; // parameter for enforcing weak boundary conditions
+  int StoDa_interfaceType;       // Beavers-Joseph-Saffman or u.t=0
+  double StoDa_alpha;            // from Beavers-Joseph-Saffman condition on interface
+  int StoDa_problemType;         // Neumann--Neumann, Robin--Robin, ...
+  int StoDa_updatingStrategy;    // update of the etas
+  double StoDa_theta_f;          // damping in Stokes (flow) part
+  double StoDa_theta_p;          // damping in Darcy (porous) part
+  double StoDa_gamma_f;          // parameter for Robin condition on interface
+  double StoDa_gamma_p;          // parameter for Robin condition on interface
+  double StoDa_weakGamma;        // parameter for enforcing weak boundary conditions
   double StoDa_solutionStrategy; // iterative (0), one big matrix (2), both (1)
-  int StoDa_algorithm; // Gauss--Seidel, Jacobi, ...
-  int StoDa_StokesFirst; // for Gauss--Seidel type method.
-  int StoDa_nIterations; // maximum number of iterations
-  // convergence criteria: 
+  int StoDa_algorithm;           // Gauss--Seidel, Jacobi, ...
+  int StoDa_StokesFirst;         // for Gauss--Seidel type method.
+  int StoDa_nIterations;         // maximum number of iterations
+  // convergence criteria:
   // interface error e = ( ||uS.n-uD.n||^2_L2  +  ||nTn+pD||^2_L2 )^{1/2}
   double StoDa_relDiff_interfaceError; // (e_k - e_{k+1})/e_k < this number
   // E_k^2 = ( a1 * (||uS_{h,k}-uS_{h,k+1})/uS_{h,k} )^2
@@ -910,82 +906,81 @@ struct TParaDB
   double StoDa_relDiff_factor2;
   double StoDa_relDiff_factor3;
   double StoDa_relDiff_solution; // E_k < this number
-  double StoDa_bigResidual; // residual of big System < this number
-  int StoDa_periodicBoundary; // true if there is a periodic boundary
+  double StoDa_bigResidual;      // residual of big System < this number
+  int StoDa_periodicBoundary;    // true if there is a periodic boundary
   // a prescribed pressure drop at the periodic boundary (to have a flow at all)
-  double StoDa_periodicBoundaryPressureDrop; 
-  
+  double StoDa_periodicBoundaryPressureDrop;
 
   //======================================================================
   /** internal parameters
   cannot be set in the readin file
   are used as global variables */
   //======================================================================
-  int    INTERNAL_PROBLEM_LINEAR;
-  int    INTERNAL_PROJECT_PRESSURE;
-  int    INTERNAL_PRESSURE_SPACE;
-  int    INTERNAL_SLIP_WITH_FRICTION;
-  int    INTERNAL_SLIP_WITH_FRICTION_IDENTITY;
-  int    INPUT_QUAD_RULE;
-  int    INTERNAL_QUAD_HEXA;
-  int    INTERNAL_QUAD_TETRA;
-  int    INTERNAL_QUAD_QUAD;
-  int    INTERNAL_QUAD_TRIA;
-  int    INTERNAL_QUAD_RULE;
-  int    INTERNAL_LOCAL_DOF;
-  int    INTERNAL_PERIODIC_IDENTITY;
-  int    INTERNAL_PROBLEM_IDENTITY;
-  int    INTERNAL_LEVEL;
-  int    INTERNAL_CONVECTION_EQ_VELOFIELD;
-  int    INTERNAL_STEADY_STATE_MATRICES_OR_RHS;
-  int    INTERNAL_AMG_SOLVES;
+  int INTERNAL_PROBLEM_LINEAR;
+  int INTERNAL_PROJECT_PRESSURE;
+  int INTERNAL_PRESSURE_SPACE;
+  int INTERNAL_SLIP_WITH_FRICTION;
+  int INTERNAL_SLIP_WITH_FRICTION_IDENTITY;
+  int INPUT_QUAD_RULE;
+  int INTERNAL_QUAD_HEXA;
+  int INTERNAL_QUAD_TETRA;
+  int INTERNAL_QUAD_QUAD;
+  int INTERNAL_QUAD_TRIA;
+  int INTERNAL_QUAD_RULE;
+  int INTERNAL_LOCAL_DOF;
+  int INTERNAL_PERIODIC_IDENTITY;
+  int INTERNAL_PROBLEM_IDENTITY;
+  int INTERNAL_LEVEL;
+  int INTERNAL_CONVECTION_EQ_VELOFIELD;
+  int INTERNAL_STEADY_STATE_MATRICES_OR_RHS;
+  int INTERNAL_AMG_SOLVES;
   double INTERNAL_AMG_PREPARE_TIME;
-  int    INTERNAL_GMRES_INFO;
-  int    INTERNAL_POLYNOMIAL_DEGREE;
-  int    INTERNAL_MESH_CELL_TYPE;
+  int INTERNAL_GMRES_INFO;
+  int INTERNAL_POLYNOMIAL_DEGREE;
+  int INTERNAL_MESH_CELL_TYPE;
   double INTERNAL_BULK_MEAN;
   double INTERNAL_BULK_SIMULATION;
   double INTERNAL_VERTEX_X[8];
   double INTERNAL_VERTEX_Y[8];
   double INTERNAL_VERTEX_Z[8];
   double INTERNAL_HK_CONVECTION;
-  int    INTERNAL_MEAN_COMPUTATION;
-  int    INTERNAL_MOMENT;
-  int    INTERNAL_LINEAR_SCHEME;
-  int    INTERNAL_SOLD_ACTIVE;
-  int    INTERNAL_UMFPACK_FLAG;
-  int    INTERNAL_SORT_AMG;
-  int    INTERNAL_FESPACE_CONSTRUCT; 
-  int    INTERNAL_DO_NOT_RESPECT_DIRICHLET_BC; 
-  
+  int INTERNAL_MEAN_COMPUTATION;
+  int INTERNAL_MOMENT;
+  int INTERNAL_LINEAR_SCHEME;
+  int INTERNAL_SOLD_ACTIVE;
+  int INTERNAL_UMFPACK_FLAG;
+  int INTERNAL_SORT_AMG;
+  int INTERNAL_FESPACE_CONSTRUCT;
+  int INTERNAL_DO_NOT_RESPECT_DIRICHLET_BC;
+
   double INTERNAL_COERCIVITY;
   double *INTERNAL_P1_Array;
   double *INTERNAL_WEIGHT_Array;
-  int    *INTERNAL_INDICATOR_Array;
-  int    INTERNAL_FACE_INTEGRALS;
-  int    INTERNAL_NO_ESTIMATE_DIRICHLET_CELLS;
-  int    INTERNAL_WRONG_NEUMANN_CHECKED;
+  int *INTERNAL_INDICATOR_Array;
+  int INTERNAL_FACE_INTEGRALS;
+  int INTERNAL_NO_ESTIMATE_DIRICHLET_CELLS;
+  int INTERNAL_WRONG_NEUMANN_CHECKED;
   double INTERNAL_BFGS_RESTART_ADJOINT;
-  int    INTERNAL_ARRAY_LENGTH;
-  int    INTERNAL_CELL;
-  int    INTERNAL_OUTFLOW_BOUNDARY[10];
+  int INTERNAL_ARRAY_LENGTH;
+  int INTERNAL_CELL;
+  int INTERNAL_OUTFLOW_BOUNDARY[10];
   double INTERNAL_WEIGHT_SUPG_ADJOINT;
   double INTERNAL_WEIGHT_SOLD_ADJOINT;
-  int    INTERNAL_NEW_MATRICES_B;
-  int    INTERNAL_FULL_MATRIX_STRUCTURE;
-  int    INTERNAL_DISC_FLAG;
-  int    INTERNAL_START_PARAM;
-  int    MESH_SLIP_WITH_FRICTION;
+  int INTERNAL_NEW_MATRICES_B;
+  int INTERNAL_FULL_MATRIX_STRUCTURE;
+  int INTERNAL_DISC_FLAG;
+  int INTERNAL_START_PARAM;
+  int MESH_SLIP_WITH_FRICTION;
 
   // parameter for tetgen
   double TETGEN_QUALITY;
   double TETGEN_VOLUMEN;
-  int 	 TETGEN_STEINER;
+  int TETGEN_STEINER;
 
   //======================================================================
   /** parameters for individual use in parallel computations */
   //======================================================================
-  int Par_P0; //out rank
+  int Par_P0; // out rank
   int Par_P1; // 1 - root takes part in computation; 0 - not
   int Par_P2; // mesh partition type: 1 - dual; 0 - nodal
   int Par_P3; // 1 - use halocells; 0 - dont
@@ -1023,12 +1018,12 @@ struct TParaDB
   int POD_FLUCT_FIELD;
   int POD_FLUCT_FIELD_P;
   int P_ROM_METHOD;
-  
+
   //======================================================================
   /** parameters for projection methods (NSE) */
   //======================================================================
   int PROJECTION_METHOD;
-  
+
   //======================================================================
   /** parameters for population balance computations */
   //======================================================================
@@ -1056,30 +1051,28 @@ struct TParaDB
   double DG_P7;
   double DG_P8;
   double DG_P9;
-  
 
   int REMOVE_REDUNDANT_DIRICHLET;
   //======================================================================
   /** parameters for moving domains */
   //======================================================================
-  
+
   int MOVING_BOUNDARY;
   double LameC;
   int DEPENDENT_BASIS;
   int DEPENDENT_BASIS_Q1;
-  int DEPENDENT_BASIS_Q2;  
+  int DEPENDENT_BASIS_Q2;
   bool ASSEMBLEMESHMAT;
 
-  // THIVIN 
+  // THIVIN
   bool CUDASOLVERFLAG;
   char *CUDASOLVERTYPE;
   int N_CUDA_REFACTOR_STEPS;
 
-
-  #if defined(_MPI) || defined(_SMPI)
+#if defined(_MPI) || defined(_SMPI)
   /** MPI_Comm for which the computation is started (should not be changed during coomputation)*/
   MPI_Comm Comm;
- #endif
+#endif
 };
 
 typedef struct TParaDB TParamDB;
@@ -1090,13 +1083,13 @@ struct TTimDB
   double CURRENTTIMESTEPLENGTH;
   double TIMESTEPLENGTH;
   double DF_TIMESTEPLENGTH; // For Divergence-Free Adjustment, added by Divij
-  double DF_ENDTIME; // For Divergence-Free Adjustment, added by Divij
+  double DF_ENDTIME;        // For Divergence-Free Adjustment, added by Divij
   double INTERNAL_STARTTIME;
   double MIN_TIMESTEPLENGTH;
   double MAX_TIMESTEPLENGTH;
   double TIMESTEPLENGTH_TOL;
   int TIMESTEPLENGTH_CONTROL;
-  int TIMESTEPLENGTH_CONTROLLER;  // mlh
+  int TIMESTEPLENGTH_CONTROLLER; // mlh
   double TIMESTEPLENGTH_PARA_KK_I;
   double TIMESTEPLENGTH_PARA_KK_P;
   double TIMESTEPLENGTH_PARA_KK_E;
@@ -1121,7 +1114,7 @@ struct TTimDB
   double CONTROL_SAFTY;
   double CONTROL_MAXSCALE;
   double CONTROL_MINSCALE;
-  
+
   // control parameter
   double THETA1;
   double THETA2;
@@ -1136,9 +1129,9 @@ struct TTimDB
   double ENDTIME;
   double EXTRAPOLATE_WEIGHT;
   double EXTRAPOLATE_STEPS;
-  int    EXTRAPOLATE_PRESSURE;
+  int EXTRAPOLATE_PRESSURE;
   // between time steps
-  int    EXTRAPOLATE_VELOCITY;
+  int EXTRAPOLATE_VELOCITY;
 
   // parameter for individual use
   double T0;
@@ -1179,15 +1172,15 @@ struct TTimDB
   double RB_S_IJ[10];
   double RB_M_I;
   double RB_MS_I;
-  
+
   // parameters for higher order Galerkin-type methods
-  int INTERNAL_SYSTEMSIZE;  
+  int INTERNAL_SYSTEMSIZE;
   double *INTERNAL_ALPHA;
   double *INTERNAL_BETA;
-  double *VALUE_AT_ONE; 
+  double *VALUE_AT_ONE;
   double *VAL_AT_QUAD_POINTS;
   double *DER_AT_QUAD_POINTS;
-  double *CORR_AT_QUAD_POINTS;  
+  double *CORR_AT_QUAD_POINTS;
   double *DER_CORR_AT_QUAD_POINTS;
   double *DER_AT_START;
   double *DER_AT_ONE;
@@ -1208,18 +1201,11 @@ struct TTimDB
   double RK_b[5];
   double RK_e[5];
   int RK_ord;   // Ordnung des RK-Verfahrens    mlh
-  int RK_ord_e;   // Ordnung des eingebetteten RK-Verfahrens  mlh
-  
-  //dG time steppings
+  int RK_ord_e; // Ordnung des eingebetteten RK-Verfahrens  mlh
+
+  // dG time steppings
   int DG_TimeDisc;
   int DG_Order;
-
-
-
-
-
- 
-  
 };
 
 typedef struct TTimDB TTimeDB;
@@ -1228,46 +1214,46 @@ typedef struct TTimDB TTimeDB;
     shape descriptors as well as iterators */
 class TDatabase
 {
-  public:
-    /** database of shape descriptors */
-    static TShapeDesc **ShapeDB;
+public:
+  /** database of shape descriptors */
+  static TShapeDesc **ShapeDB;
 
-    /** database of refinement descriptors */
-    static TRefDesc **RefDescDB;
+  /** database of refinement descriptors */
+  static TRefDesc **RefDescDB;
 
-    /** database of mapper */
-    static TMapper **MapperDB;
+  /** database of mapper */
+  static TMapper **MapperDB;
 
-    /** database of iterators */
-    static TIterator **IteratorDB;
+  /** database of iterators */
+  static TIterator **IteratorDB;
 
-    /** general parameters */
-    static TParamDB *ParamDB;
+  /** general parameters */
+  static TParamDB *ParamDB;
 
-    /** parameter for time discretization */
-    static TTimeDB *TimeDB;
+  /** parameter for time discretization */
+  static TTimeDB *TimeDB;
 
-  public:
-    // Constructors
-    /** initialize the database */
-    TDatabase();
+public:
+  // Constructors
+  /** initialize the database */
+  TDatabase();
 
-    // Methods
+  // Methods
 #ifdef __MORTAR__
-    /** add descriptor for mortar refinement with base edge 0 */
-    void AddMortar0(int Mortar_Ni, int N);
-    /** add descriptor for mortar refinement with base edge 1 */
-    void AddMortar1(int Mortar_Ni, int N);
+  /** add descriptor for mortar refinement with base edge 0 */
+  void AddMortar0(int Mortar_Ni, int N);
+  /** add descriptor for mortar refinement with base edge 1 */
+  void AddMortar1(int Mortar_Ni, int N);
 #endif
 
-    // set default parameters
+  // set default parameters
 
-    static void SetDefaultParameters();
+  static void SetDefaultParameters();
 
-    static void WriteParamDB(char *ExecutedFile);
+  static void WriteParamDB(char *ExecutedFile);
 
-    static void WriteTimeDB();
+  static void WriteTimeDB();
 
-    static void CheckParameterConsistencyNSE();
+  static void CheckParameterConsistencyNSE();
 };
 #endif

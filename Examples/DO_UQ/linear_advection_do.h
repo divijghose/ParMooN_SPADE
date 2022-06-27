@@ -486,6 +486,10 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
 	double **origvaluesD20; // Shape Function 2nd Derivatives ( x ) at Quadrature Points
 	double **origvaluesD02; // Shape Function 2nd Derivatives ( y ) at Quadrature Points
 
+	int len = FeVector_C->GetLength();
+
+	
+
 	for (int cellId = 0; cellId < N_Cells; cellId++)
 	{
 		TBaseCell *currentCell = coll->GetCell(cellId);
@@ -579,7 +583,6 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
 		double val = 0;
 
 		double *C_Array = FeVector_C->GetValues();
-		int len = FeVector_C->GetLength();
 
 		double *C_Array_i = C_Array + i_index * len;
 
@@ -611,8 +614,8 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
 			rhs[j] = 0;
 
 		for (int a = 0; a < N_S; a++)
-		{
-			double *C_Array_a = C_Array + i_index * len;
+		{ // a-loop
+			double *C_Array_a = C_Array + a * len;
 
 			double C_a[N_Points2];
 			double C_x_a[N_Points2];
@@ -632,12 +635,9 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
 				{
 					int globDOF = DOF[j];
 					C_a[quadPt] += origvaluesD00[quadPt][j] * C_Array_a[globDOF];
-					// C_x_a[quadPt] += origvaluesD10[quadPt][j] * C_Array_a[globDOF];
-					// C_y_a[quadPt] += origvaluesD01[quadPt][j] * C_Array_a[globDOF];
 				}
 			}
 
-			double val = 0;
 			// Get Coefficients b1 and b2
 			double *Param[MaxN_QuadPoints_2D];
 			double **Coeffs = new double *[MaxN_QuadPoints_2D];
@@ -648,9 +648,9 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
 
 			DO_Mode_Equation_Coefficients(N_Points2, X, Y, Param, Coeffs);
 
-			// INner Quadrature Loop
 			for (int quadPt = 0; quadPt < N_Points2; quadPt++)
 			{
+				val = 0;
 				double Mult = Weights2[quadPt] * AbsDetjk[quadPt];
 				double *orgD00 = origvaluesD00[quadPt];
 				double *orgD10 = origvaluesD10[quadPt];
@@ -665,24 +665,27 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
 				{
 					val += (b1 * C_x_i[quadPt_1] + b2 * C_y_i[quadPt_1]) * C_a[quadPt_1] * Mult;
 					// val *= Mult;
-				}
+				} // val quadpt loop end
 
 				val *= 1.0 * C_a[quadPt]; // This is Final "f"
 
 				for (int j = 0; j < N_BaseFunct; j++)
 				{
 					rhs[j] += val * orgD00[j]; // * Mult;
-				}
+				}							   // rhs j loop end
 			}
-		}
+
+		} // a-loop end
 
 		for (int j = 0; j < N_BaseFunct; j++)
 		{
 			int GlobalDOF = DOF[j];
 			GlobalRhs_mode[GlobalDOF] += rhs[j];
 		}
+
 		// --
 	}
+
 }
 
 /**
@@ -856,7 +859,6 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
 
 		for (int a = 0; a < N_S; a++)
 		{ //"a" loop
-			val = 0.0;
 			double *C_Array_a = C_Array + a * lenMode;
 			// double* phi_Array_a = Phi_Array + a*lenMode;??
 			double *phi_Array_a = Phi_Array + a * lenPhi;
@@ -897,6 +899,7 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
 			// INner Quadrature Loop
 			for (int quadPt = 0; quadPt < N_Points2; quadPt++)
 			{
+				val = 0;
 				double Mult = Weights2[quadPt] * AbsDetjk[quadPt];
 				double *orgD00 = origvaluesD00[quadPt];
 				double *orgD10 = origvaluesD10[quadPt];
