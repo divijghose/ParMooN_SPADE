@@ -487,8 +487,15 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
 	double **origvaluesD20; // Shape Function 2nd Derivatives ( x ) at Quadrature Points
 	double **origvaluesD02; // Shape Function 2nd Derivatives ( y ) at Quadrature Points
 
+	const int len = FeVector_C->GetLength();
+	double *C_Array = new double[len * N_S]();
+	double *C_Array_i = new double[len]();
+	double *C_Array_a = new double[len]();
+
+	C_Array = FeVector_C->GetValues();
+
 	for (int cellId = 0; cellId < N_Cells; cellId++)
-	{
+	{ // Cell Loop
 		TBaseCell *currentCell = coll->GetCell(cellId);
 		// Get the "ID" of Finite Element for the given 2D Element ( Conforming/NonConforming-Order Finite Element : eg : it could be Conforming-2nd order Finite Element )
 		FE2D elementId = Fespace->GetFE2D(cellId, currentCell);
@@ -579,10 +586,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
 		int *DOF = GlobalNumbers + BeginIndex[cellId];
 		double val = 0;
 
-		double *C_Array = FeVector_C->GetValues();
-		int len = FeVector_C->GetLength();
-
-		double *C_Array_i = C_Array + i_index * len;
+		C_Array_i = C_Array + i_index * len;
 
 		// Save Values of C at all quadrature points for I component
 		double C_i[N_Points2];
@@ -613,7 +617,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
 
 		for (int a = 0; a < N_S; a++)
 		{
-			double *C_Array_a = C_Array + i_index * len;
+			C_Array_a = C_Array + i_index * len;
 
 			double C_a[N_Points2];
 			double C_x_a[N_Points2];
@@ -683,7 +687,8 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
 			GlobalRhs_mode[GlobalDOF] += rhs[j];
 		}
 		// --
-	}
+	} // Cell Loop End
+	delete[] C_Array;
 }
 
 /**
@@ -725,19 +730,31 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
 	double **origvaluesD02; // Shape Function 2nd Derivatives ( y ) at Quadrature Points
 
 	double val = 0;
-	double *C_Array = FeVector_C_Mode->GetValues();
-	int lenMode = FeVector_C_Mode->GetLength();
 
-	double *Phi_Array = FEVector_Phi->GetValues();
+	int lenMode = FeVector_C_Mode->GetLength();
+	double *C_Array = new double[lenMode * N_S]();
+	C_Array = FeVector_C_Mode->GetValues();
+
+	int lenPhi = FEVector_Phi->GetLength();
+	double *Phi_Array = new double[lenPhi * N_S]();
+	Phi_Array = FEVector_Phi->GetValues();
+
 	double *Phi_Old = new double[N_R * N_S]();
 	memcpy(Phi_Old, Phi_Array, N_R * N_S * SizeOfDouble);
-	int lenPhi = FEVector_Phi->GetLength();
+
 	// cout << "************** Length of Phi = " << lenPhi << endl;
 	double *phi_New = new double[lenPhi]();
-	double *C_Array_i = C_Array + (i_index * lenMode);
-	// double* phi_Array_i = Phi_Array + i_index*lenMode; ??
-	double *phi_Array_i = Phi_Array + (i_index * lenPhi);
-	double *phi_Old_i = Phi_Old + (i_index * lenPhi);
+	double *C_Array_i = new double[lenMode]();
+	C_Array_i = C_Array + (i_index * lenMode);
+
+	double *phi_Array_i = new double[lenPhi]();
+	phi_Array_i = Phi_Array + (i_index * lenPhi);
+
+	double *phi_Old_i = new double[lenPhi]();
+	phi_Old_i = Phi_Old + (i_index * lenPhi);
+
+	double *C_Array_a = new double[lenMode]();
+	double *phi_Array_a = new double[lenPhi]();
 
 	for (int cellId = 0; cellId < N_Cells; cellId++)
 	{ // cell loop
@@ -858,9 +875,9 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
 		for (int a = 0; a < N_S; a++)
 		{ //"a" loop
 			val = 0.0;
-			double *C_Array_a = C_Array + a * lenMode;
+			C_Array_a = C_Array + a * lenMode;
 			// double* phi_Array_a = Phi_Array + a*lenMode;??
-			double *phi_Array_a = Phi_Array + a * lenPhi;
+			phi_Array_a = Phi_Array + a * lenPhi;
 
 			double C_a[N_Points2];
 			double C_x_a[N_Points2];
@@ -930,12 +947,14 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
 		phi_Array_i[i] = phi_Old_i[i] + timeStep * phi_New[i];
 	}
 
-	delete[] phi_New;
 	// std::unique_ptr<double *> pointerName = make_unique<double *>(new double(100));
 
 	// double * b = pointerName;
 	//
 
+	delete[] C_Array;
+	delete[] Phi_Array;
+	delete[] Phi_Old;
 } // function end
 
 void calc_MeanFieldEnergy(TFESpace2D *Fespace, TFEFunction2D *FeScalar_Cmean, TFEVectFunct2D *FeVector_Cmode, double *mfe, int N_S)
@@ -965,11 +984,16 @@ void calc_MeanFieldEnergy(TFESpace2D *Fespace, TFEFunction2D *FeScalar_Cmean, TF
 	double **origvaluesD20; // Shape Function 2nd Derivatives ( x ) at Quadrature Points
 	double **origvaluesD02; // Shape Function 2nd Derivatives ( y ) at Quadrature Points
 
-	double *C_Mean_Array = FeScalar_Cmean->GetValues();
 	int lenMean = FeScalar_Cmean->GetLength();
+	double *C_Mean_Array = new double[lenMean]();
+	C_Mean_Array = FeScalar_Cmean->GetValues();
 
-	double *C_Mode_Array = FeVector_Cmode->GetValues();
 	int lenMode = FeVector_Cmode->GetLength();
+	double *C_Mode_Array = new double[lenMode * N_S]();
+	C_Mode_Array = FeVector_Cmode->GetValues();
+	
+	double *C_Mode_Array_i = new double[lenMode]();
+	double *C_Mode_Array_j = new double[lenMode]();
 
 	for (int cellId = 0; cellId < N_Cells; cellId++)
 	{ // cell loop
@@ -1093,7 +1117,7 @@ void calc_MeanFieldEnergy(TFESpace2D *Fespace, TFEFunction2D *FeScalar_Cmean, TF
 
 		for (int i = 0; i < N_S; i++)
 		{ // i-loop start
-			double *C_Mode_Array_i = C_Mode_Array + i * lenMode;
+			C_Mode_Array_i = C_Mode_Array + i * lenMode;
 			double C_i[N_Points2];
 			for (int quadPt = 0; quadPt < N_Points2; quadPt++)
 				C_i[quadPt] = 0.;
@@ -1110,7 +1134,7 @@ void calc_MeanFieldEnergy(TFESpace2D *Fespace, TFEFunction2D *FeScalar_Cmean, TF
 			for (int j = 0; j < N_S; j++)
 			{ // j-loop start
 
-				double *C_Mode_Array_j = C_Mode_Array + j * lenMode;
+				C_Mode_Array_j = C_Mode_Array + j * lenMode;
 				double C_j[N_Points2];
 				for (int quadPt = 0; quadPt < N_Points2; quadPt++)
 					C_j[quadPt] = 0.;
@@ -1144,6 +1168,10 @@ void calc_MeanFieldEnergy(TFESpace2D *Fespace, TFEFunction2D *FeScalar_Cmean, TF
 
 		// --
 	} // cell loop
+
+
+	
+
 } // calc_MFE function end
 
 void CalcCovarianceMatx(double *Vector)
@@ -1164,6 +1192,8 @@ void CalcCovarianceMatx(double *Vector)
 
 	const double divVal = (1.0 / (height - 1));
 	cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, width, width, height, divVal, phi, width, phi, width, 0.0, TDatabase::ParamDB->COVARIANCE_MATRIX_DO, width);
+
+
 }
 
 void calc_princVariance(double *princVariance, int N_S)
@@ -1188,9 +1218,6 @@ void calc_princVariance(double *princVariance, int N_S)
 
 	info = LAPACKE_dgeev(LAPACK_ROW_MAJOR, 'N', 'N', N_S, localCov, LDA, princVariance, wi,
 						 VL, LDVL, VR, LDVR);
-	
-
-	
 
 	if (info == 0)
 		cout << "The routine computing eignevalues of coefficient matrix was successful" << endl;
@@ -1206,5 +1233,4 @@ void calc_princVariance(double *princVariance, int N_S)
 
 		exit(0);
 	}
-
 }
