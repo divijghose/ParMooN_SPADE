@@ -65,7 +65,7 @@
 // =======================================================================
 // include current example
 // =======================================================================
-#include "../Examples/DO_UQ/linear_advection_do_test.h"
+#include "../Examples/DO_UQ/test.h"
 
 int main(int argc, char *argv[])
 {
@@ -200,6 +200,7 @@ int main(int argc, char *argv[])
 
     i = 0;
     int N = pow(2, TDatabase::ParamDB->UNIFORM_STEPS) + 1;
+
     for (int i = 0; i < N_DOF; i++)
     {
         int local_i = i / N;
@@ -209,7 +210,7 @@ int main(int argc, char *argv[])
         y_coord[i] = double(1.0 / (N - 1)) * local_j;
     }
 
-    // cout << " End File Read" << endl;
+    cout << " End File Read" << endl;
 
     Scalar_FeSpace->GetDOFPosition(org_x_coord, org_y_coord);
 
@@ -825,7 +826,7 @@ int main(int argc, char *argv[])
 
     TDatabase::ParamDB->COVARIANCE_MATRIX_DO = new double[subDim * subDim]();
 
-    CalcCovarianceMatx(CoeffVector);
+    // CalcCovarianceMatx(CoeffVector);
 
     std::string fileoutMFE;
     std::string fileoutOrtho;
@@ -837,9 +838,9 @@ int main(int argc, char *argv[])
     double *princVariances = new double[subDim]();
 
     memset(mfe, 0, ((subDim * subDim) + 1) * SizeOfDouble);
-    calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean, FEFVector_Mode, mfe, subDim);
+    // calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean, FEFVector_Mode, mfe, subDim);
 
-    calc_princVariance(princVariances, subDim);
+    // calc_princVariance(princVariances, subDim);
 
     if (m < 10)
         fileoutMFE = "Energy_Data/MFE_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
@@ -916,6 +917,7 @@ int main(int argc, char *argv[])
         for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
         {
             SetTimeDiscParameters(1);
+            
 
             if (m == 1)
             {
@@ -938,35 +940,42 @@ int main(int argc, char *argv[])
             // unless the stiffness matrix or rhs change in time, it is enough to
             // assemble only once at the begning
             SystemMatrix_Mean->AssembleARhs(NULL, solMean, rhsMean);
-
+             
             for (int subSpaceNum = 0; subSpaceNum < subDim; subSpaceNum++)
             {
                 // solve the system matrix
                 DO_CoEfficient(Scalar_FeSpace, FEFVector_Mode, FeVector_Coefficient, subDim, subSpaceNum, N_Realisations);
-
+                
+                
                 memcpy(old_rhsMode, rhsModeAll + subSpaceNum * N_DOF, N_DOF * SizeOfDouble);
 
+                
+                
                 SystemMatrix_ModeAll[subSpaceNum]->AssembleARhs(NULL, solModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF);
+
+                
 
                 // get the UPDATED RHS VALUE FROM FUNCTION
                 DO_Mode_RHS(Scalar_FeSpace, FEFVector_Mode, subDim, rhsModeAll + subSpaceNum * N_DOF, subSpaceNum);
 
+            
+                
                 SystemMatrix_ModeAll[subSpaceNum]->AssembleSystMat(old_rhsMode, solModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF, solModeAll + subSpaceNum * N_DOF);
                 SystemMatrix_ModeAll[subSpaceNum]->Solve(solModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF);
                 SystemMatrix_ModeAll[subSpaceNum]->RestoreMassMat();
-
+                
             } // subSpaceNumLoop
 
             SystemMatrix_Mean->AssembleSystMat(old_rhsMean, solMean, rhsMean, solMean);
             ////  --
             SystemMatrix_Mean->Solve(solMean, rhsMean);
             SystemMatrix_Mean->RestoreMassMat();
-
+            
             // restore the mass matrix for the next time step
             // unless the stiffness matrix or rhs change in time, it is not necessary to assemble the system matrix in every time step
 
         } // for(l=0;l< N_SubSteps;l++)
-
+        
         //======================================================================
         // produce outout
         //======================================================================
@@ -1048,10 +1057,10 @@ int main(int argc, char *argv[])
         fileCoeff.close();
 
         memset(mfe, 0, ((subDim * subDim) + 1) * SizeOfDouble);
-        calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean, FEFVector_Mode, mfe, subDim);
-        CalcCovarianceMatx(CoeffVector);
+        // calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean, FEFVector_Mode, mfe, subDim);
+        // CalcCovarianceMatx(CoeffVector);
 
-        calc_princVariance(princVariances, subDim);
+        // calc_princVariance(princVariances, subDim);
 
         if (m < 10)
             fileoutMFE = "Energy_Data/MFE_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
@@ -1261,11 +1270,11 @@ int main(int argc, char *argv[])
     fileCoeff.close();
 
     memset(mfe, 0, ((subDim * subDim) + 1) * SizeOfDouble);
-    calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean, FEFVector_Mode, mfe, subDim);
+    // calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean, FEFVector_Mode, mfe, subDim);
 
-    CalcCovarianceMatx(CoeffVector);
+    // CalcCovarianceMatx(CoeffVector);
 
-    calc_princVariance(princVariances, subDim);
+    // calc_princVariance(princVariances, subDim);
     if (m < 10)
         fileoutMFE = "Energy_Data/MFE_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
     else if (m < 100)
@@ -1363,6 +1372,8 @@ int main(int argc, char *argv[])
     }
 
     cout << "Subspace Dimension = " << subDim << endl;
+
+    exit(0);
     double *RealizationVectorCopy = new double[N_DOF * N_Realisations]();
     memcpy(RealizationVectorCopy, RealizationVector, N_DOF * N_Realisations * SizeOfDouble);
 

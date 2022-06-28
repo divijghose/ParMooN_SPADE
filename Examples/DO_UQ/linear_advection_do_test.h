@@ -951,10 +951,8 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
 
 	// double * b = pointerName;
 	//
+	
 
-	delete[] C_Array;
-	delete[] Phi_Array;
-	delete[] Phi_Old;
 } // function end
 
 void calc_MeanFieldEnergy(TFESpace2D *Fespace, TFEFunction2D *FeScalar_Cmean, TFEVectFunct2D *FeVector_Cmode, double *mfe, int N_S)
@@ -991,7 +989,7 @@ void calc_MeanFieldEnergy(TFESpace2D *Fespace, TFEFunction2D *FeScalar_Cmean, TF
 	int lenMode = FeVector_Cmode->GetLength();
 	double *C_Mode_Array = new double[lenMode * N_S]();
 	C_Mode_Array = FeVector_Cmode->GetValues();
-	
+
 	double *C_Mode_Array_i = new double[lenMode]();
 	double *C_Mode_Array_j = new double[lenMode]();
 
@@ -1169,9 +1167,6 @@ void calc_MeanFieldEnergy(TFESpace2D *Fespace, TFEFunction2D *FeScalar_Cmean, TF
 		// --
 	} // cell loop
 
-
-	
-
 } // calc_MFE function end
 
 void CalcCovarianceMatx(double *Vector)
@@ -1192,8 +1187,6 @@ void CalcCovarianceMatx(double *Vector)
 
 	const double divVal = (1.0 / (height - 1));
 	cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, width, width, height, divVal, phi, width, phi, width, 0.0, TDatabase::ParamDB->COVARIANCE_MATRIX_DO, width);
-
-
 }
 
 void calc_princVariance(double *princVariance, int N_S)
