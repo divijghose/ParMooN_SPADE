@@ -677,6 +677,12 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
                     rhs[j] += val * orgD00[j]; // * Mult;
                 }
             }
+
+             for (int i = 0; i < MaxN_QuadPoints_2D; i++)
+            {
+                delete[] Coeffs[i];
+            }
+            delete[] Coeffs;
         }
 
         for (int j = 0; j < N_BaseFunct; j++)
@@ -937,6 +943,12 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
             {
                 phi_New[i] += val * phi_Array_a[i] * -1.0;
             }
+
+             for (int i = 0; i < MaxN_QuadPoints_2D; i++)
+            {
+                delete[] Coeffs[i];
+            }
+            delete[] Coeffs;
 
         } //"a" loop ends
 

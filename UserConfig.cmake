@@ -17,7 +17,7 @@ set(AParMooN_GEO "2D" CACHE STRING "Change AParMooN_GEO, to select the Dimensio 
 
 ##### -------------------------------------------(A) DO Programs------------------------------------------------#####
 #1. Time Dependent Linear Advection DO 
-set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TLA2D_ParMooN_IVUQ_DO.C" CACHE STRING "Enter to select the Main file of the model") 
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TLA2D_ParMooN_IVUQ_DO.C" CACHE STRING "Enter to select the Main file of the model") 
 
 #2. Time Dependent Convection-Diffusion DO 
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TCD2D_ParMooN_IVUQ_DO.C" CACHE STRING "Enter to select the Main file of the model")
@@ -31,7 +31,7 @@ set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TLA2D_ParMooN_IVUQ_DO.C" CACHE S
 
 ##### -----------------------------------------(B) DO Test Programs----------------------------------------------#####
 #1. Time Dependent Linear Advection DO 
-#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/Trials/TLA2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model") 
+set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/Trials/TLA2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model") 
 
 #2. Time Dependent Convection-Diffusion DO 
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/Trials/TCD2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model")

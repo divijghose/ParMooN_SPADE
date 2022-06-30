@@ -392,9 +392,25 @@ int main(int argc, char *argv[])
 
     cout << N_Realisations << " REALISATIONS COMPUTED " << endl;
 
+    delete[] Ut;
+    delete[] Z;
+    delete[] RealizationVectorTemp;
+    delete[] S;
+    delete[] U;
+    delete[] Vt;
+    delete[] org_x_coord;
+    delete[] org_y_coord;
+    delete[] x_coord;
+    delete[] y_coord;
+    delete[] C;
+    delete[] C1;
+    writeRealizationToText(RealizationVector, N_Realisations, N_DOF);
+    readRealizationFromText(RealizationVector,N_Realisations,N_DOF);
+
     /////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////// -------- START OF DO INITIALIZATION ------------ ////////////////////////////////////////////////////////////////
+
 
     double *MeanVector = new double[N_DOF * 1](); // overline{C}_{dof} = \sum_{i=1}^{N_Realisations}(C^{i}_{dof})/N_Realisations
     for (int i = 0; i < N_DOF; ++i)
@@ -509,6 +525,12 @@ int main(int argc, char *argv[])
 
     ////////////////////////////////////////////DO - Initialization Ends//////////////////////////////////////
     ///////================================================================================//////////////////
+    delete[] PerturbationVector;
+    delete[] PerturbationVectorCopy;
+    delete[] Sg;
+    delete[] L;
+    delete[] Rt;
+    delete[] ProjectionVector;
 
     //======================================================================
     // construct all finite element functions
@@ -1363,6 +1385,7 @@ int main(int argc, char *argv[])
     }
 
     cout << "Subspace Dimension = " << subDim << endl;
+    exit(0);
     double *RealizationVectorCopy = new double[N_DOF * N_Realisations]();
     memcpy(RealizationVectorCopy, RealizationVector, N_DOF * N_Realisations * SizeOfDouble);
 
@@ -1423,7 +1446,7 @@ int main(int argc, char *argv[])
     std::string filenameMCMean = "Mean_NR" + std::to_string(N_Realisations);
     char *VtkBaseNameMCMean = const_cast<char *>(filenameMCMean.c_str());
     ///// ----------- Output initial condition --------- //////
-    for (int RealNo = 0; RealNo < N_Realisations/50; RealNo++)
+    for (int RealNo = 0; RealNo < N_Realisations / 50; RealNo++)
     {
 
         cout << " Realization Number:  " << RealNo << endl;
@@ -1514,7 +1537,7 @@ int main(int argc, char *argv[])
         {
             solMCMean[i] = 0.0;
         }
-        for (int RealNo = 0; RealNo < N_Realisations/50; RealNo++)
+        for (int RealNo = 0; RealNo < N_Realisations / 50; RealNo++)
         { // Realization Loop Starts
             cout << " Realization Number:  " << RealNo << endl;
             TDatabase::TimeDB->CURRENTTIME = CurrStartTime;
