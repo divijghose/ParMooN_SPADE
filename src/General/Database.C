@@ -663,12 +663,14 @@ void TDatabase::SetDefaultParameters()
   ParamDB->stddev_disp = 0.3;
   ParamDB->stddev_power = 2;
 
+  ParamDB->toggleRealznSource = 0; // if 0, generate MC realizations. if 1, read realizations from text file
+  ParamDB->writeRealznToText = 0;  // if 0, don't write MC realizations to text. if 1, write realizations to text file
   /////************Default DO Parameters******///// (Added by Divij)
   ParamDB->stddev_power = 5;
   ParamDB->Max_Subspace_Dim = 5;
   ParamDB->Subspace_Manual = 1;
 
-  ParamDB->COVARIANCE_MATRIX_DO = new double[5*5]();
+  ParamDB->COVARIANCE_MATRIX_DO = new double[5 * 5]();
 
   // ******** parameters for saddle point system *********//
 

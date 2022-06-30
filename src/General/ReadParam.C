@@ -683,6 +683,17 @@ int TDomain::ReadParam(char *ParamFile)
       dat >> TDatabase::ParamDB->Subspace_Manual;
       N_Param++;
     }
+
+    if (!strcmp(line, "Realization_Source:"))
+    {
+      dat >> TDatabase::ParamDB->toggleRealznSource;
+      N_Param++;
+    }
+    if (!strcmp(line, "Write_Realizations_To_Text:"))
+    {
+      dat >> TDatabase::ParamDB->writeRealznToText;
+      N_Param++;
+    }
     ////////////////////////////////////////////////////////////////
     if (!strcmp(line, "FILTER_WIDTH_CONSTANT:"))
     {

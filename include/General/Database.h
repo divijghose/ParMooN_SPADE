@@ -246,6 +246,8 @@ struct TParaDB
   double stddev_disp;
   double stddev_power;
 
+  int toggleRealznSource; // if 0, generate MC realizations. if 1, read realizations from text file
+  int writeRealznToText;  // if 0, don't write MC realizations to text. if 1, write realizations to text file
   //======================================================================
   // ******** Parameters for Dynamically Orthogonal Solver Runs *********// (Added by Divij)
   //======================================================================

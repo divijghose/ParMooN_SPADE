@@ -223,7 +223,12 @@ void readRealizationFromText(double *RealznVect, const int N_R, const int N_DOF)
         cout << "Realization file opened succesfully" << endl;
     }
     else
-        cout << "Could not open the file\n";
+    {
+        cout << "Could not open the file\n"
+             << endl
+             << "Please check is file " << fileInName << " exists" << endl;
+        exit(0);
+    }
 
     cout << "" << endl;
     for (int i = 0; i < N_DOF; i++)
@@ -267,7 +272,7 @@ void calcMeanRealization(const double *RealznVect, double *MeanVect, const int N
             MeanVect[i] += RealznVect[i * N_R + j] / N_R;
         }
     }
-
+    cout << "Mean of realizations computed successfully" << endl;
     return;
 }
 
@@ -286,6 +291,8 @@ void calcStdDevRealization(const double *RealznVect, double *StdDevVect, const i
     }
 
     delete[] MeanVector;
+    cout << "Standard deviation of realizations computed successfully" << endl;
+
 
     return;
 }
