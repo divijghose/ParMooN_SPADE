@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "TBE2D_ParMooN_MC.C": "cpp"
+        "TBE2D_ParMooN_MC.C": "cpp",
+        "TLA2D_ParMooN_MC_Test.C": "cpp"
     }
 }

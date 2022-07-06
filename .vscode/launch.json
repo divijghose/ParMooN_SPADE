@@ -9,10 +9,10 @@
     "name": "icc- Run ParMoon",
     "type": "cppdbg",
     "request": "launch",
-    "cwd": "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/DO/TNSE2D_IVUQ_DO_Test/",
-    "program": "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/DO/TNSE2D_IVUQ_DO_Test/parmoon_2D_SEQUENTIAL.exe",
+    "cwd": "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/DO/TLA2D_IVUQ_DO_Test_New/",
+    "program": "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/DO/TLA2D_IVUQ_DO_Test_New/parmoon_2D_SEQUENTIAL.exe",
     "args": [
-    "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/DO/TNSE2D_IVUQ_DO_Test/tnse2d.dat"
+    "/home/divij/Documents/ParMooN_Codes/ParMooN_Output/DO/TLA2D_IVUQ_DO_Test_New/do_tla2d.dat"
     ],
     "stopAtEntry": true,
     "environment": [],

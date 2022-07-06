@@ -189,235 +189,309 @@ int main(int argc, char *argv[])
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     int N_Realisations = TDatabase::ParamDB->REALIZATIONS;
-    double LengthScale = TDatabase::ParamDB->LENGTHSCALE;
-    double EigenPercent = TDatabase::ParamDB->EIGENPERCENT;
+    double *RealizationVector = new double[N_DOF * N_Realisations]();
 
-    double *org_x_coord = new double[N_DOF]();
-    double *org_y_coord = new double[N_DOF]();
-    double *x_coord = new double[N_DOF]();
-    double *y_coord = new double[N_DOF]();
-    int *mappingArray = new int[N_DOF]();
-
-    i = 0;
-    int N = pow(2, TDatabase::ParamDB->UNIFORM_STEPS) + 1;
-    for (int i = 0; i < N_DOF; i++)
+    if (TDatabase::ParamDB->toggleRealznSource == 0)
     {
-        int local_i = i / N;
-        int local_j = i % N;
+        double LengthScale = TDatabase::ParamDB->LENGTHSCALE;
+        double EigenPercent = TDatabase::ParamDB->EIGENPERCENT;
 
-        x_coord[i] = double(1.0 / (N - 1)) * local_i;
-        y_coord[i] = double(1.0 / (N - 1)) * local_j;
-    }
+        double *org_x_coord = new double[N_DOF]();
+        double *org_y_coord = new double[N_DOF]();
+        double *x_coord = new double[N_DOF]();
+        double *y_coord = new double[N_DOF]();
+        int *mappingArray = new int[N_DOF]();
 
-    // cout << " End File Read" << endl;
-
-    Scalar_FeSpace->GetDOFPosition(org_x_coord, org_y_coord);
-
-    for (int i = 0; i < N_DOF; i++) // Generated Values
-    {
-        // get the generated Value
-        double xx = x_coord[i];
-        double yy = y_coord[i];
-        bool foundFlag = false;
-
-        for (int j = 0; j < N_DOF; j++) // Actual parmooN Co-ordinates
+        i = 0;
+        int N = pow(2, TDatabase::ParamDB->UNIFORM_STEPS) + 1;
+        for (int i = 0; i < N_DOF; i++)
         {
-            if (abs(xx - org_x_coord[j]) < 1e-10 && abs(yy - org_y_coord[j]) < 1e-10)
+            int local_i = i / N;
+            int local_j = i % N;
+
+            x_coord[i] = double(1.0 / (N - 1)) * local_i;
+            y_coord[i] = double(1.0 / (N - 1)) * local_j;
+        }
+
+        // cout << " End File Read" << endl;
+
+        Scalar_FeSpace->GetDOFPosition(org_x_coord, org_y_coord);
+
+        for (int i = 0; i < N_DOF; i++) // Generated Values
+        {
+            // get the generated Value
+            double xx = x_coord[i];
+            double yy = y_coord[i];
+            bool foundFlag = false;
+
+            for (int j = 0; j < N_DOF; j++) // Actual parmooN Co-ordinates
             {
-                mappingArray[i] = j;
-                foundFlag = true;
+                if (abs(xx - org_x_coord[j]) < 1e-10 && abs(yy - org_y_coord[j]) < 1e-10)
+                {
+                    mappingArray[i] = j;
+                    foundFlag = true;
+                }
+            }
+
+            if (!foundFlag)
+                cerr << " DOF NOT FOUND FOR " << i << " position : " << setw(8) << org_x_coord[i] << setw(8) << org_y_coord[i] << endl;
+        }
+        // int N_DOF =  N * N;
+        double *x = new double[N_DOF]();
+        double *y = new double[N_DOF]();
+
+        for (int i = 0; i < N_DOF; i++)
+        {
+            int local_i = i / N;
+            int local_j = i % N;
+
+            x[i] = double(1.0 / (N - 1)) * local_j;
+            y[i] = double(1.0 / (N - 1)) * local_i;
+        }
+
+        double *C = new double[N_DOF * N_DOF]();  // MATRIX
+        double *C1 = new double[N_DOF * N_DOF](); // MATRIX  - Corelation Matrix
+
+        double norm = 0;
+        for (int i = 0; i < N_DOF; i++)
+        {
+            double actual_x = x[i];
+            double actual_y = y[i];
+
+            for (int j = 0; j < N_DOF; j++)
+            {
+                double local_x = x[j];
+                double local_y = y[j];
+
+                double r = sqrt(pow((actual_x - local_x), 2) + pow((actual_y - local_y), 2));
+
+                // CO -Relation
+                C[i * N_DOF + j] = exp((-1.0 * r) / (LengthScale)) * (1 + (r / LengthScale) + pow(r / LengthScale, 2));
+                C1[i * N_DOF + j] = exp((-1.0 * r) / (LengthScale)) * (1 + (r / LengthScale) + pow(r / LengthScale, 2));
+
+                if (TDatabase::ParamDB->stddev_switch == 0)
+                {
+                    double sig_r1 = exp(-1.0 / (1.0 - pow((2 * actual_x - 1), 4))) * exp(-1.0 / (1 - pow((2 * actual_y - 1), 4)));
+                    double sig_r2 = exp(-1.0 / (1.0 - pow((2 * local_x - 1), 4))) * exp(-1.0 / (1 - pow((2 * local_y - 1), 4)));
+                    // Co Variance
+                    C[i * N_DOF + j] *= sig_r1 * sig_r2 * 5.0;
+                }
+
+                else if (TDatabase::ParamDB->stddev_switch == 1)
+                {
+                    double E = TDatabase::ParamDB->stddev_denom;
+                    double disp = TDatabase::ParamDB->stddev_disp;
+                    double power = TDatabase::ParamDB->stddev_power;
+                    double sig_r1 = (exp(-1.0*pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E))) * (exp(-1.0*pow((2 * actual_y - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E)));
+                    double sig_r2 = exp(-1.0*pow((2 * local_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E)) * exp(-1.0*pow((2 * local_y - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E));
+                    // Co Variance
+                    C[i * N_DOF + j] *= sig_r1 * sig_r2;
+                }
+
+                else
+                {
+                    cout << "Error - No standard deviation function is defined for stddev_switch: " << TDatabase::ParamDB->stddev_switch << endl;
+                    exit(0);
+                }
+
+                // norm += C[j * N + i] * C[j * N + i];
             }
         }
 
-        if (!foundFlag)
-            cerr << " DOF NOT FOUND FOR " << i << " position : " << setw(8) << org_x_coord[i] << setw(8) << org_y_coord[i] << endl;
-    }
-    // int N_DOF =  N * N;
-    double *x = new double[N_DOF]();
-    double *y = new double[N_DOF]();
+        std::string fileOutCorrelation = "Correlation_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
+        std::ofstream fileCorrelation;
+        fileCorrelation.open(fileOutCorrelation);
+        for (int i = 0; i < N_DOF; i++)
+        {
+            for (int j = 0; j < N_DOF; j++)
+            {
+                fileCorrelation << C[i * N_DOF + j];
+                if (j != N_DOF - 1)
+                    fileCorrelation << ",";
+            }
+            fileCorrelation << endl;
+        }
+        fileCorrelation.close();
 
-    for (int i = 0; i < N_DOF; i++)
-    {
-        int local_i = i / N;
-        int local_j = i % N;
+        ////////////////////////////////////////////////////// SVD ////////////////////////////////////////////
+        // Declare SVD parameters
+        MKL_INT m1 = N_DOF, n = N_DOF, lda = N_DOF, ldu = N_DOF, ldvt = N_DOF, info;
+        double superb[std::min(N_DOF, N_DOF) - 1];
 
-        x[i] = double(1.0 / (N - 1)) * local_j;
-        y[i] = double(1.0 / (N - 1)) * local_i;
-    }
+        double *S = new double[N_DOF]();
+        double *U = new double[N_DOF * N_DOF]();
+        double *Vt = new double[N_DOF * N_DOF]();
+        info = LAPACKE_dgesvd(LAPACK_ROW_MAJOR, 'A', 'A', m1, n, C, lda,
+                              S, U, ldu, Vt, ldvt, superb);
 
-    double *C = new double[N_DOF * N_DOF]();  // MATRIX
-    double *C1 = new double[N_DOF * N_DOF](); // MATRIX  - Corelation Matrix
+        if (info > 0)
+        {
+            printf("The algorithm computing SVD of Covariance Matrix failed to converge.\n");
+            exit(1);
+        }
 
-    double norm = 0;
-    for (int i = 0; i < N_DOF; i++)
-    {
-        double actual_x = x[i];
-        double actual_y = y[i];
+        std::string fileOutCorrS = "Corr_S_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
+        std::ofstream fileCorrelationS;
+        fileCorrelationS.open(fileOutCorrS);
 
         for (int j = 0; j < N_DOF; j++)
         {
-            double local_x = x[j];
-            double local_y = y[j];
+            fileCorrelationS << S[j];
+            if (j != N_DOF - 1)
+                fileCorrelationS << ",";
+        }
 
-            double r = sqrt(pow((actual_x - local_x), 2) + pow((actual_y - local_y), 2));
+        fileCorrelationS.close();
 
-            // CO -Relation
-            C[j * N_DOF + i] = exp((-1.0 * r) / (LengthScale)) * (1 + (r / LengthScale) + pow(r / LengthScale, 2));
-            C1[j * N_DOF + i] = exp((-1.0 * r) / (LengthScale)) * (1 + (r / LengthScale) + pow(r / LengthScale, 2));
+        std::string fileOutCorrU = "Corr_U_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
+        std::ofstream fileCorrelationU;
+        fileCorrelationU.open(fileOutCorrU);
 
-            if (TDatabase::ParamDB->stddev_switch == 0)
+        for (int i = 0; i < N_DOF; i++)
+        {
+            for (int j = 0; j < N_DOF; j++)
             {
-                double sig_r1 = exp(-1.0 / (1.0 - pow((2 * actual_x - 1), 4))) * exp(-1.0 / (1 - pow((2 * actual_y - 1), 4)));
-                double sig_r2 = exp(-1.0 / (1.0 - pow((2 * local_x - 1), 4))) * exp(-1.0 / (1 - pow((2 * local_y - 1), 4)));
-
-                // Co Variance
-                C[j * N_DOF + i] *= sig_r1 * sig_r2 * 5.0;
+                fileCorrelationU << Vt[i * N_DOF + j];
+                if (j != N_DOF - 1)
+                    fileCorrelationU << ",";
             }
+            fileCorrelationU << endl;
+        }
+        fileCorrelationU.close();
 
-            else if (TDatabase::ParamDB->stddev_switch == 1)
+        std::string fileOutCorrVt = "Corr_Vt_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
+        std::ofstream fileCorrelationVt;
+        fileCorrelationVt.open(fileOutCorrVt);
+
+        for (int i = 0; i < N_DOF; i++)
+        {
+            for (int j = 0; j < N_DOF; j++)
             {
-                double E = TDatabase::ParamDB->stddev_denom;
-                double disp = TDatabase::ParamDB->stddev_disp;
-                double power = TDatabase::ParamDB->stddev_power;
-                double sig_r1 = exp(-pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E)) * exp(-pow((2 * actual_y - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E));
-                double sig_r2 = exp(-pow((2 * local_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E)) * exp(-pow((2 * local_y - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E));
-                // Co Variance
-                C[j * N_DOF + i] *= sig_r1 * sig_r2;
+                fileCorrelationVt << U[i * N_DOF + j];
+                if (j != N_DOF - 1)
+                    fileCorrelationVt << ",";
             }
+            fileCorrelationVt << endl;
+        }
+        fileCorrelationVt.close();
 
+        int energyVal = 0;
+        int temp = 0;
+
+        double sumSingularVal = 0;
+        for (int i = 0; i < N_DOF; i++)
+            sumSingularVal += S[i];
+
+        double val = 0;
+        for (energyVal = 0; energyVal < N_DOF; energyVal++)
+        {
+            val += S[energyVal];
+            temp++;
+            if (val / sumSingularVal > 0.99)
+                break;
+        }
+
+        cout << " MODES : " << temp + 1 << endl;
+
+        int modDim = temp + 1;
+
+        double *Ut = new double[N_DOF * modDim]();
+        double *Z = new double[N_Realisations * modDim]();
+
+        double *RealizationVectorTemp = new double[N_DOF * N_Realisations]();
+
+        // -------------- Generate Random Number Based on Normal Distribution -------------------------//
+        int k = 0;
+        int skip = N_DOF - modDim;
+        int count = 0;
+        for (int i = 0; i < N_DOF * N_DOF; i++)
+        {
+            if (count < modDim)
+            {
+                Ut[k] = U[i];
+
+                count++;
+                k++;
+            }
             else
             {
-                cout << "Error - No standard deviation function is defined for stddev_switch: " << TDatabase::ParamDB->stddev_switch << endl;
-                exit(0);
+                i += skip;
+                count = 0;
+                i--;
             }
-
-            norm += C[j * N + i] * C[j * N + i];
         }
-    }
 
-    ////////////////////////////////////////////////////// SVD ////////////////////////////////////////////
-    // Declare SVD parameters
-    MKL_INT m1 = N_DOF, n = N_DOF, lda = N_DOF, ldu = N_DOF, ldvt = N_DOF, info;
-    double superb[std::min(N_DOF, N_DOF) - 1];
-
-    double *S = new double[N_DOF]();
-    double *U = new double[N_DOF * N_DOF]();
-    double *Vt = new double[N_DOF * N_DOF]();
-    info = LAPACKE_dgesvd(LAPACK_ROW_MAJOR, 'A', 'A', m1, n, C, lda,
-                          S, U, ldu, Vt, ldvt, superb);
-
-    cout << endl
-         << endl;
-
-    if (info > 0)
-    {
-        printf("The algorithm computing SVD of Covariance Matrix failed to converge.\n");
-        exit(1);
-    }
-    int energyVal = 0;
-    int temp = 0;
-
-    double sumSingularVal = 0;
-    for (int i = 0; i < N_DOF; i++)
-        sumSingularVal += S[i];
-
-    double val = 0;
-    for (energyVal = 0; energyVal < N_DOF; energyVal++)
-    {
-        val += S[energyVal];
-        temp++;
-        if (val / sumSingularVal > 0.99)
-            break;
-    }
-
-    cout << " MODES : " << temp + 1 << endl;
-
-    int modDim = temp + 1;
-
-    double *Ut = new double[N_DOF * modDim]();
-    double *Z = new double[N_Realisations * modDim]();
-
-    double *RealizationVector = new double[N_DOF * N_Realisations]();
-    double *RealizationVectorTemp = new double[N_DOF * N_Realisations]();
-
-    // -------------- Generate Random Number Based on Normal Distribution -------------------------//
-    int k = 0;
-    int skip = N_DOF - modDim;
-    int count = 0;
-    for (int i = 0; i < N_DOF * N_DOF; i++)
-    {
-        if (count < modDim)
+        for (int k = 0; k < modDim; k++)
         {
-            Ut[k] = U[i];
+            std::random_device rd{};
+            std::mt19937 gen{rd()};
+            std::normal_distribution<> d{0, 1};
 
-            count++;
-            k++;
+            double *norm1 = new double[N_Realisations]();
+
+            for (int n = 0; n < N_Realisations; ++n)
+            {
+                Z[k * N_Realisations + n] = S[k] * d(gen);
+            }
         }
-        else
+
+        cout << " N_Realisations : " << N_Realisations << endl;
+        cout << " MULT START " << endl;
+        cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_DOF, N_Realisations, modDim, 1.0, Ut, modDim, Z, N_Realisations, 0.0, RealizationVector, N_Realisations);
+        cout << " MULT DONE " << endl;
+
+        for (int i = 0; i < N_DOF; i++)
         {
-            i += skip;
-            count = 0;
-            i--;
+            for (int j = 0; j < N_Realisations; j++)
+            {
+                RealizationVectorTemp[mappingArray[i] * N_Realisations + j] = RealizationVector[j + N_Realisations * i];
+            }
         }
-    }
 
-    for (int k = 0; k < modDim; k++)
+        memcpy(RealizationVector, RealizationVectorTemp, N_DOF * N_Realisations * SizeOfDouble);
+
+        cout << N_Realisations << " REALISATIONS COMPUTED " << endl;
+
+        delete[] Ut;
+        delete[] Z;
+        delete[] RealizationVectorTemp;
+        delete[] S;
+        delete[] U;
+        delete[] Vt;
+        delete[] org_x_coord;
+        delete[] org_y_coord;
+        delete[] x_coord;
+        delete[] y_coord;
+        delete[] C;
+        delete[] C1;
+
+        if (TDatabase::ParamDB->writeRealznToText == 1)
+            writeRealizationToText(RealizationVector, N_Realisations, N_DOF);
+    }
+    else if (TDatabase::ParamDB->toggleRealznSource == 1)
+        readRealizationFromText(RealizationVector, N_Realisations, N_DOF);
+    else
     {
-        std::random_device rd{};
-        std::mt19937 gen{rd()};
-        std::normal_distribution<> d{0, 1};
-
-        double *norm1 = new double[N_Realisations]();
-
-        for (int n = 0; n < N_Realisations; ++n)
-        {
-            Z[k * N_Realisations + n] = S[k] * d(gen);
-        }
+        cout << "Please select correct value of Realization_Source" << endl
+             << TDatabase::ParamDB->toggleRealznSource << " is not an acceptable value" << endl;
+        exit(0);
     }
 
-    cout << " N_Realisations : " << N_Realisations << endl;
-    cout << " MULT START " << endl;
-    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_DOF, N_Realisations, modDim, 1.0, Ut, modDim, Z, N_Realisations, 0.0, RealizationVector, N_Realisations);
-    cout << " MULT DONE " << endl;
 
-    for (int i = 0; i < N_DOF; i++)
-    {
-        for (int j = 0; j < N_Realisations; j++)
-        {
-            RealizationVectorTemp[mappingArray[i] * N_Realisations + j] = RealizationVector[j + N_Realisations * i];
-        }
-    }
 
-    memcpy(RealizationVector, RealizationVectorTemp, N_DOF * N_Realisations * SizeOfDouble);
-
-    cout << N_Realisations << " REALISATIONS COMPUTED " << endl;
-
-    delete[] Ut;
-    delete[] Z;
-    delete[] RealizationVectorTemp;
-    delete[] S;
-    delete[] U;
-    delete[] Vt;
-    delete[] org_x_coord;
-    delete[] org_y_coord;
-    delete[] x_coord;
-    delete[] y_coord;
-    delete[] C;
-    delete[] C1;
-    writeRealizationToText(RealizationVector, N_Realisations, N_DOF);
-    readRealizationFromText(RealizationVector,N_Realisations,N_DOF);
+    double dx = 1 / sqrt(N_DOF);
+    double dy = 1 / sqrt(N_DOF);
 
     /////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////// -------- START OF DO INITIALIZATION ------------ ////////////////////////////////////////////////////////////////
-
 
     double *MeanVector = new double[N_DOF * 1](); // overline{C}_{dof} = \sum_{i=1}^{N_Realisations}(C^{i}_{dof})/N_Realisations
     for (int i = 0; i < N_DOF; ++i)
     {
         for (int j = 0; j < N_Realisations; ++j)
         {
-            MeanVector[i] += (RealizationVector[i * N_Realisations + j] / N_Realisations);
+            MeanVector[i] += (RealizationVector[i * N_Realisations + j] / N_Realisations)/(dx*dy);
         }
     }
 
@@ -508,7 +582,7 @@ int main(int argc, char *argv[])
     {
         for (int j = 0; j < subDim; j++)
         {
-            CoeffVector[j * N_Realisations + i] = ProjectionVector[i * minDim + j]; // CoeffVector in Col Major form
+            CoeffVector[j * N_Realisations + i] = ProjectionVector[i * minDim + j]/(dx*dy); // CoeffVector in Col Major form
         }
     }
 
@@ -519,7 +593,7 @@ int main(int argc, char *argv[])
     {
         for (int j = 0; j < subDim; j++)
         {
-            ModeVector[j * N_DOF + i] = L[i * minDim + j]; // ModeVector in Col Major form
+            ModeVector[j * N_DOF + i] = L[i * minDim + j]/(dx*dy); // ModeVector in Col Major form
         }
     }
 

@@ -163,7 +163,10 @@
         "TCD2D_ParMooN_MC_Mean.C": "cpp",
         "ConvDiff2D.C": "cpp",
         "TC2D_ParMooN_IVUQ_DO.C": "cpp",
-        "TC2D_ParMooN_IVUQ_DO_Test.C": "cpp"
+        "TC2D_ParMooN_IVUQ_DO_Test.C": "cpp",
+        "TLA2D_ParMooN_IVUQ_DO.C": "cpp",
+        "TLA2D_ParMooN_IVUQ_DO_Test.C": "cpp",
+        "TLA2D_ParMooN_MC_Test.C": "cpp"
     },
     "cmake.configureOnOpen": false,
     "C_Cpp.dimInactiveRegions": false

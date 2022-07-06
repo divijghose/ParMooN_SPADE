@@ -645,6 +645,7 @@ int main(int argc, char *argv[])
   }
   delete[] CompositeVector;
   delete[] imgm;
+  delete[] RealizationVector;
 
   CloseFiles();
 

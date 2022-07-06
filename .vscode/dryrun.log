@@ -1,0 +1,6 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory '/home/divij/Documents/ParMooN_Codes/ParMooN_CMG'
+make: Leaving directory '/home/divij/Documents/ParMooN_Codes/ParMooN_CMG'
+ 
+make: *** No targets specified and no makefile found.  Stop.
+

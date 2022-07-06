@@ -7,6 +7,8 @@
         "functional": "cpp",
         "cinttypes": "cpp",
         "TCD2D_ParMooN_IVUQ_DO.C": "cpp",
-        "TBE2D_ParMooN_IVUQ_DO_Test.C": "cpp"
+        "TBE2D_ParMooN_IVUQ_DO_Test.C": "cpp",
+        "TBE2D_ParMooN_IVUQ_DO.C": "cpp",
+        "TLA2D_ParMooN_IVUQ_DO.C": "cpp"
     }
 }
