@@ -1,5 +1,5 @@
 /**
- * @file TLA2D_ParMooN_IVUQ_DO_Test.C
+ * @file TLA2D_ParMooN_IVUQ_DO.C
  * @brief Purpose:     Main program for scalar equations with new
  *                     kernels of ParMooN, for solution of
  *                     time-dependent linear advection equation
