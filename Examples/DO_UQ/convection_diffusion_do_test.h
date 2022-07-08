@@ -1231,3 +1231,93 @@ void calc_princVariance(double *princVariance, int N_S)
 
 }
 
+void readRealizationFromText(double *RealznVect, const int N_R, const int N_DOF)
+{
+    cout << "Read In" << endl;
+    std::vector<std::vector<std::string>> content;
+    std::vector<std::string> row;
+    std::string line, word;
+
+    std::string fileInName = "Realizations_" + std::to_string(N_R) + "_NDOF_" + std::to_string(N_DOF) + ".txt";
+    std::ifstream file(fileInName);
+    if (file.is_open())
+    {
+        while (getline(file, line))
+        {
+            row.clear();
+
+            std::stringstream str(line);
+
+            while (getline(str, word, ','))
+                row.push_back(word);
+            content.push_back(row);
+        }
+        cout << "Realization file opened succesfully" << endl;
+    }
+    else
+        cout << "Could not open the file\n";
+
+    cout << "" << endl;
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_R; j++)
+        {
+            RealznVect[i * N_R + j] = std::stod(content[i][j]);
+        }
+    }
+
+    cout << "Realization file read successfully" << endl;
+    return;
+}
+
+void writeRealizationToText(const double *RealznVect, const int N_R, const int N_DOF)
+{
+    std::string fileoutMC = "Realizations_" + std::to_string(N_R) + "_NDOF_" + std::to_string(N_DOF) + ".txt";
+    std::ofstream fileMC;
+    fileMC.open(fileoutMC);
+
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_R; j++)
+        {
+            fileMC << RealznVect[i * N_R + j];
+            if (j != N_R - 1)
+                fileMC << ",";
+        }
+        fileMC << endl;
+    }
+    cout << "All Realizations written to: " << fileoutMC << endl;
+    return;
+}
+
+void calcMeanRealization(const double *RealznVect, double *MeanVect, const int N_R, const int N_DOF)
+{
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_R; j++)
+        {
+            MeanVect[i] += RealznVect[i * N_R + j] / N_R;
+        }
+    }
+
+    return;
+}
+
+void calcStdDevRealization(const double *RealznVect, double *StdDevVect, const int N_R, const int N_DOF)
+{
+    double *MeanVector = new double[N_DOF]();
+    calcMeanRealization(RealznVect, MeanVector, N_R, N_DOF);
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_R; j++)
+        {
+            StdDevVect[i] += pow(RealznVect[i * N_R + j] - MeanVector[i], 2) / N_R;
+        }
+
+        StdDevVect[i] = sqrt(StdDevVect[i]);
+    }
+
+    delete[] MeanVector;
+
+    return;
+}
