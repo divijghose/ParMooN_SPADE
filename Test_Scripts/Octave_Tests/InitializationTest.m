@@ -1,5 +1,5 @@
 pkg load statistics
-Refinement = 6;
+Refinement = 4;
 N_R = 500;
 [xx,yy] = getMesh (Refinement);
 E = 0.03;
@@ -19,4 +19,4 @@ GaussD = stdnormal_rnd(i,N_R);
 Z = GaussD.*SNew;
 RealznVector = Unew*Z;
 
-
+[doMean,doCoeff,doMode] = DO_Init(RealznVector, N_R);

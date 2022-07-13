@@ -1,4 +1,6 @@
 make all --print-data-base --no-builtin-variables --no-builtin-rules --question
+make: *** No rule to make target 'all'.  Stop.
+
 # GNU Make 4.2.1
 # Built for x86_64-pc-linux-gnu
 # Copyright (C) 1988-2016 Free Software Foundation, Inc.
@@ -6,7 +8,7 @@ make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Tue Jul  5 14:37:22 2022
+# Make data base, printed on Tue Jul 12 11:18:10 2022
 
 # Variables
 
@@ -51,7 +53,7 @@ VSCODE_NLS_CONFIG = {"locale":"en-gb","availableLanguages":{},"_languagePackSupp
 # environment
 INTEL_LICENSE_FILE = /opt/intel/compilers_and_libraries_2020.0.166/linux/licenses:/opt/intel/licenses:/home/divij/intel/licenses
 # environment
-JOURNAL_STREAM = 8:55587
+JOURNAL_STREAM = 8:55613
 # environment
 XDG_CONFIG_DIRS = /etc/xdg/xdg-ubuntu:/etc/xdg
 # environment
@@ -75,7 +77,7 @@ DBUS_SESSION_BUS_ADDRESS = unix:path=/run/user/1000/bus
 # environment
 VSCODE_VERBOSE_LOGGING = true
 # environment
-MANAGERPID = 2202
+MANAGERPID = 2161
 # environment
 LESSOPEN = | /usr/bin/lesspipe %s
 # environment
@@ -89,7 +91,7 @@ PATH = /home/divij/anaconda3/condabin:/opt/intel/compilers_and_libraries_2020.0.
 # environment
 GPG_AGENT_INFO = /run/user/1000/gnupg/S.gpg-agent:0:1
 # environment
-SESSION_MANAGER = local/divij:@/tmp/.ICE-unix/2408,unix/divij:/tmp/.ICE-unix/2408
+SESSION_MANAGER = local/divij:@/tmp/.ICE-unix/2365,unix/divij:/tmp/.ICE-unix/2365
 # environment
 XDG_RUNTIME_DIR = /run/user/1000
 # environment
@@ -111,7 +113,7 @@ DISABLE_WAYLAND = 1
 # environment
 ELECTRON_RUN_AS_NODE = 1
 # environment
-INVOCATION_ID = 4c3dfc8d0322414a9c0e9a96a38e89b2
+INVOCATION_ID = 4922ea90591042eeb8e6dd9aa950e1b2
 # environment
 GDK_PIXBUF_MODULEDIR = /snap/code/99/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders
 # default
@@ -137,7 +139,7 @@ PWD = /home/divij/Documents/ParMooN_Codes/ParMooN_CMG
 # default
 .LOADED := 
 # environment
-SSH_AGENT_PID = 2370
+SSH_AGENT_PID = 2327
 # environment
 PKG_CONFIG_PATH = /opt/intel/compilers_and_libraries_2020.0.166/linux/mkl/bin/pkgconfig:/opt/intel/compilers_and_libraries_2020.0.166/linux/mkl/bin/pkgconfig
 # environment
@@ -193,7 +195,7 @@ SHLVL = 1
 # environment
 GNOME_SHELL_SESSION_MODE = ubuntu
 # environment
-VSCODE_IPC_HOOK_EXTHOST = /run/user/1000/vscode-ipc-d6dab9af-1d66-4c1a-b514-d267a61cc645.sock
+VSCODE_IPC_HOOK_EXTHOST = /run/user/1000/vscode-ipc-7e80fd47-504a-45b8-9de2-20390390c003.sock
 # default
 MAKE_VERSION := 4.2.1
 # environment
@@ -249,11 +251,11 @@ LC_ALL = C
 # environment
 CONDA_PYTHON_EXE = /home/divij/anaconda3/bin/python
 # environment
-GNOME_TERMINAL_SCREEN = /org/gnome/Terminal/screen/8fce6d19_f430_432c_ba91_7689e77044ca
+GNOME_TERMINAL_SCREEN = /org/gnome/Terminal/screen/8bde4a21_397e_4b14_a8d3_cb0d7ea2d139
 # automatic
 ^F = $(notdir $^)
 # environment
-GNOME_TERMINAL_SERVICE = :1.141
+GNOME_TERMINAL_SERVICE = :1.90
 # default
 SUFFIXES := 
 # environment
@@ -273,15 +275,13 @@ WINDOWPATH = 2
 # environment
 LANG = C
 # environment
- 
-make: *** No rule to make target 'all'.  Stop.
-
 TERM = xterm-256color
 # environment
-VSCODE_PID = 6318
+VSCODE_PID = 3885
 # environment
 _CE_CONDA = 
 # variable set hash-table stats:
+ 
 # Load=134/1024=13%, Rehash=0, Collisions=15/156=10%
 
 # Pattern-specific Variable Values
@@ -348,6 +348,6 @@ GNUmakefile:
 # strcache performance: lookups = 41 / hit rate = 7%
 # hash-table stats:
 # Load=38/8192=0%, Rehash=0, Collisions=1/41=2%
-# Finished Make data base on Tue Jul  5 14:37:22 2022
+# Finished Make data base on Tue Jul 12 11:18:10 2022
 
  

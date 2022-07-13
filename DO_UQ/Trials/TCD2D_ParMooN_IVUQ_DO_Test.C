@@ -258,19 +258,23 @@ int main(int argc, char *argv[])
         double norm = 0;
         for (int i = 0; i < N_DOF; i++)
         {
-            double actual_x = x[i];
-            double actual_y = y[i];
+            double actual_x = x[i]; // x_i
+            double actual_y = y[i]; // y_i
 
             for (int j = 0; j < N_DOF; j++)
             {
-                double local_x = x[j];
-                double local_y = y[j];
+                double local_x = x[j]; // x_j
+                double local_y = y[j]; // y_j;
 
-                double r = sqrt(pow((actual_x - local_x), 2) + pow((actual_y - local_y), 2));
+                double r = sqrt(pow((actual_x - local_x), 2) + pow((actual_y - local_y), 2)); // r = sqrt((x_i-x_j)^2 + (y_i-y_j)^2)
+                double rByL = r / LengthScale;                                                // r/L
 
                 // CO -Relation
-                C[j * N_DOF + i] = exp((-1.0 * r) / (LengthScale)) * (1 + (r / LengthScale) + pow(r / LengthScale, 2));
-                C1[j * N_DOF + i] = exp((-1.0 * r) / (LengthScale)) * (1 + (r / LengthScale) + pow(r / LengthScale, 2));
+                // C[j * N_DOF + i] = exp((-1.0 * r) / (LengthScale)) * (1 + (r / LengthScale) + pow(r / LengthScale, 2));
+                // C1[j * N_DOF + i] = exp((-1.0 * r) / (LengthScale)) * (1 + (r / LengthScale) + pow(r / LengthScale, 2));
+
+                C[j * N_DOF + i] = exp(-1.0 * rByL) * (1 + rByL + (pow(rByL, 2) / 3.0)); // C_ij = e^(-1*r/L)*(1+(r/L)+((r/l)^2)/3)
+                C1[j * N_DOF + i] = exp(-1.0 * rByL) * (1 + rByL + (pow(rByL, 2) / 3.0));
 
                 if (TDatabase::ParamDB->stddev_switch == 0)
                 {
@@ -286,8 +290,9 @@ int main(int argc, char *argv[])
                     double E = TDatabase::ParamDB->stddev_denom;
                     double disp = TDatabase::ParamDB->stddev_disp;
                     double power = TDatabase::ParamDB->stddev_power;
-                    double sig_r1 = exp(-pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E)) * exp(-pow((2 * actual_y - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E));
-                    double sig_r2 = exp(-pow((2 * local_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E)) * exp(-pow((2 * local_y - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E));
+                    const double pi = M_PI;
+                    double sig_r1 = (exp(-1.0 * pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * pi * sqrt(E))) * (exp(-1.0 * pow((2 * actual_y - 1 - disp), power) / (E)) / (2 * pi * sqrt(E)));
+                    double sig_r2 = (exp(-1.0 * pow((2 * local_x - 1 - disp), power) / (E)) / (2 * pi * sqrt(E))) * (exp(-1.0 * pow((2 * local_y - 1 - disp), power) / (E)) / (2 * pi * sqrt(E)));
                     // Co Variance
                     C[j * N_DOF + i] *= sig_r1 * sig_r2;
                 }
@@ -307,8 +312,8 @@ int main(int argc, char *argv[])
                     double E = TDatabase::ParamDB->stddev_denom;
                     double disp = TDatabase::ParamDB->stddev_disp;
                     double power = TDatabase::ParamDB->stddev_power;
-                    double sig_r1 = 100*exp(-pow((2 * actual_x - 1 - disp), power) / (E)) * exp(-pow((2 * actual_y - 1 - disp), power) / (E));
-                    double sig_r2 = 100*exp(-pow((2 * local_x - 1 - disp), power) / (E)) * exp(-pow((2 * local_y - 1 - disp), power) / (E));
+                    double sig_r1 = 100 * exp(-pow((2 * actual_x - 1 - disp), power) / (E)) * exp(-pow((2 * actual_y - 1 - disp), power) / (E));
+                    double sig_r2 = 100 * exp(-pow((2 * local_x - 1 - disp), power) / (E)) * exp(-pow((2 * local_y - 1 - disp), power) / (E));
                     // Co Variance
                     C[j * N_DOF + i] *= sig_r1 * sig_r2;
                 }
@@ -598,20 +603,134 @@ int main(int argc, char *argv[])
     }
 
     ////////////Initialize Mode Vector - First subDim columns of Left Singular Vector//////////////////
+    subDim = 13;
+    std::string fileoutCoeff;
+    std::string fileoutMean;
+    std::string fileoutMode;
+    std::string fileoutMC;
     double *ModeVector = new double[N_DOF * subDim]();
+
+    double *ModeVectorTemp = new double[N_DOF * subDim]();
+    readModeFromText(ModeVectorTemp, N_DOF, subDim);
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < subDim; j++)
+        {
+            ModeVector[j * N_DOF + i] = ModeVectorTemp[i * subDim + j]; // ModeVector in Col Major form
+        }
+    }
+
+    if (m < 10)
+        fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
+    else if (m < 100)
+        fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
+    else if (m < 1000)
+        fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
+    else if (m < 10000)
+        fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
+    else
+        fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
+
+    std::ofstream fileMode;
+    fileMode.open(fileoutMode);
+
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < subDim; j++)
+        {
+            fileMode << ModeVector[j * N_DOF + i];
+            if (j != subDim - 1)
+                fileMode << ",";
+        }
+        fileMode << endl;
+    }
+
+    fileMode.close();
+    //xxxxxxxxxxxxxxxxxxx
+
+
     // memcpy(ModeVector, L, N_DOF*subDim*SizeOfDouble);//For ColMajor storage
     // for (int i=0;i<N_DOF;i++){
     // 	for (int j=0;j<subDim;j++){
     // 		ModeVector[i*subDim+j] = ProjectionVector[i*minDim+j];
     // 	}
     // }
-    for (int i = 0; i < N_DOF; i++)
+    // for (int i = 0; i < N_DOF; i++)
+    // {
+    //     for (int j = 0; j < subDim; j++)
+    //     {
+    //         ModeVector[j * N_DOF + i] = L[i * minDim + j]; // ModeVector in Col Major form
+    //     }
+    // }
+
+    // double *MeanVectorTemp = new double[N_DOF*1]();
+
+    // readMeanFromText(MeanVector,N_DOF);
+
+    double *CoeffVectorTemp = new double[N_DOF * subDim]();
+    readCoeffFromText(CoeffVectorTemp, N_Realisations, subDim);
+
+    for (int i = 0; i < N_Realisations; i++)
     {
         for (int j = 0; j < subDim; j++)
         {
-            ModeVector[j * N_DOF + i] = L[i * minDim + j]; // ModeVector in Col Major form
+            CoeffVector[j * N_Realisations + i] = CoeffVectorTemp[i * subDim + j]; // CoeffVector in Col Major form
         }
     }
+
+    m = 0;
+
+    if (m < 10)
+        fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
+    else if (m < 100)
+        fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
+    else if (m < 1000)
+        fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
+    else if (m < 10000)
+        fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
+    else
+        fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
+
+    std::ofstream fileCoeff;
+    fileCoeff.open(fileoutCoeff);
+
+    for (int i = 0; i < N_Realisations; i++)
+    {
+        for (int j = 0; j < subDim; j++)
+        {
+            fileCoeff << CoeffVector[i + N_Realisations * j];
+            if (j != subDim - 1)
+                fileCoeff << ",";
+        }
+        fileCoeff << endl;
+    }
+
+    fileCoeff.close();
+
+    if (m < 10)
+        fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
+    else if (m < 100)
+        fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
+    else if (m < 1000)
+        fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
+    else if (m < 10000)
+        fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
+    else
+        fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
+
+    std::ofstream fileMean;
+    fileMean.open(fileoutMean);
+
+    for (int i = 0; i < N_DOF; i++)
+    {
+
+        fileMean << MeanVector[i] << ",";
+        fileMean << endl;
+    }
+
+    fileMean.close();
+
+    
 
     ////////////////////////////////////////////DO - Initialization Ends//////////////////////////////////////
     ///////================================================================================//////////////////
@@ -647,10 +766,10 @@ int main(int argc, char *argv[])
     for (int s = 0; s < subDim; s++)
     {
         Scalar_FeFunction_ModeAll[s] = new TFEFunction2D(Scalar_FeSpace, (char *)"C_Mode", (char *)"Mode Solution", solModeAll + s * N_DOF, N_DOF);
-        Scalar_FeFunction_ModeAll[s]->Interpolate(InitialCondition);
+        // Scalar_FeFunction_ModeAll[s]->Interpolate(InitialCondition);
     }
 
-    Scalar_FeFunction_Mean->Interpolate(InitialCondition);
+    // Scalar_FeFunction_Mean->Interpolate(InitialCondition);
     for (int i = 0; i < N_DOF; i++)
     {
         // solMean[mappingArray[i]]=MeanVector[i];
@@ -818,11 +937,6 @@ int main(int argc, char *argv[])
     std::string filenameMean = "Mean_NRealisations_" + std::to_string(N_Realisations);
     VtkBaseNameMean = const_cast<char *>(filenameMean.c_str());
 
-    std::string fileoutCoeff;
-    std::string fileoutMean;
-    std::string fileoutMode;
-    std::string fileoutMC;
-
     OutputMean = new TOutput2D(2, 2, 1, 1, Domain);
     OutputMean->AddFEFunction(Scalar_FeFunction_Mean);
 
@@ -930,7 +1044,7 @@ int main(int argc, char *argv[])
     else
         fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
 
-    std::ofstream fileMean;
+    // std::ofstream fileMean;
     fileMean.open(fileoutMean);
 
     for (int i = 0; i < N_DOF; i++)
@@ -952,14 +1066,14 @@ int main(int argc, char *argv[])
         fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
     else
         fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-    std::ofstream fileMode;
+    // std::ofstream fileMode;
     fileMode.open(fileoutMode);
 
     for (int i = 0; i < N_DOF; i++)
     {
         for (int j = 0; j < subDim; j++)
         {
-            fileMode << solMode[i * subDim + j];
+            fileMode << solModeAll[j * N_DOF + i];
             if (j != subDim - 1)
                 fileMode << ",";
         }
@@ -979,7 +1093,7 @@ int main(int argc, char *argv[])
     else
         fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
 
-    std::ofstream fileCoeff;
+    // std::ofstream fileCoeff;
     fileCoeff.open(fileoutCoeff);
 
     for (int i = 0; i < N_Realisations; i++)
@@ -1080,8 +1194,7 @@ int main(int argc, char *argv[])
     UpdateStiffnessMat = TRUE; // check BilinearCoeffs in example file
     UpdateRhs = TRUE;          // check BilinearCoeffs in example file
     ConvectionFirstTime = TRUE;
-    cout << "Ends Here" << endl;
-    exit(0);
+   
 
     // time loop starts
     while (TDatabase::TimeDB->CURRENTTIME < end_time)
@@ -1537,7 +1650,6 @@ int main(int argc, char *argv[])
     }
 
     cout << "Subspace Dimension = " << subDim << endl;
-    exit(0);
 
     double *RealizationVectorCopy = new double[N_DOF * N_Realisations]();
     memcpy(RealizationVectorCopy, RealizationVector, N_DOF * N_Realisations * SizeOfDouble);

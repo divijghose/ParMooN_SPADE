@@ -22,6 +22,16 @@
 ## Author: Divij <divij@divij>
 ## Created: 2022-07-07
 
-function [mean, coeff,mode] = DO_Init (RealznVect, N_R)
-
+function [DO_mean, coeff,DO_mode] = DO_Init (RealznVect, N_R)
+  DO_mean = mean(RealznVect')';
+  pertVector = RealznVect - DO_mean;
+  [Ud,Sd,Vtd] = svd(pertVector);
+  dSd = diag(Sd);
+  subDim=1;
+  while(cumsum(dSd)(subDim)/sum(dSd)<0.999)
+    subDim++;
+  endwhile
+  projVector = pertVector'*Ud;
+  coeff = projVector(:,1:subDim);
+  DO_mode = Ud(:,1:subDim);
 endfunction
