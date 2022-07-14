@@ -282,8 +282,9 @@ int main(int argc, char *argv[])
                     double E = TDatabase::ParamDB->stddev_denom;
                     double disp = TDatabase::ParamDB->stddev_disp;
                     double power = TDatabase::ParamDB->stddev_power;
-                    double sig_r1 = (exp(-1.0 * pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E))) * (exp(-1.0 * pow((2 * actual_y - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E)));
-                    double sig_r2 = exp(-1.0 * pow((2 * local_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E)) * exp(-1.0 * pow((2 * local_y - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E));
+                    double pi = M_PI;
+                    double sig_r1 = ((exp(-1.0 * pow((2 * actual_x - 1 - disp), power) / (E))) / (2 * pi * sqrt(E))) * ((exp(-1.0 * pow((2 * actual_y - 1 - disp), power) / (E))) / (2 * pi * sqrt(E)));
+                    double sig_r2 = ((exp(-1.0 * pow((2 * local_x - 1 - disp), power) / (E))) / (2 * pi * sqrt(E))) * ((exp(-1.0 * pow((2 * local_y - 1 - disp), power)) / (E)) / (2 * pi * sqrt(E)));
                     // Co Variance
                     C[i * N_DOF + j] *= sig_r1 * sig_r2;
                 }
@@ -299,19 +300,7 @@ int main(int argc, char *argv[])
         }
 
         std::string fileOutCorrelation = "Correlation_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
-        std::ofstream fileCorrelation;
-        fileCorrelation.open(fileOutCorrelation);
-        for (int i = 0; i < N_DOF; i++)
-        {
-            for (int j = 0; j < N_DOF; j++)
-            {
-                fileCorrelation << C[i * N_DOF + j];
-                if (j != N_DOF - 1)
-                    fileCorrelation << ",";
-            }
-            fileCorrelation << endl;
-        }
-        fileCorrelation.close();
+        printToTxt(fileOutCorrelation, C, N_DOF, N_DOF, 'R');
 
         ////////////////////////////////////////////////////// SVD ////////////////////////////////////////////
         // Declare SVD parameters
@@ -331,49 +320,13 @@ int main(int argc, char *argv[])
         }
 
         std::string fileOutCorrS = "Corr_S_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
-        std::ofstream fileCorrelationS;
-        fileCorrelationS.open(fileOutCorrS);
-
-        for (int j = 0; j < N_DOF; j++)
-        {
-            fileCorrelationS << S[j];
-            if (j != N_DOF - 1)
-                fileCorrelationS << ",";
-        }
-
-        fileCorrelationS.close();
+        printToTxt(fileOutCorrS, S, N_DOF, 1, 'C');
 
         std::string fileOutCorrU = "Corr_U_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
-        std::ofstream fileCorrelationU;
-        fileCorrelationU.open(fileOutCorrU);
-
-        for (int i = 0; i < N_DOF; i++)
-        {
-            for (int j = 0; j < N_DOF; j++)
-            {
-                fileCorrelationU << Vt[i * N_DOF + j];
-                if (j != N_DOF - 1)
-                    fileCorrelationU << ",";
-            }
-            fileCorrelationU << endl;
-        }
-        fileCorrelationU.close();
+        printToTxt(fileOutCorrU, U, N_DOF, N_DOF, 'R');
 
         std::string fileOutCorrVt = "Corr_Vt_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
-        std::ofstream fileCorrelationVt;
-        fileCorrelationVt.open(fileOutCorrVt);
-
-        for (int i = 0; i < N_DOF; i++)
-        {
-            for (int j = 0; j < N_DOF; j++)
-            {
-                fileCorrelationVt << U[i * N_DOF + j];
-                if (j != N_DOF - 1)
-                    fileCorrelationVt << ",";
-            }
-            fileCorrelationVt << endl;
-        }
-        fileCorrelationVt.close();
+        printToTxt(fileOutCorrVt, Vt, N_DOF, N_DOF, 'R');
 
         int energyVal = 0;
         int temp = 0;
@@ -479,10 +432,12 @@ int main(int argc, char *argv[])
 
     // printToTxt("RlznCheck.txt",RealizationVector,N_DOF,N_Realisations,'R');
 
- 
     /////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////// -------- START OF DO INITIALIZATION ------------ ////////////////////////////////////////////////////////////////
+    const char do_init_dir[] = "DO_Initialization";
+
+    mkdir(do_init_dir, 0777);
 
     double *MeanVector = new double[N_DOF * 1](); // overline{C}_{dof} = \sum_{i=1}^{N_Realisations}(C^{i}_{dof})/N_Realisations
     for (int i = 0; i < N_DOF; ++i)
@@ -493,7 +448,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    printToTxt("Mean.txt",MeanVector,N_DOF,1,'C');
+    printToTxt("DO_Initialization/Mean.txt", MeanVector, N_DOF, 1, 'C');
 
     double *PerturbationVector = new double[N_DOF * N_Realisations](); // \hat{C}^{i}_{dof} = C^{i}_{dof} - \overline{C}_{dof}
     for (int i = 0; i < N_DOF; ++i)
@@ -504,10 +459,9 @@ int main(int argc, char *argv[])
         }
     }
 
-    std::string fileoutPert = "PerturbationVector.txt";
-    printToTxt(fileoutPert,PerturbationVector,N_DOF,N_Realisations,'R');
+    std::string fileoutPert = "DO_Initialization/PerturbationVector.txt";
+    printToTxt(fileoutPert, PerturbationVector, N_DOF, N_Realisations, 'R');
 
-    
     //================================================================================================
     /////////////////////////////DO - Initialization SVD//////////////////////////////////////////////
     //================================================================================================
@@ -589,14 +543,14 @@ int main(int argc, char *argv[])
             CoeffVector[j * N_Realisations + i] = ProjectionVector[i * minDim + j]; // CoeffVector in Col Major form
         }
     }
-    printToTxt("Coeff.txt",CoeffVector,N_Realisations,subDim,'C');
-
+    printToTxt("DO_Initialization/Coeff.txt", CoeffVector, N_Realisations, subDim, 'C');
 
     ////////////Initialize Mode Vector - First subDim columns of Left Singular Vector//////////////////
     std::string fileoutCoeff;
     std::string fileoutMean;
     std::string fileoutMode;
     std::string fileoutMC;
+
     double *ModeVector = new double[N_DOF * subDim]();
 
     for (int i = 0; i < N_DOF; i++)
@@ -606,30 +560,20 @@ int main(int argc, char *argv[])
             ModeVector[j * N_DOF + i] = L[i * minDim + j]; // ModeVector in Col Major form
         }
     }
-    printToTxt("Mode.txt",ModeVector,N_DOF,subDim,'C');
+    printToTxt("DO_Initialization/Mode.txt", ModeVector, N_DOF, subDim, 'C');
 
-
-    exit(0);
-
-    // DIVIJ ON VACATION MODE>>!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-   
     ////////////////////////////////////////////DO - Initialization Ends//////////////////////////////////////
     ///////================================================================================//////////////////
 
-   
-    m = 0;
-
     // double *ModeVector = new double[N_DOF * subDim]();
 
-  
     delete[] PerturbationVector;
     delete[] PerturbationVectorCopy;
     delete[] Sg;
     delete[] L;
     delete[] Rt;
     delete[] ProjectionVector;
-
-  
+    exit(0);
 
     //======================================================================
     // construct all finite element functions
@@ -642,13 +586,17 @@ int main(int argc, char *argv[])
     memset(rhs, 0, N_DOF * SizeOfDouble);
     memset(oldrhs, 0, N_DOF * SizeOfDouble);
 
-    solMean = new double[N_DOF];
-    rhsMean = new double[N_DOF];
-    old_rhsMean = new double[N_DOF];
+    solMean = new double[N_DOF]();
+    rhsMean = new double[N_DOF]();
+    old_rhsMean = new double[N_DOF]();
+    Scalar_FeFunction_Mean = new TFEFunction2D(Scalar_FeSpace, (char *)"C_Mean", (char *)"sol", solMean, N_DOF);
+    // Scalar_FeFunction_Mean->Interpolate(InitialCondition);
+    for (int i = 0; i < N_DOF; i++)
+    {
+        solMean[i] = MeanVector[i];
+    }
 
-    memset(solMean, 0, N_DOF * SizeOfDouble);
-    memset(rhsMean, 0, N_DOF * SizeOfDouble);
-    memset(old_rhsMean, 0, N_DOF * SizeOfDouble);
+    printToTxt("DO_Initialization/solMean.txt", solMean, N_DOF, 1, 'C');
 
     double *solModeAll, *rhsModeAll, *oldsolModeAll, *oldrhsModeAll;
     solModeAll = new double[N_DOF * subDim]();
@@ -656,19 +604,11 @@ int main(int argc, char *argv[])
     oldsolModeAll = new double[N_DOF]();
     oldrhsModeAll = new double[N_DOF]();
 
-    Scalar_FeFunction_Mean = new TFEFunction2D(Scalar_FeSpace, (char *)"C_Mean", (char *)"sol", solMean, N_DOF);
-
     TFEFunction2D **Scalar_FeFunction_ModeAll = new TFEFunction2D *[subDim];
     for (int s = 0; s < subDim; s++)
     {
         Scalar_FeFunction_ModeAll[s] = new TFEFunction2D(Scalar_FeSpace, (char *)"C_Mode", (char *)"Mode Solution", solModeAll + s * N_DOF, N_DOF);
-        Scalar_FeFunction_ModeAll[s]->Interpolate(InitialCondition);
-    }
-
-    Scalar_FeFunction_Mean->Interpolate(InitialCondition);
-    for (int i = 0; i < N_DOF; i++)
-    {
-        solMean[i] = MeanVector[i];
+        // Scalar_FeFunction_ModeAll[s]->Interpolate(InitialCondition);
     }
 
     for (int j = 0; j < subDim; j++)
@@ -678,6 +618,7 @@ int main(int argc, char *argv[])
             solModeAll[j * N_DOF + i] = ModeVector[j * N_DOF + i];
         }
     }
+    printToTxt("DO_Initialization/solModeAll.txt", solModeAll, N_DOF, subDim, 'C');
 
     //======================================================================
     // /DO - SystemMatrix construction and solution
@@ -859,7 +800,6 @@ int main(int argc, char *argv[])
     // time disc loop
     //======================================================================
     // parameters for time stepping scheme
-    m = 0;
 
     if (m < 10)
         fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
@@ -872,17 +812,7 @@ int main(int argc, char *argv[])
     else
         fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
 
-    // std::ofstream fileMean;
-    fileMean.open(fileoutMean);
-
-    for (int i = 0; i < N_DOF; i++)
-    {
-
-        fileMean << MeanVector[i] << ",";
-        fileMean << endl;
-    }
-
-    fileMean.close();
+    printToTxt(fileoutMean, solMean, N_DOF, 1, 'C');
 
     if (m < 10)
         fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
@@ -894,21 +824,8 @@ int main(int argc, char *argv[])
         fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
     else
         fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-    // std::ofstream fileMode;
-    fileMode.open(fileoutMode);
 
-    for (int i = 0; i < N_DOF; i++)
-    {
-        for (int j = 0; j < subDim; j++)
-        {
-            fileMode << solMode[i * subDim + j];
-            if (j != subDim - 1)
-                fileMode << ",";
-        }
-        fileMode << endl;
-    }
-
-    fileMode.close();
+    printToTxt(fileoutMode, solModeAll, N_DOF, subDim, 'C');
 
     if (m < 10)
         fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
@@ -921,21 +838,7 @@ int main(int argc, char *argv[])
     else
         fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
 
-    // std::ofstream fileCoeff;
-    fileCoeff.open(fileoutCoeff);
-
-    for (int i = 0; i < N_Realisations; i++)
-    {
-        for (int j = 0; j < subDim; j++)
-        {
-            fileCoeff << CoeffVector[i + j * N_Realisations];
-            if (j != subDim - 1)
-                fileCoeff << ",";
-        }
-        fileCoeff << endl;
-    }
-
-    fileCoeff.close();
+    printToTxt(fileoutCoeff, CoeffVector, N_Realisations, subDim, 'C');
 
     TDatabase::ParamDB->N_Subspace_Dim = subDim;
 
@@ -946,6 +849,7 @@ int main(int argc, char *argv[])
     std::string fileoutMFE;
     std::string fileoutOrtho;
     std::string fileoutprincVar;
+
     std::ofstream fileMFE;
     std::ofstream fileOrtho;
     std::ofstream fileprincVar;
@@ -1098,17 +1002,7 @@ int main(int argc, char *argv[])
         else
             fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
 
-        // std::ofstream fileMean;
-        fileMean.open(fileoutMean);
-
-        for (int i = 0; i < N_DOF; i++)
-        {
-
-            fileMean << MeanVector[i] << ",";
-            fileMean << endl;
-        }
-
-        fileMean.close();
+        printToTxt(fileoutMean, solMean, N_DOF, 1, 'C');
 
         if (m < 10)
             fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
@@ -1120,21 +1014,8 @@ int main(int argc, char *argv[])
             fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
         else
             fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-        // std::ofstream fileMode;
-        fileMode.open(fileoutMode);
 
-        for (int i = 0; i < N_DOF; i++)
-        {
-            for (int j = 0; j < subDim; j++)
-            {
-                fileMode << solMode[i * subDim + j];
-                if (j != subDim - 1)
-                    fileMode << ",";
-            }
-            fileMode << endl;
-        }
-
-        fileMode.close();
+        printToTxt(fileoutMode, solModeAll, N_DOF, subDim, 'C');
 
         if (m < 10)
             fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
@@ -1146,22 +1027,8 @@ int main(int argc, char *argv[])
             fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
         else
             fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-        //
-        // std::ofstream fileCoeff;
-        fileCoeff.open(fileoutCoeff);
 
-        for (int i = 0; i < N_Realisations; i++)
-        {
-            for (int j = 0; j < subDim; j++)
-            {
-                fileCoeff << CoeffVector[i + j * N_Realisations];
-                if (j != subDim - 1)
-                    fileCoeff << ",";
-            }
-            fileCoeff << endl;
-        }
-
-        fileCoeff.close();
+        printToTxt(fileoutCoeff, CoeffVector, N_Realisations, subDim, 'C');
 
         memset(mfe, 0, ((subDim * subDim) + 1) * SizeOfDouble);
         calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean, FEFVector_Mode, mfe, subDim);
@@ -1311,17 +1178,7 @@ int main(int argc, char *argv[])
     else
         fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
 
-    // std::ofstream fileMean;
-    fileMean.open(fileoutMean);
-
-    for (int i = 0; i < N_DOF; i++)
-    {
-
-        fileMean << MeanVector[i] << ",";
-        fileMean << endl;
-    }
-
-    fileMean.close();
+    printToTxt(fileoutMean, solMean, N_DOF, 1, 'C');
 
     if (m < 10)
         fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
@@ -1333,21 +1190,8 @@ int main(int argc, char *argv[])
         fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
     else
         fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-    // std::ofstream fileMode;
-    fileMode.open(fileoutMode);
 
-    for (int i = 0; i < N_DOF; i++)
-    {
-        for (int j = 0; j < subDim; j++)
-        {
-            fileMode << solMode[i * subDim + j];
-            if (j != subDim - 1)
-                fileMode << ",";
-        }
-        fileMode << endl;
-    }
-
-    fileMode.close();
+    printToTxt(fileoutMode, solModeAll, N_DOF, subDim, 'C');
 
     if (m < 10)
         fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
@@ -1360,21 +1204,7 @@ int main(int argc, char *argv[])
     else
         fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
 
-    // std::ofstream fileCoeff;
-    fileCoeff.open(fileoutCoeff);
-
-    for (int i = 0; i < N_Realisations; i++)
-    {
-        for (int j = 0; j < subDim; j++)
-        {
-            fileCoeff << CoeffVector[i + j * N_Realisations];
-            if (j != subDim - 1)
-                fileCoeff << ",";
-        }
-        fileCoeff << endl;
-    }
-
-    fileCoeff.close();
+    printToTxt(fileoutCoeff, CoeffVector, N_Realisations, subDim, 'C');
 
     memset(mfe, 0, ((subDim * subDim) + 1) * SizeOfDouble);
     calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean, FEFVector_Mode, mfe, subDim);
@@ -1480,6 +1310,8 @@ int main(int argc, char *argv[])
 
     cout << "Subspace Dimension = " << subDim << endl;
     exit(0);
+
+    
     double *RealizationVectorCopy = new double[N_DOF * N_Realisations]();
     memcpy(RealizationVectorCopy, RealizationVector, N_DOF * N_Realisations * SizeOfDouble);
 
