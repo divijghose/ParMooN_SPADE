@@ -283,8 +283,13 @@ int main(int argc, char *argv[])
                     double disp = TDatabase::ParamDB->stddev_disp;
                     double power = TDatabase::ParamDB->stddev_power;
                     double pi = M_PI;
+<<<<<<< HEAD
                     double sig_r1 = (exp(-1.0 * pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * pi * sqrt(E))) * (exp(-1.0 * pow((2 * actual_y - 1 - disp), power) / (E)) / (2 * pi * sqrt(E)));
                     double sig_r2 = (exp(-1.0 * pow((2 * local_x - 1 - disp), power) / (E)) / (2 * pi * sqrt(E))) * (exp(-1.0 * pow((2 * local_y - 1 - disp), power) / (E)) / (2 * pi * sqrt(E)));
+=======
+                    double sig_r1 = ((exp(-1.0 * pow((2 * actual_x - 1 - disp), power) / (E))) / (2 * pi * sqrt(E))) * ((exp(-1.0 * pow((2 * actual_y - 1 - disp), power) / (E))) / (2 * pi * sqrt(E)));
+                    double sig_r2 = ((exp(-1.0 * pow((2 * local_x - 1 - disp), power) / (E))) / (2 * pi * sqrt(E))) * ((exp(-1.0 * pow((2 * local_y - 1 - disp), power)) / (E)) / (2 * pi * sqrt(E)));
+>>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
                     // Co Variance
                     C[i * N_DOF + j] *= sig_r1 * sig_r2;
                 }
@@ -435,6 +440,9 @@ int main(int argc, char *argv[])
     /////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////// -------- START OF DO INITIALIZATION ------------ ////////////////////////////////////////////////////////////////
+    const char do_init_dir[] = "DO_Initialization";
+
+    mkdir(do_init_dir, 0777);
 
     double *MeanVector = new double[N_DOF * 1](); // overline{C}_{dof} = \sum_{i=1}^{N_Realisations}(C^{i}_{dof})/N_Realisations
     for (int i = 0; i < N_DOF; ++i)
@@ -445,7 +453,11 @@ int main(int argc, char *argv[])
         }
     }
 
+<<<<<<< HEAD
     printToTxt("Mean.txt", MeanVector, N_DOF, 1, 'C');
+=======
+    printToTxt("DO_Initialization/Mean.txt", MeanVector, N_DOF, 1, 'C');
+>>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
     double *PerturbationVector = new double[N_DOF * N_Realisations](); // \hat{C}^{i}_{dof} = C^{i}_{dof} - \overline{C}_{dof}
     for (int i = 0; i < N_DOF; ++i)
@@ -456,7 +468,11 @@ int main(int argc, char *argv[])
         }
     }
 
+<<<<<<< HEAD
     std::string fileoutPert = "PerturbationVector.txt";
+=======
+    std::string fileoutPert = "DO_Initialization/PerturbationVector.txt";
+>>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
     printToTxt(fileoutPert, PerturbationVector, N_DOF, N_Realisations, 'R');
 
     //================================================================================================
@@ -540,7 +556,11 @@ int main(int argc, char *argv[])
             CoeffVector[j * N_Realisations + i] = ProjectionVector[i * minDim + j]; // CoeffVector in Col Major form
         }
     }
+<<<<<<< HEAD
     printToTxt("Coeff.txt", CoeffVector, N_Realisations, subDim, 'C');
+=======
+    printToTxt("DO_Initialization/Coeff.txt", CoeffVector, N_Realisations, subDim, 'C');
+>>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
     ////////////Initialize Mode Vector - First subDim columns of Left Singular Vector//////////////////
     std::string fileoutCoeff;
@@ -557,6 +577,7 @@ int main(int argc, char *argv[])
             ModeVector[j * N_DOF + i] = L[i * minDim + j]; // ModeVector in Col Major form
         }
     }
+<<<<<<< HEAD
     printToTxt("Mode.txt", ModeVector, N_DOF, subDim, 'C');
 
     const char ip[] = "IPMatrices";
@@ -576,6 +597,13 @@ int main(int argc, char *argv[])
 
     m = 0;
 
+=======
+    printToTxt("DO_Initialization/Mode.txt", ModeVector, N_DOF, subDim, 'C');
+
+    ////////////////////////////////////////////DO - Initialization Ends//////////////////////////////////////
+    ///////================================================================================//////////////////
+
+>>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
     // double *ModeVector = new double[N_DOF * subDim]();
 
     delete[] PerturbationVector;
@@ -584,6 +612,10 @@ int main(int argc, char *argv[])
     delete[] L;
     delete[] Rt;
     delete[] ProjectionVector;
+<<<<<<< HEAD
+=======
+    exit(0);
+>>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
     //======================================================================
     // construct all finite element functions
@@ -596,13 +628,17 @@ int main(int argc, char *argv[])
     memset(rhs, 0, N_DOF * SizeOfDouble);
     memset(oldrhs, 0, N_DOF * SizeOfDouble);
 
-    solMean = new double[N_DOF];
-    rhsMean = new double[N_DOF];
-    old_rhsMean = new double[N_DOF];
+    solMean = new double[N_DOF]();
+    rhsMean = new double[N_DOF]();
+    old_rhsMean = new double[N_DOF]();
+    Scalar_FeFunction_Mean = new TFEFunction2D(Scalar_FeSpace, (char *)"C_Mean", (char *)"sol", solMean, N_DOF);
+    // Scalar_FeFunction_Mean->Interpolate(InitialCondition);
+    for (int i = 0; i < N_DOF; i++)
+    {
+        solMean[i] = MeanVector[i];
+    }
 
-    memset(solMean, 0, N_DOF * SizeOfDouble);
-    memset(rhsMean, 0, N_DOF * SizeOfDouble);
-    memset(old_rhsMean, 0, N_DOF * SizeOfDouble);
+    printToTxt("DO_Initialization/solMean.txt", solMean, N_DOF, 1, 'C');
 
     double *solModeAll, *rhsModeAll, *oldsolModeAll, *oldrhsModeAll;
     solModeAll = new double[N_DOF * subDim]();
@@ -610,19 +646,20 @@ int main(int argc, char *argv[])
     oldsolModeAll = new double[N_DOF]();
     oldrhsModeAll = new double[N_DOF]();
 
-    Scalar_FeFunction_Mean = new TFEFunction2D(Scalar_FeSpace, (char *)"C_Mean", (char *)"sol", solMean, N_DOF);
-
     TFEFunction2D **Scalar_FeFunction_ModeAll = new TFEFunction2D *[subDim];
     for (int s = 0; s < subDim; s++)
     {
         Scalar_FeFunction_ModeAll[s] = new TFEFunction2D(Scalar_FeSpace, (char *)"C_Mode", (char *)"Mode Solution", solModeAll + s * N_DOF, N_DOF);
         // Scalar_FeFunction_ModeAll[s]->Interpolate(InitialCondition);
+<<<<<<< HEAD
     }
 
     // Scalar_FeFunction_Mean->Interpolate(InitialCondition);
     for (int i = 0; i < N_DOF; i++)
     {
         solMean[i] = MeanVector[i];
+=======
+>>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
     }
 
     for (int j = 0; j < subDim; j++)
@@ -632,6 +669,7 @@ int main(int argc, char *argv[])
             solModeAll[j * N_DOF + i] = ModeVector[j * N_DOF + i];
         }
     }
+    printToTxt("DO_Initialization/solModeAll.txt", solModeAll, N_DOF, subDim, 'C');
 
     //======================================================================
     // /DO - SystemMatrix construction and solution
@@ -813,7 +851,6 @@ int main(int argc, char *argv[])
     // time disc loop
     //======================================================================
     // parameters for time stepping scheme
-    m = 0;
 
     if (m < 10)
         fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
@@ -826,7 +863,11 @@ int main(int argc, char *argv[])
     else
         fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
 
+<<<<<<< HEAD
     printToTxt(fileoutMean, MeanVector, N_DOF, 1, 'C');
+=======
+    printToTxt(fileoutMean, solMean, N_DOF, 1, 'C');
+>>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
     if (m < 10)
         fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
@@ -839,7 +880,11 @@ int main(int argc, char *argv[])
     else
         fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
 
+<<<<<<< HEAD
     printToTxt(fileoutMode, ModeVector, N_DOF, subDim, 'C');
+=======
+    printToTxt(fileoutMode, solModeAll, N_DOF, subDim, 'C');
+>>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
     if (m < 10)
         fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
@@ -853,6 +898,7 @@ int main(int argc, char *argv[])
         fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
 
     printToTxt(fileoutCoeff, CoeffVector, N_Realisations, subDim, 'C');
+<<<<<<< HEAD
 
     std::string fileoutIPMode;
     std::string fileoutIPMean;
@@ -887,6 +933,8 @@ int main(int argc, char *argv[])
 
     calcIPMatx(IPMatxMean, solMean, N_DOF, 1, 'C');
     printToTxt(fileoutIPMean, IPMatxMean, 1, 1, 'R');
+=======
+>>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
     TDatabase::ParamDB->N_Subspace_Dim = subDim;
 
@@ -897,6 +945,7 @@ int main(int argc, char *argv[])
     std::string fileoutMFE;
     std::string fileoutOrtho;
     std::string fileoutprincVar;
+
     std::ofstream fileMFE;
     std::ofstream fileOrtho;
     std::ofstream fileprincVar;
@@ -1049,7 +1098,11 @@ int main(int argc, char *argv[])
         else
             fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
 
+<<<<<<< HEAD
         printToTxt(fileoutMean, MeanVector, N_DOF, 1, 'C');
+=======
+        printToTxt(fileoutMean, solMean, N_DOF, 1, 'C');
+>>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
         if (m < 10)
             fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
@@ -1062,7 +1115,11 @@ int main(int argc, char *argv[])
         else
             fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
 
+<<<<<<< HEAD
         printToTxt(fileoutMode, ModeVector, N_DOF, subDim, 'C');
+=======
+        printToTxt(fileoutMode, solModeAll, N_DOF, subDim, 'C');
+>>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
         if (m < 10)
             fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
@@ -1074,7 +1131,10 @@ int main(int argc, char *argv[])
             fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
         else
             fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
+<<<<<<< HEAD
         //
+=======
+>>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
         printToTxt(fileoutCoeff, CoeffVector, N_Realisations, subDim, 'C');
 
@@ -1258,7 +1318,11 @@ int main(int argc, char *argv[])
     else
         fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
 
+<<<<<<< HEAD
     printToTxt(fileoutMean, MeanVector, N_DOF, 1, 'C');
+=======
+    printToTxt(fileoutMean, solMean, N_DOF, 1, 'C');
+>>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
     if (m < 10)
         fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
@@ -1271,7 +1335,11 @@ int main(int argc, char *argv[])
     else
         fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
 
+<<<<<<< HEAD
     printToTxt(fileoutMode, ModeVector, N_DOF, subDim, 'C');
+=======
+    printToTxt(fileoutMode, solModeAll, N_DOF, subDim, 'C');
+>>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
     if (m < 10)
         fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
@@ -1420,6 +1488,7 @@ int main(int argc, char *argv[])
     }
 
     cout << "Subspace Dimension = " << subDim << endl;
+<<<<<<< HEAD
     TDatabase::TimeDB->CURRENTTIME = 0;
     std::string PyInFile = "PyIn.txt";
 
@@ -1431,6 +1500,11 @@ int main(int argc, char *argv[])
 
     CloseFiles();
 
+=======
+    exit(0);
+
+    
+>>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
     double *RealizationVectorCopy = new double[N_DOF * N_Realisations]();
     memcpy(RealizationVectorCopy, RealizationVector, N_DOF * N_Realisations * SizeOfDouble);
 
