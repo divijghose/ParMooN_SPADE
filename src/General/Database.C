@@ -672,6 +672,10 @@ void TDatabase::SetDefaultParameters()
 
   ParamDB->COVARIANCE_MATRIX_DO = new double[5 * 5]();
 
+  ParamDB->REORTHO_STRATEGY = 1; //if 0, orthonormalize just the basis
+                                 //if 1, orthornormalize basis and retain realization energy and direction
+
+
   // ******** parameters for saddle point system *********//
 
   // parameters for nonlinear iteration

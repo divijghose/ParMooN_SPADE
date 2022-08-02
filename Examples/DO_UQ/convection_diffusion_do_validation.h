@@ -210,9 +210,11 @@ void BilinearCoeffs(int n_points, double *X, double *Y,
         x = X[i];
         y = Y[i];
 
-        coeff[0] = 0;
+        coeff[0] = eps;
         coeff[1] = -sin(t) * 0.2;
+        // coeff[1] = -0.2;
         coeff[2] = cos(t) * 0.2;
+        // coeff[2] = -0.2;
         coeff[3] = 0;
 
         coeff[4] = 0.0;
@@ -254,9 +256,11 @@ void DO_Mean_Equation_Coefficients(int n_points, double *X, double *Y,
         x = X[i];
         y = Y[i];
 
-        coeff[0] = 0;
+        coeff[0] = eps;
         coeff[1] = -sin(t) * 0.2;
+        // coeff[1] = -0.2;
         coeff[2] = cos(t) * 0.2;
+        // coeff[2] = -0.2;
         coeff[3] = 0;
 
         coeff[4] = 0.0;
@@ -297,9 +301,11 @@ void DO_Mode_Equation_Coefficients(int n_points, double *X, double *Y,
         x = X[i];
         y = Y[i];
 
-        coeff[0] = 0;
+        coeff[0] = eps;
         coeff[1] = -sin(t) * 0.2;
+        // coeff[1] = -0.2;
         coeff[2] = cos(t) * 0.2;
+        // coeff[2] = -0.2;
         coeff[3] = 0;
 
         coeff[4] = 0.0;
@@ -590,6 +596,8 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
         double C_i[N_Points2];
         double C_x_i[N_Points2];
         double C_y_i[N_Points2];
+        double C_xx_i[N_Points2];
+        double C_yy_i[N_Points2];
 
         for (int quadPt = 0; quadPt < N_Points2; quadPt++)
             C_i[quadPt] = 0;
@@ -600,22 +608,29 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
 
         for (int quadPt = 0; quadPt < N_Points2; quadPt++)
         {
+            C_xx_i[N_Points2] = 0;
+            C_yy_i[N_Points2] = 0;
+        }
+
+        for (int quadPt = 0; quadPt < N_Points2; quadPt++)
+        {
             for (int j = 0; j < N_BaseFunct; j++)
             {
                 int globDOF = DOF[j];
                 C_i[quadPt] += origvaluesD00[quadPt][j] * C_Array_i[globDOF];
                 C_x_i[quadPt] += origvaluesD10[quadPt][j] * C_Array_i[globDOF];
                 C_y_i[quadPt] += origvaluesD01[quadPt][j] * C_Array_i[globDOF];
+                C_xx_i[N_Points2] = origvaluesD20[quadPt][j] * C_Array_i[globDOF];
+                C_yy_i[N_Points2] = origvaluesD02[quadPt][j] * C_Array_i[globDOF];
             }
         }
-
         double rhs[N_BaseFunct];
         for (int j = 0; j < N_BaseFunct; j++)
             rhs[j] = 0;
 
         for (int a = 0; a < N_S; a++)
         {
-            memcpy(C_Array_a, C_Array + (i_index * len), len * SizeOfDouble);
+            memcpy(C_Array_a, C_Array + (a * len), len * SizeOfDouble);
 
             double C_a[N_Points2];
             double C_x_a[N_Points2];
@@ -635,8 +650,6 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
                 {
                     int globDOF = DOF[j];
                     C_a[quadPt] += origvaluesD00[quadPt][j] * C_Array_a[globDOF];
-                    // C_x_a[quadPt] += origvaluesD10[quadPt][j] * C_Array_a[globDOF];
-                    // C_y_a[quadPt] += origvaluesD01[quadPt][j] * C_Array_a[globDOF];
                 }
             }
 
@@ -660,21 +673,25 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
                 double *orgD01 = origvaluesD01[quadPt];
                 double *orgD20 = origvaluesD20[quadPt];
                 double *orgD02 = origvaluesD02[quadPt];
+                double eps = Coeffs[quadPt][0]; // eps
 
                 double b1 = Coeffs[quadPt][1]; // b1
                 double b2 = Coeffs[quadPt][2]; // b1
 
                 for (int quadPt_1 = 0; quadPt_1 < N_Points2; quadPt_1++)
                 {
-                    val += (b1 * C_x_i[quadPt_1] + b2 * C_y_i[quadPt_1]) * C_a[quadPt_1] * Mult;
+                    val += ((-1.0 * b1 * C_x_i[quadPt_1]) + (-1.0 * b2 * C_y_i[quadPt_1]) + (eps * (C_xx_i[quadPt_1] + C_yy_i[quadPt_1]))) * C_a[quadPt_1] * Mult;
                     // val *= Mult;
                 }
 
-                val *= 1.0 * C_a[quadPt]; // This is Final "f"
+                val *= C_a[quadPt]; // This is Final "f"
+                // val *= 1.0; // This is Final "f"
 
                 for (int j = 0; j < N_BaseFunct; j++)
                 {
-                    rhs[j] += val * orgD00[j]; // * Mult;
+                    rhs[j] += (-1.0 * val) * orgD00[j] * Mult;
+                    // rhs[j] +=orgD00[j]* Mult;
+                    // rhs[j] += (1.0*val);
                 }
             }
 
@@ -688,7 +705,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
         for (int j = 0; j < N_BaseFunct; j++)
         {
             int GlobalDOF = DOF[j];
-            GlobalRhs_mode[GlobalDOF] += rhs[j];
+            GlobalRhs_mode[GlobalDOF] = rhs[j];
         }
         // --
     } // Cell Loop End
@@ -888,6 +905,8 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
             double C_a[N_Points2];
             double C_x_a[N_Points2];
             double C_y_a[N_Points2];
+            double C_xx_a[N_Points2];
+            double C_yy_a[N_Points2];
 
             for (int quadPt = 0; quadPt < N_Points2; quadPt++)
                 C_a[quadPt] = 0.;
@@ -895,6 +914,11 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
                 C_x_a[quadPt] = 0.;
             for (int quadPt = 0; quadPt < N_Points2; quadPt++)
                 C_y_a[quadPt] = 0.;
+            for (int quadPt = 0; quadPt < N_Points2; quadPt++)
+            {
+                C_xx_a[quadPt] = 0.;
+                C_yy_a[quadPt] = 0.;
+            }
 
             // Obtain all values for C_a
             for (int quadPt = 0; quadPt < N_Points2; quadPt++)
@@ -905,6 +929,8 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
                     C_a[quadPt] += origvaluesD00[quadPt][j] * C_Array_a[globDOF];
                     C_x_a[quadPt] += origvaluesD10[quadPt][j] * C_Array_a[globDOF];
                     C_y_a[quadPt] += origvaluesD01[quadPt][j] * C_Array_a[globDOF];
+                    C_xx_a[quadPt] += origvaluesD20[quadPt][j] * C_Array_a[globDOF];
+                    C_yy_a[quadPt] += origvaluesD02[quadPt][j] * C_Array_a[globDOF];
                 }
             }
 
@@ -927,13 +953,14 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
                 double *orgD01 = origvaluesD01[quadPt];
                 double *orgD20 = origvaluesD20[quadPt];
                 double *orgD02 = origvaluesD02[quadPt];
+                double eps = Coeffs[quadPt][0]; // b1
 
                 double b1 = Coeffs[quadPt][1]; // b1
                 double b2 = Coeffs[quadPt][2]; // b1
                 // double b1 = 1;
                 // double b2 = 1;
 
-                val += (b1 * C_x_a[quadPt] + b2 * C_y_a[quadPt]) * C_i[quadPt] * Mult;
+                val += ((-1.0 * b1 * C_x_a[quadPt]) + (-1.0 * b2 * C_y_a[quadPt]) + (eps * (C_xx_a[quadPt] + C_yy_a[quadPt]))) * C_i[quadPt] * Mult;
                 // val *= Mult; //
 
             } // Inner Quadrature Loop
@@ -1339,84 +1366,6 @@ void calcStdDevRealization(const double *RealznVect, double *StdDevVect, const i
     return;
 }
 
-void readModeFromText(double *ModeVect, const int N_DOF, const int N_S)
-{
-    cout << "Read In" << endl;
-    std::vector<std::vector<std::string>> content;
-    std::vector<std::string> row;
-    std::string line, word;
-
-    std::string fileInName = "Mode.txt";
-    std::ifstream file(fileInName);
-    if (file.is_open())
-    {
-        while (getline(file, line))
-        {
-            row.clear();
-
-            std::stringstream str(line);
-
-            while (getline(str, word, ','))
-                row.push_back(word);
-            content.push_back(row);
-        }
-        cout << "Mode file opened succesfully" << endl;
-    }
-    else
-        cout << "Could not open the file\n";
-
-    cout << "" << endl;
-    for (int i = 0; i < N_DOF; i++)
-    {
-        for (int j = 0; j < N_S; j++)
-        {
-            ModeVect[i * N_S + j] = std::stod(content[i][j]);
-        }
-    }
-
-    cout << "Mode file read successfully" << endl;
-    return;
-}
-
-void readCoeffFromText(double *CoeffVect, const int N_R, const int N_S)
-{
-    cout << "Read In" << endl;
-    std::vector<std::vector<std::string>> content;
-    std::vector<std::string> row;
-    std::string line, word;
-
-    std::string fileInName = "Coeff.txt";
-    std::ifstream file(fileInName);
-    if (file.is_open())
-    {
-        while (getline(file, line))
-        {
-            row.clear();
-
-            std::stringstream str(line);
-
-            while (getline(str, word, ','))
-                row.push_back(word);
-            content.push_back(row);
-        }
-        cout << "Coeff file opened succesfully" << endl;
-    }
-    else
-        cout << "Could not open the file\n";
-
-    cout << "" << endl;
-    for (int i = 0; i < N_R; i++)
-    {
-        for (int j = 0; j < N_S; j++)
-        {
-            CoeffVect[i * N_S + j] = std::stod(content[i][j]);
-        }
-    }
-
-    cout << "Coeff file read successfully" << endl;
-    return;
-}
-
 void printToTxt(std::string filename, double *printArray, int height, int width, char RowOrColMaj)
 {
     std::ofstream printFile;
@@ -1467,18 +1416,16 @@ void calcIPMatx(double *IPMatx, double *Vector, int height, int width, char Rowo
         }     // end for i
         cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, width, width, height, 1, TempRowMaj, width, TempRowMaj, width, 0.0, IPMatx, width);
     }
-    
 }
 
-void readRealizationFromText(double *RealznVect, const int N_R, const int N_DOF)
+void readFromText(std::string fileName, double *Vector, int height, int width, char RowOrColMaj)
 {
     cout << "Read In" << endl;
     std::vector<std::vector<std::string>> content;
     std::vector<std::string> row;
     std::string line, word;
 
-    std::string fileInName = "Realizations_" + std::to_string(N_R) + "_NDOF_" + std::to_string(N_DOF) + ".txt";
-    std::ifstream file(fileInName);
+    std::ifstream file(fileName);
     if (file.is_open())
     {
         while (getline(file, line))
@@ -1491,20 +1438,370 @@ void readRealizationFromText(double *RealznVect, const int N_R, const int N_DOF)
                 row.push_back(word);
             content.push_back(row);
         }
-        cout << "Realization file opened succesfully" << endl;
+        cout << "File " << fileName << " opened succesfully" << endl;
     }
     else
-        cout << "Could not open the file\n";
+        cout << "Could not open the file " << fileName << "\n";
 
     cout << "" << endl;
-    for (int i = 0; i < N_DOF; i++)
+    if (RowOrColMaj == 'R')
     {
-        for (int j = 0; j < N_R; j++)
+        for (int i = 0; i < height; i++)
         {
-            RealznVect[i * N_R + j] = std::stod(content[i][j]);
+            for (int j = 0; j < width; j++)
+            {
+                Vector[i * width + j] = std::stod(content[i][j]);
+            }
+        }
+    }
+    else if (RowOrColMaj == 'C')
+    {
+        for (int i = 0; i < height; i++)
+        {
+            for (int j = 0; j < width; j++)
+            {
+                Vector[j * height + i] = std::stod(content[i][j]);
+            }
         }
     }
 
-    cout << "Realization file read successfully" << endl;
+    cout << "File " << fileName << " read successfully" << endl;
     return;
+}
+
+void reconstructMCfromDO(double *recon, double *meanDO, double *coeffDO, double *modeDO, int N_R, int N_DOF, int N_S)
+{
+    double *PertVect = new double[N_DOF * N_R]();
+    double *modeRowMaj = new double[N_DOF * N_S]();
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            modeRowMaj[i * N_S + j] = modeDO[j * N_DOF + i];
+        }
+    }
+    double *coeffRowMaj = new double[N_R * N_S]();
+    for (int i = 0; i < N_R; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            coeffRowMaj[i * N_S + j] = coeffDO[j * N_R + i];
+        }
+    }
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, N_DOF, N_R, N_S, 1.0, modeRowMaj, N_S, coeffRowMaj, N_S, 0.0, PertVect, N_R);
+    for (int i = 0; i < N_DOF; ++i)
+    {
+        for (int j = 0; j < N_R; ++j)
+        {
+            recon[i * N_R + j] = PertVect[i * N_R + j] + meanDO[i];
+        }
+    }
+    delete[] PertVect;
+    return;
+}
+
+void qr(double *const _Q, double *const _R, double *const _A, const size_t _m, const size_t _n)
+{
+    // Maximal rank is used by Lapacke
+    const size_t rank = std::min(_m, _n);
+
+    // Tmp Array for Lapacke
+    const std::unique_ptr<double[]> tau(new double[rank]);
+
+    // Calculate QR factorisations
+    LAPACKE_dgeqrf(LAPACK_ROW_MAJOR, (int)_m, (int)_n, _A, (int)_n, tau.get());
+
+    // Copy the upper triangular Matrix R (rank x _n) into position
+    for (size_t row = 0; row < rank; ++row)
+    {
+        memset(_R + row * _n, 0, row * sizeof(double));                                // Set starting zeros
+        memcpy(_R + row * _n + row, _A + row * _n + row, (_n - row) * sizeof(double)); // Copy upper triangular part from Lapack result.
+    }
+
+    // Create orthogonal matrix Q (in tmpA)
+    LAPACKE_dorgqr(LAPACK_ROW_MAJOR, (int)_m, (int)rank, (int)rank, _A, (int)_n, tau.get());
+
+    // Copy Q (_m x rank) into position
+    if (_m == _n)
+    {
+        memcpy(_Q, _A, sizeof(double) * (_m * _n));
+    }
+    else
+    {
+        for (size_t row = 0; row < _m; ++row)
+        {
+            memcpy(_Q + row * rank, _A + row * _n, sizeof(double) * (rank));
+        }
+    }
+}
+lapack_int matInv(double *A, unsigned n)
+{
+    int ipiv[n + 1];
+    lapack_int ret;
+
+    ret = LAPACKE_dgetrf(LAPACK_ROW_MAJOR,
+                         n,
+                         n,
+                         A,
+                         n,
+                         ipiv);
+
+    if (ret != 0)
+        // cout<<"Failure with dgetrf" << endl;
+        return ret;
+
+    ret = LAPACKE_dgetri(LAPACK_ROW_MAJOR,
+                         n,
+                         A,
+                         n,
+                         ipiv);
+
+    // cout << "Failure with dgetri" << endl;
+    return ret;
+}
+
+void reorthonormalize(double *Mode, int N_DOF, int N_S)
+{
+    double *Temp = new double[N_DOF * N_S]();
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            Temp[i * N_S + j] = Mode[j * N_DOF + i];
+        }
+    }
+    double *Q = new double[N_DOF * N_S]();
+    double *R = new double[N_DOF * N_S]();
+    qr(Q, R, Temp, N_DOF, N_S);
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            Mode[j * N_DOF + i] = Q[i * N_S + j];
+        }
+    }
+    delete[] Temp;
+    delete[] Q;
+    delete[] R;
+    return;
+}
+
+void reorthonormalizeB(double *Mode, double *Coeff, int N_DOF, int N_S, int N_R)
+{
+    cout << "Enter new reorthonormalization routine" << endl;
+    int height = N_R;
+    int width = N_S;
+    double *Cov = new double[N_S * N_S]();
+    double *phi = new double[width * height](); // Col to Row Major
+    for (int i = 0; i < height; i++)
+    {
+        for (int j = 0; j < width; j++)
+        {
+            phi[width * i + j] = Coeff[i + height * j];
+        }
+    }
+
+    const double divVal = (1.0 / (height - 1));
+    cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, width, width, height, divVal, phi, width, phi, width, 0.0, Cov, width);
+    cout << "Covariance for new reorthonormalization routine calculated" << endl;
+
+    double *wi, *VDCL, *VDCR;
+    int info, lwork;
+    double wkopt;
+    double *work;
+    wi = new double[N_S]();
+    VDCL = new double[N_S * N_S]();
+    VDCR = new double[N_S * N_S]();
+    int N = N_S;
+    int LDA = N_S;
+    int LDVL = N_S;
+    int LDVR = N_S;
+    double *wr = new double[N_S]();
+    lwork = -1;
+    double *DDC = new double[N_S]();
+
+    info = LAPACKE_dgeev(LAPACK_ROW_MAJOR, 'V', 'N', N_S, Cov, LDA, DDC, wi,
+                         VDCL, LDVL, VDCR, LDVR);
+
+    if (info == 0)
+        cout << "The routine computing eignevalues of coefficient matrix was successful" << endl;
+    else if (info < 0)
+    {
+        cout << "The routine computing eignevalues of coefficient matrix was unsuccessful" << endl
+             << -1 * info << "th argument invalid" << endl;
+        exit(0);
+    }
+    else if (info > 0)
+    {
+        cout << "the QR algorithm failed to compute all the eigenvalues" << endl;
+
+        exit(0);
+    }
+
+    double *ModeDC = new double[N_DOF * N_S]();
+    double *CoeffDC = new double[N_R * N_S]();
+    double *ModeRow = new double[N_DOF * N_S]();
+    double *CoeffRow = new double[N_R * N_S]();
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            ModeRow[i * N_S + j] = Mode[j * N_DOF + i];
+        }
+    }
+    for (int i = 0; i < N_R; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            CoeffRow[i * N_S + j] = Coeff[j * N_R + i];
+        }
+    }
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_DOF, N_S, N_S, 1.0, ModeRow, N_S, VDCL, N_S, 0.0, ModeDC, N_S);
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_R, N_S, N_S, 1.0, CoeffRow, N_S, VDCL, N_S, 0.0, CoeffDC, N_S);
+
+    double *M = new double[N_S * N_S]();
+    calcIPMatx(M, ModeDC, N_DOF, N_S, 'R');
+
+    double *VML = new double[N_S * N_S]();
+    double *VMR = new double[N_S * N_S]();
+    double *DM = new double[N_S]();
+
+    info = LAPACKE_dgeev(LAPACK_ROW_MAJOR, 'V', 'N', N_S, M, LDA, DM, wi,
+                         VML, LDVL, VMR, LDVR);
+
+    if (info == 0)
+        cout << "The routine computing eignevalues of coefficient matrix was successful" << endl;
+    else if (info < 0)
+    {
+        cout << "The routine computing eignevalues of coefficient matrix was unsuccessful" << endl
+             << -1 * info << "th argument invalid" << endl;
+        exit(0);
+    }
+    else if (info > 0)
+    {
+        cout << "the QR algorithm failed to compute all the eigenvalues" << endl;
+
+        exit(0);
+    }
+
+    double *CoeffOC = new double[N_R * N_S]();
+    double *ModeOC = new double[N_DOF * N_S]();
+
+    double *D = new double[N_S * N_S]();
+    double *Dinv = new double[N_S * N_S]();
+
+    for (int i = 0; i < N_S; i++)
+    {
+        D[i * N_S + i] = DM[i];
+        Dinv[i * N_S + i] = DM[i];
+    }
+
+    matInv(Dinv, N_S);
+    for (int i = 0; i < N_S; i++)
+    {
+        D[i * N_S + i] = sqrt(D[i * N_S + i]);
+        Dinv[i * N_S + i] = sqrt(Dinv[i * N_S + i]);
+    }
+
+    double *Temp = new double[N_S * N_S]();
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_S, N_S, N_S, 1.0, VML, N_S, D, N_S, 0.0, Temp, N_S);
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_R, N_S, N_S, 1.0, CoeffDC, N_S, Temp, N_S, 0.0, CoeffOC, N_S);
+
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_S, N_S, N_S, 1.0, VML, N_S, Dinv, N_S, 0.0, Temp, N_S);
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_DOF, N_S, N_S, 1.0, ModeDC, N_S, Temp, N_S, 0.0, ModeOC, N_S);
+
+    double *CovOC = new double[N_S * N_S]();
+    cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, width, width, height, divVal, CoeffOC, width, CoeffOC, width, 0.0, CovOC, width);
+
+    double *VOL = new double[N_S * N_S]();
+    double *VOR = new double[N_S * N_S]();
+    double *DDO = new double[N_S]();
+
+    info = LAPACKE_dgeev(LAPACK_ROW_MAJOR, 'V', 'N', N_S, CovOC, LDA, DDO, wi,
+                         VOL, LDVL, VOR, LDVR);
+
+    if (info == 0)
+        cout << "The routine computing eignevalues of coefficient matrix was successful" << endl;
+    else if (info < 0)
+    {
+        cout << "The routine computing eignevalues of coefficient matrix was unsuccessful" << endl
+             << -1 * info << "th argument invalid" << endl;
+        exit(0);
+    }
+    else if (info > 0)
+    {
+        cout << "the QR algorithm failed to compute all the eigenvalues" << endl;
+
+        exit(0);
+    }
+    double tracedc = 0.0;
+    double tracedo = 0.0;
+    for (int i = 0; i < N_S; i++)
+    {
+        tracedc += DDC[i];
+        tracedo += DDO[i];
+    }
+    double Mult = sqrt(tracedc / tracedo);
+    double *CoeffO = new double[N_R * N_S]();
+    double *ModeO = new double[N_DOF * N_S]();
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_R, N_S, N_S, 1.0, CoeffOC, N_S, VOL, N_S, 0.0, CoeffO, N_S);
+
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_DOF, N_S, N_S, 1.0, ModeOC, N_S, VOL, N_S, 0.0, ModeO, N_S);
+
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            Mode[j * N_DOF + i] = ModeO[i * N_S + j];
+        }
+    }
+    for (int i = 0; i < N_S; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            Coeff[j * N_S + i] = CoeffO[i * N_S + j] * Mult;
+        }
+    }
+
+    delete[] M;
+    delete[] Cov;
+    delete[] phi;
+    delete[] wi;
+    delete[] VDCL;
+    delete[] VDCR;
+    delete[] wr;
+    delete[] DDC;
+    delete[] ModeRow;
+    delete[] CoeffDC;
+    delete[] ModeDC;
+    delete[] D;
+    delete[] Dinv;
+    delete[] Temp;
+    delete[] CoeffOC;
+    delete[] CoeffO;
+    delete[] ModeOC;
+    delete[] ModeO;
+    delete[] VOL;
+    delete[] VOR;
+    delete[] DDO;
+    delete[] CovOC;
+
+    return;
+}
+
+std::string generateFileName(std::string baseName, int m, int N_R)
+{
+    std::string fileName;
+    if (m < 10)
+        fileName = baseName + std::to_string(N_R) + "_t0000" + std::to_string(m) + ".txt";
+    else if (m < 100)
+        fileName = baseName + std::to_string(N_R) + "_t000" + std::to_string(m) + ".txt";
+    else if (m < 1000)
+        fileName = baseName + std::to_string(N_R) + "_t00" + std::to_string(m) + ".txt";
+    else if (m < 10000)
+        fileName = baseName + std::to_string(N_R) + "_t0" + std::to_string(m) + ".txt";
+    else
+        fileName = baseName + std::to_string(N_R) + "_t" + std::to_string(m) + ".txt";
+
+    return fileName;
 }

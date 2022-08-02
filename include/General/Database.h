@@ -258,6 +258,9 @@ struct TParaDB
   int Max_Subspace_Dim;
   int Subspace_Manual;
 
+  int REORTHO_STRATEGY; //if 0, orthonormalize just the basis
+                        //if 1, orthornormalize basis and retain realization energy and direction
+
   //======================================================================
   /** parameters for vectorial FE (Raviart-Thomas, Brezzi-Douglas-Marini) */
   //======================================================================

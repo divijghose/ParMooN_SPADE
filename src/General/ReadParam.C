@@ -694,6 +694,12 @@ int TDomain::ReadParam(char *ParamFile)
       dat >> TDatabase::ParamDB->writeRealznToText;
       N_Param++;
     }
+
+     if (!strcmp(line, "Reorthonormalization Strategy:"))
+    {
+      dat >> TDatabase::ParamDB->REORTHO_STRATEGY;
+      N_Param++;
+    }
     ////////////////////////////////////////////////////////////////
     if (!strcmp(line, "FILTER_WIDTH_CONSTANT:"))
     {

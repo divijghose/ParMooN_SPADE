@@ -166,7 +166,11 @@
         "TC2D_ParMooN_IVUQ_DO_Test.C": "cpp",
         "TLA2D_ParMooN_IVUQ_DO.C": "cpp",
         "TLA2D_ParMooN_IVUQ_DO_Test.C": "cpp",
-        "TLA2D_ParMooN_MC_Test.C": "cpp"
+        "TLA2D_ParMooN_MC_Test.C": "cpp",
+        "TLA2D_ParMooN_IVUQ_DO_Validation.C": "cpp",
+        "TCD2D_ParMooN_IVUQ_DO_Validation.C": "cpp",
+        "TBE2D_ParMooN_IVUQ_DO_Validation.C": "cpp",
+        "LinAlg.C": "cpp"
     },
     "cmake.configureOnOpen": false,
     "C_Cpp.dimInactiveRegions": false

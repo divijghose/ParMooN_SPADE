@@ -212,7 +212,9 @@ void BilinearCoeffs(int n_points, double *X, double *Y,
 
         coeff[0] = 0;
         coeff[1] = -sin(t) * 0.2;
+        // coeff[1] = -0.2;
         coeff[2] = cos(t) * 0.2;
+        // coeff[2] = -0.2;
         coeff[3] = 0;
 
         coeff[4] = 0.0;
@@ -256,7 +258,9 @@ void DO_Mean_Equation_Coefficients(int n_points, double *X, double *Y,
 
         coeff[0] = 0;
         coeff[1] = -sin(t) * 0.2;
+        // coeff[1] = -0.2;
         coeff[2] = cos(t) * 0.2;
+        // coeff[2] = -0.2;
         coeff[3] = 0;
 
         coeff[4] = 0.0;
@@ -299,7 +303,9 @@ void DO_Mode_Equation_Coefficients(int n_points, double *X, double *Y,
 
         coeff[0] = 0;
         coeff[1] = -sin(t) * 0.2;
+        // coeff[1] = -0.2;
         coeff[2] = cos(t) * 0.2;
+        // coeff[2] = -0.2;
         coeff[3] = 0;
 
         coeff[4] = 0.0;
@@ -615,7 +621,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
 
         for (int a = 0; a < N_S; a++)
         {
-            memcpy(C_Array_a, C_Array + (i_index * len), len * SizeOfDouble);
+            memcpy(C_Array_a, C_Array + (a * len), len * SizeOfDouble);
 
             double C_a[N_Points2];
             double C_x_a[N_Points2];
@@ -635,8 +641,6 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
                 {
                     int globDOF = DOF[j];
                     C_a[quadPt] += origvaluesD00[quadPt][j] * C_Array_a[globDOF];
-                    // C_x_a[quadPt] += origvaluesD10[quadPt][j] * C_Array_a[globDOF];
-                    // C_y_a[quadPt] += origvaluesD01[quadPt][j] * C_Array_a[globDOF];
                 }
             }
 
@@ -666,15 +670,18 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
 
                 for (int quadPt_1 = 0; quadPt_1 < N_Points2; quadPt_1++)
                 {
-                    val += (b1 * C_x_i[quadPt_1] + b2 * C_y_i[quadPt_1]) * C_a[quadPt_1] * Mult;
+                    val += ((-1.0 * b1 * C_x_i[quadPt_1]) + (-1.0 * b2 * C_y_i[quadPt_1])) * C_a[quadPt_1] * Mult;
                     // val *= Mult;
                 }
 
-                val *= 1.0 * C_a[quadPt]; // This is Final "f"
+                val *= C_a[quadPt]; // This is Final "f"
+                // val *= 1.0; // This is Final "f"
 
                 for (int j = 0; j < N_BaseFunct; j++)
                 {
-                    rhs[j] += val * orgD00[j]; // * Mult;
+                    rhs[j] += (-1.0 * val) * orgD00[j] * Mult;
+                    // rhs[j] +=orgD00[j]* Mult;
+                    // rhs[j] += (1.0*val);
                 }
             }
 
@@ -688,7 +695,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
         for (int j = 0; j < N_BaseFunct; j++)
         {
             int GlobalDOF = DOF[j];
-            GlobalRhs_mode[GlobalDOF] += rhs[j];
+            GlobalRhs_mode[GlobalDOF] = rhs[j];
         }
         // --
     } // Cell Loop End
@@ -1339,84 +1346,6 @@ void calcStdDevRealization(const double *RealznVect, double *StdDevVect, const i
     return;
 }
 
-void readModeFromText(double *ModeVect, const int N_DOF, const int N_S)
-{
-    cout << "Read In" << endl;
-    std::vector<std::vector<std::string>> content;
-    std::vector<std::string> row;
-    std::string line, word;
-
-    std::string fileInName = "Mode.txt";
-    std::ifstream file(fileInName);
-    if (file.is_open())
-    {
-        while (getline(file, line))
-        {
-            row.clear();
-
-            std::stringstream str(line);
-
-            while (getline(str, word, ','))
-                row.push_back(word);
-            content.push_back(row);
-        }
-        cout << "Mode file opened succesfully" << endl;
-    }
-    else
-        cout << "Could not open the file\n";
-
-    cout << "" << endl;
-    for (int i = 0; i < N_DOF; i++)
-    {
-        for (int j = 0; j < N_S; j++)
-        {
-            ModeVect[i * N_S + j] = std::stod(content[i][j]);
-        }
-    }
-
-    cout << "Mode file read successfully" << endl;
-    return;
-}
-
-void readCoeffFromText(double *CoeffVect, const int N_R, const int N_S)
-{
-    cout << "Read In" << endl;
-    std::vector<std::vector<std::string>> content;
-    std::vector<std::string> row;
-    std::string line, word;
-
-    std::string fileInName = "Coeff.txt";
-    std::ifstream file(fileInName);
-    if (file.is_open())
-    {
-        while (getline(file, line))
-        {
-            row.clear();
-
-            std::stringstream str(line);
-
-            while (getline(str, word, ','))
-                row.push_back(word);
-            content.push_back(row);
-        }
-        cout << "Coeff file opened succesfully" << endl;
-    }
-    else
-        cout << "Could not open the file\n";
-
-    cout << "" << endl;
-    for (int i = 0; i < N_R; i++)
-    {
-        for (int j = 0; j < N_S; j++)
-        {
-            CoeffVect[i * N_S + j] = std::stod(content[i][j]);
-        }
-    }
-
-    cout << "Coeff file read successfully" << endl;
-    return;
-}
-
 void printToTxt(std::string filename, double *printArray, int height, int width, char RowOrColMaj)
 {
     std::ofstream printFile;
@@ -1467,18 +1396,16 @@ void calcIPMatx(double *IPMatx, double *Vector, int height, int width, char Rowo
         }     // end for i
         cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, width, width, height, 1, TempRowMaj, width, TempRowMaj, width, 0.0, IPMatx, width);
     }
-    
 }
 
-void readRealizationFromText(double *RealznVect, const int N_R, const int N_DOF)
+void readFromText(std::string fileName, double *Vector, int height, int width, char RowOrColMaj)
 {
     cout << "Read In" << endl;
     std::vector<std::vector<std::string>> content;
     std::vector<std::string> row;
     std::string line, word;
 
-    std::string fileInName = "Realizations_" + std::to_string(N_R) + "_NDOF_" + std::to_string(N_DOF) + ".txt";
-    std::ifstream file(fileInName);
+    std::ifstream file(fileName);
     if (file.is_open())
     {
         while (getline(file, line))
@@ -1491,20 +1418,126 @@ void readRealizationFromText(double *RealznVect, const int N_R, const int N_DOF)
                 row.push_back(word);
             content.push_back(row);
         }
-        cout << "Realization file opened succesfully" << endl;
+        cout << "File " << fileName << " opened succesfully" << endl;
     }
     else
-        cout << "Could not open the file\n";
+        cout << "Could not open the file " << fileName << "\n";
 
     cout << "" << endl;
-    for (int i = 0; i < N_DOF; i++)
+    if (RowOrColMaj == 'R')
     {
-        for (int j = 0; j < N_R; j++)
+        for (int i = 0; i < height; i++)
         {
-            RealznVect[i * N_R + j] = std::stod(content[i][j]);
+            for (int j = 0; j < width; j++)
+            {
+                Vector[i * width + j] = std::stod(content[i][j]);
+            }
+        }
+    }
+    else if (RowOrColMaj == 'C')
+    {
+        for (int i = 0; i < height; i++)
+        {
+            for (int j = 0; j < width; j++)
+            {
+                Vector[j * height + i] = std::stod(content[i][j]);
+            }
         }
     }
 
-    cout << "Realization file read successfully" << endl;
+    cout << "File " << fileName << " read successfully" << endl;
     return;
+}
+
+void reconstructMCfromDO(double *recon, double *meanDO, double *coeffDO, double *modeDO, int N_R, int N_DOF, int N_S)
+{
+    double *PertVect = new double[N_DOF * N_R]();
+    double *modeRowMaj = new double[N_DOF * N_S]();
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            modeRowMaj[i * N_S + j] = modeDO[j * N_DOF + i];
+        }
+    }
+    double *coeffRowMaj = new double[N_R * N_S]();
+    for (int i = 0; i < N_R; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            coeffRowMaj[i * N_S + j] = coeffDO[j * N_R + i];
+        }
+    }
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, N_DOF, N_R, N_S, 1.0, modeRowMaj, N_S, coeffRowMaj, N_S, 0.0, PertVect, N_R);
+    for (int i = 0; i < N_DOF; ++i)
+    {
+        for (int j = 0; j < N_R; ++j)
+        {
+            recon[i * N_R + j] = PertVect[i * N_R + j] + meanDO[i];
+        }
+    }
+    delete[] PertVect;
+    return;
+}
+
+void qr(double *const _Q, double *const _R, double *const _A, const size_t _m, const size_t _n)
+{
+    // Maximal rank is used by Lapacke
+    const size_t rank = std::min(_m, _n);
+
+    // Tmp Array for Lapacke
+    const std::unique_ptr<double[]> tau(new double[rank]);
+
+    // Calculate QR factorisations
+    LAPACKE_dgeqrf(LAPACK_ROW_MAJOR, (int)_m, (int)_n, _A, (int)_n, tau.get());
+
+    // Copy the upper triangular Matrix R (rank x _n) into position
+    for (size_t row = 0; row < rank; ++row)
+    {
+        memset(_R + row * _n, 0, row * sizeof(double));                                // Set starting zeros
+        memcpy(_R + row * _n + row, _A + row * _n + row, (_n - row) * sizeof(double)); // Copy upper triangular part from Lapack result.
+    }
+
+    // Create orthogonal matrix Q (in tmpA)
+    LAPACKE_dorgqr(LAPACK_ROW_MAJOR, (int)_m, (int)rank, (int)rank, _A, (int)_n, tau.get());
+
+    // Copy Q (_m x rank) into position
+    if (_m == _n)
+    {
+        memcpy(_Q, _A, sizeof(double) * (_m * _n));
+    }
+    else
+    {
+        for (size_t row = 0; row < _m; ++row)
+        {
+            memcpy(_Q + row * rank, _A + row * _n, sizeof(double) * (rank));
+        }
+    }
+}
+
+void reorthonormalize(double *Mode, int N_DOF, int N_S)
+{
+    double *Temp = new double[N_DOF * N_S]();
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            Temp[i * N_S + j] = Mode[j * N_DOF + i];
+        }
+    }
+    double *Q = new double[N_DOF * N_S]();
+    double *R = new double[N_DOF * N_S]();
+    qr(Q, R, Temp, N_DOF, N_S);
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            Mode[j * N_DOF + i] = Q[i * N_S + j];
+        }
+    }
+
+    cout << "Reorthonormalized" << endl;
+    delete[] Temp;
+    delete[] Q;
+    delete[] R;
 }
