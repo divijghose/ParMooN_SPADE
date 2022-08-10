@@ -668,7 +668,7 @@ void TDatabase::SetDefaultParameters()
   /////************Default DO Parameters******///// (Added by Divij)
   ParamDB->stddev_power = 5;
   ParamDB->Max_Subspace_Dim = 5;
-  ParamDB->Subspace_Manual = 1;
+  ParamDB->Subspace_Manual = 0;
 
   ParamDB->COVARIANCE_MATRIX_DO = new double[5 * 5]();
 

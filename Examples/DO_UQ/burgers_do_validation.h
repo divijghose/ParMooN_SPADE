@@ -2174,5 +2174,225 @@ void reorthonormalize(double *Mode, int N_DOF, int N_S)
         delete[] Q;
         delete[] R;
     
-    
+    return;
+}
+
+void reorthonormalizeB(double *Mode, double *Coeff, int N_DOF, int N_S, int N_R)
+{
+    cout << "Enter new reorthonormalization routine" << endl;
+    int height = N_R;
+    int width = N_S;
+    double *Cov = new double[N_S * N_S]();
+    double *phi = new double[width * height](); // Col to Row Major
+    for (int i = 0; i < height; i++)
+    {
+        for (int j = 0; j < width; j++)
+        {
+            phi[width * i + j] = Coeff[i + height * j];
+        }
+    }
+
+    const double divVal = (1.0 / (height - 1));
+    cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, width, width, height, divVal, phi, width, phi, width, 0.0, Cov, width);
+    cout << "Covariance for new reorthonormalization routine calculated" << endl;
+
+    double *wi, *VDCL, *VDCR;
+    int info, lwork;
+    double wkopt;
+    double *work;
+    wi = new double[N_S]();
+    VDCL = new double[N_S * N_S]();
+    VDCR = new double[N_S * N_S]();
+    int N = N_S;
+    int LDA = N_S;
+    int LDVL = N_S;
+    int LDVR = N_S;
+    double *wr = new double[N_S]();
+    lwork = -1;
+    double *DDC = new double[N_S]();
+
+    info = LAPACKE_dgeev(LAPACK_ROW_MAJOR, 'V', 'N', N_S, Cov, LDA, DDC, wi,
+                         VDCL, LDVL, VDCR, LDVR);
+
+    if (info == 0)
+        cout << "The routine computing eignevalues of coefficient matrix was successful" << endl;
+    else if (info < 0)
+    {
+        cout << "The routine computing eignevalues of coefficient matrix was unsuccessful" << endl
+             << -1 * info << "th argument invalid" << endl;
+        exit(0);
+    }
+    else if (info > 0)
+    {
+        cout << "the QR algorithm failed to compute all the eigenvalues" << endl;
+
+        exit(0);
+    }
+
+    double *ModeDC = new double[N_DOF * N_S]();
+    double *CoeffDC = new double[N_R * N_S]();
+    double *ModeRow = new double[N_DOF * N_S]();
+    double *CoeffRow = new double[N_R * N_S]();
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            ModeRow[i * N_S + j] = Mode[j * N_DOF + i];
+        }
+    }
+    for (int i = 0; i < N_R; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            CoeffRow[i * N_S + j] = Coeff[j * N_R + i];
+        }
+    }
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_DOF, N_S, N_S, 1.0, ModeRow, N_S, VDCL, N_S, 0.0, ModeDC, N_S);
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_R, N_S, N_S, 1.0, CoeffRow, N_S, VDCL, N_S, 0.0, CoeffDC, N_S);
+
+    double *M = new double[N_S * N_S]();
+    calcIPMatx(M, ModeDC, N_DOF, N_S, 'R');
+
+    double *VML = new double[N_S * N_S]();
+    double *VMR = new double[N_S * N_S]();
+    double *DM = new double[N_S]();
+
+    info = LAPACKE_dgeev(LAPACK_ROW_MAJOR, 'V', 'N', N_S, M, LDA, DM, wi,
+                         VML, LDVL, VMR, LDVR);
+
+    if (info == 0)
+        cout << "The routine computing eignevalues of coefficient matrix was successful" << endl;
+    else if (info < 0)
+    {
+        cout << "The routine computing eignevalues of coefficient matrix was unsuccessful" << endl
+             << -1 * info << "th argument invalid" << endl;
+        exit(0);
+    }
+    else if (info > 0)
+    {
+        cout << "the QR algorithm failed to compute all the eigenvalues" << endl;
+
+        exit(0);
+    }
+
+    double *CoeffOC = new double[N_R * N_S]();
+    double *ModeOC = new double[N_DOF * N_S]();
+
+    double *D = new double[N_S * N_S]();
+    double *Dinv = new double[N_S * N_S]();
+
+    for (int i = 0; i < N_S; i++)
+    {
+        D[i * N_S + i] = DM[i];
+        Dinv[i * N_S + i] = DM[i];
+    }
+
+    matInv(Dinv, N_S);
+    for (int i = 0; i < N_S; i++)
+    {
+        D[i * N_S + i] = sqrt(D[i * N_S + i]);
+        Dinv[i * N_S + i] = sqrt(Dinv[i * N_S + i]);
+    }
+
+    double *Temp = new double[N_S * N_S]();
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_S, N_S, N_S, 1.0, VML, N_S, D, N_S, 0.0, Temp, N_S);
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_R, N_S, N_S, 1.0, CoeffDC, N_S, Temp, N_S, 0.0, CoeffOC, N_S);
+
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_S, N_S, N_S, 1.0, VML, N_S, Dinv, N_S, 0.0, Temp, N_S);
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_DOF, N_S, N_S, 1.0, ModeDC, N_S, Temp, N_S, 0.0, ModeOC, N_S);
+
+    double *CovOC = new double[N_S * N_S]();
+    cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, width, width, height, divVal, CoeffOC, width, CoeffOC, width, 0.0, CovOC, width);
+
+    double *VOL = new double[N_S * N_S]();
+    double *VOR = new double[N_S * N_S]();
+    double *DDO = new double[N_S]();
+
+    info = LAPACKE_dgeev(LAPACK_ROW_MAJOR, 'V', 'N', N_S, CovOC, LDA, DDO, wi,
+                         VOL, LDVL, VOR, LDVR);
+
+    if (info == 0)
+        cout << "The routine computing eignevalues of coefficient matrix was successful" << endl;
+    else if (info < 0)
+    {
+        cout << "The routine computing eignevalues of coefficient matrix was unsuccessful" << endl
+             << -1 * info << "th argument invalid" << endl;
+        exit(0);
+    }
+    else if (info > 0)
+    {
+        cout << "the QR algorithm failed to compute all the eigenvalues" << endl;
+
+        exit(0);
+    }
+    double tracedc = 0.0;
+    double tracedo = 0.0;
+    for (int i = 0; i < N_S; i++)
+    {
+        tracedc += DDC[i];
+        tracedo += DDO[i];
+    }
+    double Mult = sqrt(tracedc / tracedo);
+    double *CoeffO = new double[N_R * N_S]();
+    double *ModeO = new double[N_DOF * N_S]();
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_R, N_S, N_S, Mult, CoeffOC, N_S, VOL, N_S, 0.0, CoeffO, N_S);
+
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_DOF, N_S, N_S, 1.0, ModeOC, N_S, VOL, N_S, 0.0, ModeO, N_S);
+
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            Mode[j * N_DOF + i] = ModeO[i * N_S + j];
+        }
+    }
+    for (int i = 0; i < N_S; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            Coeff[j * N_S + i] = CoeffO[i * N_S + j] * Mult;
+        }
+    }
+
+    delete[] M;
+    delete[] Cov;
+    delete[] phi;
+    delete[] wi;
+    delete[] VDCL;
+    delete[] VDCR;
+    delete[] wr;
+    delete[] DDC;
+    delete[] ModeRow;
+    delete[] CoeffDC;
+    delete[] ModeDC;
+    delete[] D;
+    delete[] Dinv;
+    delete[] Temp;
+    delete[] CoeffOC;
+    delete[] CoeffO;
+    delete[] ModeOC;
+    delete[] ModeO;
+    delete[] VOL;
+    delete[] VOR;
+    delete[] DDO;
+    delete[] CovOC;
+
+    return;
+}
+
+std::string generateFileName(std::string baseName, int m, int N_R)
+{
+    std::string fileName;
+    if (m < 10)
+        fileName = baseName + std::to_string(N_R) + "_t0000" + std::to_string(m) + ".txt";
+    else if (m < 100)
+        fileName = baseName + std::to_string(N_R) + "_t000" + std::to_string(m) + ".txt";
+    else if (m < 1000)
+        fileName = baseName + std::to_string(N_R) + "_t00" + std::to_string(m) + ".txt";
+    else if (m < 10000)
+        fileName = baseName + std::to_string(N_R) + "_t0" + std::to_string(m) + ".txt";
+    else
+        fileName = baseName + std::to_string(N_R) + "_t" + std::to_string(m) + ".txt";
+
+    return fileName;
 }

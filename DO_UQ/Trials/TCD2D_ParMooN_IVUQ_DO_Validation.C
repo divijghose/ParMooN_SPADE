@@ -549,10 +549,6 @@ int main(int argc, char *argv[])
     printToTxt("Coeff.txt", CoeffVector, N_Realisations, subDim, 'C');
 
     ////////////Initialize Mode Vector - First subDim columns of Left Singular Vector//////////////////
-    std::string fileoutCoeff;
-    std::string fileoutMean;
-    std::string fileoutMode;
-    std::string fileoutMC;
 
     double *ModeVector = new double[N_DOF * subDim]();
 
@@ -599,13 +595,9 @@ int main(int argc, char *argv[])
     oldrhs = new double[N_DOF]();
 
     double *solMean, *rhsMean, *old_rhsMean;
-    solMean = new double[N_DOF];
-    rhsMean = new double[N_DOF];
-    old_rhsMean = new double[N_DOF];
-
-    memset(solMean, 0, N_DOF * SizeOfDouble);
-    memset(rhsMean, 0, N_DOF * SizeOfDouble);
-    memset(old_rhsMean, 0, N_DOF * SizeOfDouble);
+    solMean = new double[N_DOF]();
+    rhsMean = new double[N_DOF]();
+    old_rhsMean = new double[N_DOF]();
 
     double *solModeAll, *rhsModeAll, *oldsolModeAll, *oldrhsModeAll;
     solModeAll = new double[N_DOF * subDim]();
@@ -701,6 +693,9 @@ int main(int argc, char *argv[])
     }
 
     TFEVectFunct2D *FEFVector_Mode = new TFEVectFunct2D(Scalar_FeSpace, (char *)"C_Mode", (char *)"sol", solMode, N_DOF, subDim);
+
+    double *stochNormModes = new double[N_DOF * subDim]();
+    TFEVectFunct2D *FEFVector_StochNormMode = new TFEVectFunct2D(Scalar_FeSpace, (char *)"StochNormMode", (char *)"Stochastic Normalized Modes", stochNormModes, N_DOF, subDim);
 
     int TimeLinear_FESpaces_DO = 1;
     int TimeLinear_Fct_DO = 1; // \tilde(C)
@@ -817,6 +812,10 @@ int main(int argc, char *argv[])
     //======================================================================
     // parameters for time stepping scheme
     m = 0;
+    std::string fileoutCoeff;
+    std::string fileoutMean;
+    std::string fileoutMode;
+    std::string fileoutMC;
     std::string meanBaseName = "Mean/Mean_NRealisations_";
     std::string modeBaseName = "Modes/Mode_NRealisations_";
     std::string coeffBaseName = "Coefficients/Coeff_NRealisations_";
@@ -889,7 +888,6 @@ int main(int argc, char *argv[])
     // time loop starts
     while (TDatabase::TimeDB->CURRENTTIME < end_time)
     {
-        reorthonormalizeB(solModeAll, CoeffVector, N_DOF, subDim, N_Realisations);
 
         m++;
         TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
@@ -934,7 +932,9 @@ int main(int argc, char *argv[])
                 SystemMatrix_ModeAll[subSpaceNum]->AssembleARhs(NULL, solModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF);
                 double *rhsNewAll = new double[N_DOF * subDim]();
                 // get the UPDATED RHS VALUE FROM FUNCTION
-                DO_Mode_RHS(Scalar_FeSpace, FEFVector_Mode, subDim, rhsModeAll + subSpaceNum * N_DOF, subSpaceNum);
+
+                normalizeStochasticModes(Scalar_FeSpace, FEFVector_Mode, subDim, stochNormModes); // normalize modes for inner product
+                DO_Mode_RHS(Scalar_FeSpace, FEFVector_StochNormMode, subDim, rhsModeAll + subSpaceNum * N_DOF, subSpaceNum);
 
                 cout << "Norm of Rhs : " << Ddot(N_DOF, rhsModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF) << endl;
 
@@ -944,7 +944,7 @@ int main(int argc, char *argv[])
 
                 SystemMatrix_ModeAll[subSpaceNum]->RestoreMassMat();
 
-                DO_CoEfficient(Scalar_FeSpace, FEFVector_Mode, FeVector_Coefficient, subDim, subSpaceNum, N_Realisations);
+                DO_CoEfficient(Scalar_FeSpace, FEFVector_StochNormMode, FeVector_Coefficient, subDim, subSpaceNum, N_Realisations);
 
             } // subSpaceNumLoop
 
@@ -953,6 +953,7 @@ int main(int argc, char *argv[])
             // reorthonormalize(solModeAll,N_DOF,subDim);
 
         } // for(l=0;l< N_SubSteps;l++)
+        reorthonormalizeB(solModeAll, CoeffVector, N_DOF, subDim, N_Realisations);
 
         //======================================================================
         // produce outout

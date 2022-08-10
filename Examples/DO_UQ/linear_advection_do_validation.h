@@ -312,6 +312,7 @@ void DO_Mode_Equation_Coefficients(int n_points, double *X, double *Y,
     }
 }
 
+
 // ======================================================================
 // ASSEMBLY FUNCTION
 // This fucntion will be called for Every Quadrature Point inside a Cell for Local Assembly

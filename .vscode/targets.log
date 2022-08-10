@@ -6,7 +6,7 @@ make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Thu Jul 21 10:57:40 2022
+# Make data base, printed on Thu Aug  4 11:31:48 2022
 
 # Variables
 
@@ -49,7 +49,7 @@ VSCODE_NLS_CONFIG = {"locale":"en-gb","availableLanguages":{},"_languagePackSupp
 # environment
 INTEL_LICENSE_FILE = /opt/intel/compilers_and_libraries_2020.0.166/linux/licenses:/opt/intel/licenses:/home/divij/intel/licenses
 # environment
-JOURNAL_STREAM = 8:54681
+JOURNAL_STREAM = 8:52781
 # environment
 XDG_CONFIG_DIRS = /etc/xdg/xdg-ubuntu:/etc/xdg
 # environment
@@ -71,7 +71,7 @@ XDG_DATA_DIRS = /usr/share/ubuntu:/usr/local/share/:/usr/share/:/var/lib/snapd/d
 # environment
 DBUS_SESSION_BUS_ADDRESS = unix:path=/run/user/1000/bus
 # environment
-MANAGERPID = 2190
+MANAGERPID = 2176
 # environment
 LESSOPEN = | /usr/bin/lesspipe %s
 # environment
@@ -85,7 +85,7 @@ PATH = /home/divij/anaconda3/condabin:/opt/intel/compilers_and_libraries_2020.0.
 # environment
 GPG_AGENT_INFO = /run/user/1000/gnupg/S.gpg-agent:0:1
 # environment
-SESSION_MANAGER = local/divij:@/tmp/.ICE-unix/2397,unix/divij:/tmp/.ICE-unix/2397
+SESSION_MANAGER = local/divij:@/tmp/.ICE-unix/2382,unix/divij:/tmp/.ICE-unix/2382
 # environment
 XDG_RUNTIME_DIR = /run/user/1000
 # environment
@@ -105,7 +105,7 @@ DISABLE_WAYLAND = 1
 # environment
 ELECTRON_RUN_AS_NODE = 1
 # environment
-INVOCATION_ID = 67e2783c9bbe4afebe9ae4996b1edb72
+INVOCATION_ID = fd7f2a77f4374f3db6400f35f2bcd71b
 # environment
 GDK_PIXBUF_MODULEDIR = /snap/code/102/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders
 # default
@@ -129,7 +129,7 @@ PWD = /home/divij/Documents/ParMooN_Codes/ParMooN_CMG
 # default
 .LOADED := 
 # environment
-SSH_AGENT_PID = 2359
+SSH_AGENT_PID = 2344
 # environment
 PKG_CONFIG_PATH = /opt/intel/compilers_and_libraries_2020.0.166/linux/mkl/bin/pkgconfig:/opt/intel/compilers_and_libraries_2020.0.166/linux/mkl/bin/pkgconfig
 # environment
@@ -239,11 +239,11 @@ LC_ALL = C
 # environment
 CONDA_PYTHON_EXE = /home/divij/anaconda3/bin/python
 # environment
-GNOME_TERMINAL_SCREEN = /org/gnome/Terminal/screen/00544f36_c732_4c27_97ea_e5d2ae5cdbcb
+GNOME_TERMINAL_SCREEN = /org/gnome/Terminal/screen/3de0f9d3_06a7_407f_9db9_409684ba200c
 # automatic
 ^F = $(notdir $^)
 # environment
-GNOME_TERMINAL_SERVICE = :1.102
+GNOME_TERMINAL_SERVICE = :1.97
 # default
 SUFFIXES := 
 # environment
@@ -265,7 +265,7 @@ LANG = C
 # environment
 TERM = xterm-256color
 # environment
-VSCODE_PID = 4924
+VSCODE_PID = 6084
 # environment
 _CE_CONDA = 
 # variable set hash-table stats:
@@ -273,12 +273,12 @@ _CE_CONDA =
 
 # Pattern-specific Variable Values
 
- 
-make: *** No rule to make target 'all'.  Stop.
-
 # No pattern-specific variable values.
 
 # Directories
+
+ 
+make: *** No rule to make target 'all'.  Stop.
 
 # . (device 2069, inode 14945251): 30 files, no impossibilities.
 
@@ -338,6 +338,6 @@ GNUmakefile:
 # strcache performance: lookups = 41 / hit rate = 7%
 # hash-table stats:
 # Load=38/8192=0%, Rehash=0, Collisions=1/41=2%
-# Finished Make data base on Thu Jul 21 10:57:40 2022
+# Finished Make data base on Thu Aug  4 11:31:48 2022
 
  

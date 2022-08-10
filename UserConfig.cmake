@@ -26,6 +26,7 @@ set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/Trials/TCD2D_ParMooN_IVUQ_DO_Val
 
 #3. Time Dependent Burgers' DO 
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/Trials/TBE2D_ParMooN_IVUQ_DO_Validation.C" CACHE STRING "Enter to select the Main file of the model")
+#set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/Trials/TBE2D_ParMooN_IVUQ_DO_Validation.C" CACHE STRING "Enter to select the Main file of the model")
 
 #4. Time Dependent Navier-Stokes' DO 
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/TNSE2D_ParMooN_IVUQ_DO.C" CACHE STRING "Enter to select the Main file of the model")
@@ -162,6 +163,7 @@ set(AParMooN_MPI_IMPLEMENTATION "INTELMPI" CACHE STRING "select the MPI Implemen
 
 ##### Test Output Folders ###########################
 set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/JULY/DO/TCD2D_IVUQ_DO_Check" CACHE STRING "select the model")
+#set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/JULY/DO/TBE2D_IVUQ_DO_Test" CACHE STRING "select the model")
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TCD2D_IVUQ_DO_Test1" CACHE STRING "select the model")
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TCD2D_IVUQ_DO_Mean" CACHE STRING "select the model")
 #set(AParMooN_OUTPUT_DIR_PATH "${CMAKE_SOURCE_DIR}/../ParMooN_Output/DO/TBE2D_IVUQ_DO_Test" CACHE STRING "select the model")
