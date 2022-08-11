@@ -313,142 +313,6 @@ void DO_Mode_Equation_Coefficients(int n_points, double *X, double *Y,
     }
 }
 
-// ======================================================================
-// ASSEMBLY FUNCTION
-// This fucntion will be called for Every Quadrature Point inside a Cell for Local Assembly
-// ======================================================================
-/**
- * @brief Assembly function for the Mean equation:
- * \f{equation}{
-  \frac{\partial \overline{C}}{\partial t} = -\boldsymbol u\cdot\nabla \overline{C}
-\f}
- *
- * @param quad_wt Quadrature Weight
- * @param coeff Bilinear Coefficients
- * @param param Parameters
- * @param hK
- * @param derivatives Shape function or its derivatives
- * @param N_BaseFuncts Number of Basis functions
- * @param LocMatrices Local Matrices (LocMatrices[0]=>Local Stifness Matrix)
- * @param LocRhs Local RHS
- *
- */
-void DO_Mean_Equation_Assembly(double quad_wt, double *coeff, double *param,
-                               double hK, double **derivatives, int *N_BaseFuncts, double ***LocMatrices, double **LocRhs)
-{
-
-    // The below values N_x, N_y , etc are ARRAY of Values
-    // Which provides Value of a Particular Shape function or its derivative ( Based on a DOF )
-    // at the given Quadrature POint.
-    // Here the Size of the Array is equal to the NUmber of DOF in the cell
-
-    // For Eg : Orig0[1]  gives the derivative of Shape Function number 1 ( Shape function of DOF 1 ) w.r.t x
-    // at the given Quadrature Point.
-    // Take these values based on the MULTIINDEX DERIVATIVE
-    double *N = derivatives[0];
-    double *Nx = derivatives[1];
-    double *Ny = derivatives[2];
-
-    double **A11, *F1;
-    // double val = 0.0;
-
-    A11 = LocMatrices[0]; // Local Stiffenss matrix
-
-    F1 = LocRhs[0];
-
-    double c0 = coeff[0]; // nu
-    double b1 = coeff[1]; // b1
-    double b2 = coeff[2]; // b2
-    double c = coeff[3];  // c
-    double f = coeff[4];  // f
-
-    int N_DOF_perCell = N_BaseFuncts[0];
-
-    for (int i = 0; i < N_DOF_perCell; i++) // Test
-    {
-        // Assemble RHS
-        F1[i] = 0.0; // TO DO
-        double val = 0;
-        for (int j = 0; j < N_DOF_perCell; j++) // Ansatz
-        {
-
-            val += 1.0 * (b1 * Nx[j] + b2 * Ny[j]) * N[i]; //   TO DO
-            // val  +=  c0*((Nx[j] * Nx[i])   + (Ny[j] * Ny[i]) );//???
-            // val  +=  c*N[i]*N[j];
-
-            A11[i][j] += val * quad_wt;
-        } // endfor j
-    }     // endfor i
-}
-
-// ======================================================================
-// ASSEMBLY FUNCTION
-// This fucntion will be called for Every Quadrature Point inside a Cell for Local Assembly
-// ======================================================================
-
-/**
- * @brief Assembly function for the Mode equation:
- *\f{equation}{
-  \frac{\partial\tilde{C}_{i}}{\partial t} = -\boldsymbol u\cdot\nabla\tilde{C}_{i} - \langle\boldsymbol u\cdot\nabla\tilde{C}_{i},\tilde{C}_{\hat{a}}\rangle\tilde{C}_{\hat{a}}
-\f}
-
- * @param quad_wt  Quadrature Weight
- * @param coeff Bilinear coefficients
- * @param param Parameters
- * @param hK
- * @param derivatives Shape function or its derivatives
- * @param N_BaseFuncts Number of basis functions
- * @param LocMatrices Local Stiffness and Mass Matrix
- * @param LocRhs Local RHS Matrix
- */
-void DO_Mode_Equation_Assembly(double quad_wt, double *coeff, double *param,
-                               double hK, double **derivatives, int *N_BaseFuncts, double ***LocMatrices, double **LocRhs)
-{
-
-    // The below values N_x, N_y , etc are ARRAY of Values
-    // Which provides Value of a Particular Shape function or its derivative ( Based on a DOF )
-    // at the given Quadrature POint.
-    // Here the Size of the Array is equal to the NUmber of DOF in the cell
-
-    // For Eg : Orig0[1]  gives the derivative of Shape Function number 1 ( Shape function of DOF 1 ) w.r.t x
-    // at the given Quadrature Point.
-    // Take these values based on the MULTIINDEX DERIVATIVE
-    double *N = derivatives[0];
-    double *Nx = derivatives[1];
-    double *Ny = derivatives[2];
-
-    double **A11, *F1;
-    double val = 0.;
-
-    A11 = LocMatrices[0]; // Local Stiffenss matrix
-
-    F1 = LocRhs[0];
-
-    double c0 = coeff[0]; // nu
-    double b1 = coeff[1]; // b1
-    double b2 = coeff[2]; // b2
-    double c = coeff[3];  // c
-    double f = coeff[4];  // f
-
-    int N_DOF_perCell = N_BaseFuncts[0];
-
-    for (int i = 0; i < N_DOF_perCell; i++) // Test
-    {
-        // Assemble RHS
-        F1[i] = 0.0; // TO DO
-        double val = 0;
-        for (int j = 0; j < N_DOF_perCell; j++) // Ansatz
-        {
-            // double val = 0;
-            val += 1.0 * (b1 * Nx[j] + b2 * Ny[j]) * N[i]; //   TO DO
-            // val += c0 * ((Nx[j] * Nx[i]) + (Ny[j] * Ny[i]));
-            // val += c * N[i] * N[j];
-
-            A11[i][j] += val * quad_wt;
-        } // endfor j
-    }     // endfor i
-}
-
 void DO_Mode_RHS_Aux_Param(double *in, double *out)
 {
     out = in;
@@ -486,9 +350,27 @@ void printToTxt(std::string filename, double *printArray, int height, int width,
     printFile.close();
     cout << "File printed succesfully: " << filename << endl;
 }
+void calcIPMatx(double *IPMatx, double *Vector, int height, int width, char RoworColMaj)
+{
+    if (RoworColMaj == 'R')
+        cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, width, width, height, 1, Vector, width, Vector, width, 0.0, IPMatx, width);
+    else if (RoworColMaj == 'C')
+    {
+        double *TempRowMaj = new double[height * width]();
+        for (int i = 0; i < height; i++)
+        {
+            for (int j = 0; j < width; j++)
+            {
+                TempRowMaj[i * width + j] = Vector[j * height + i];
+            } // end for j
+        }     // end for i
+        cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, width, width, height, 1, TempRowMaj, width, TempRowMaj, width, 0.0, IPMatx, width);
+    }
+    return;
+}
 void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmode, int N_S, double *C_Stoch_Norm)
 {
-    // double val = 0;
+
     double *IPMatxFE = new double[N_S * N_S]();
     int N_Cells = Fespace->GetN_Cells();
     TCollection *coll = Fespace->GetCollection();
@@ -519,8 +401,7 @@ void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmod
     double *C_Mode_Array_i = new double[lenMode]();
     double *C_Mode_Array_j = new double[lenMode]();
 
-    double *stochFactors = new double[lenMode*N_S]();
-
+    double *stochFactors = new double[lenMode * N_S]();
 
     for (int cellId = 0; cellId < N_Cells; cellId++)
     { // cell loop
@@ -615,7 +496,7 @@ void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmod
 
         for (int i = 0; i < N_S; i++)
         { // i-loop start
-            memcpy(C_Mode_Array_i,C_Mode_Array + i * lenMode,lenMode*SizeOfDouble);
+            memcpy(C_Mode_Array_i, C_Mode_Array + i * lenMode, lenMode * SizeOfDouble);
             double C_i[N_Points2];
 
             for (int quadPt = 0; quadPt < N_Points2; quadPt++)
@@ -624,28 +505,28 @@ void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmod
 
             for (int quadPt = 0; quadPt < N_Points2; quadPt++)
             { // quadpt loop start
-                for (int j = 0; j < N_BaseFunct; j++)
+                for (int nb = 0; nb < N_BaseFunct; nb++)
                 {
-                    int globDOF = DOF[j];
-                    C_i[quadPt] += origvaluesD00[quadPt][j] * C_Mode_Array_i[globDOF];
-                    stochFactors[globDOF+i*lenMode]+=1;
+                    int globDOF = DOF[nb];
+                    C_i[quadPt] += origvaluesD00[quadPt][nb] * C_Mode_Array_i[globDOF];
+                    stochFactors[globDOF + i * lenMode] += 1;
                 }
             } // quadpt loop end
 
             for (int j = 0; j < N_S; j++)
             { // j-loop start
 
-                memcpy(C_Mode_Array_j,C_Mode_Array + j * lenMode,lenMode*SizeOfDouble);
+                memcpy(C_Mode_Array_j, C_Mode_Array + j * lenMode, lenMode * SizeOfDouble);
                 double C_j[N_Points2];
                 for (int quadPt = 0; quadPt < N_Points2; quadPt++)
                     C_j[quadPt] = 0.;
                 // Obtain all values for C_a
                 for (int quadPt = 0; quadPt < N_Points2; quadPt++)
                 { // quadpt loop start
-                    for (int j = 0; j < N_BaseFunct; j++)
+                    for (int nb = 0; nb < N_BaseFunct; nb++)
                     {
-                        int globDOF = DOF[j];
-                        C_j[quadPt] += origvaluesD00[quadPt][j] * C_Mode_Array_j[globDOF];
+                        int globDOF = DOF[nb];
+                        C_j[quadPt] += origvaluesD00[quadPt][nb] * C_Mode_Array_j[globDOF];
                     }
                 } // quadpt loop end
 
@@ -653,12 +534,6 @@ void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmod
                 for (int quadPt = 0; quadPt < N_Points2; quadPt++)
                 {
                     double Mult = Weights2[quadPt] * AbsDetjk[quadPt];
-                    double *orgD00 = origvaluesD00[quadPt];
-                    double *orgD10 = origvaluesD10[quadPt];
-                    double *orgD01 = origvaluesD01[quadPt];
-                    double *orgD20 = origvaluesD20[quadPt];
-                    double *orgD02 = origvaluesD02[quadPt];
-
                     IPMatxFE[i + j * N_S] += C_i[quadPt] * C_j[quadPt] * Mult;
 
                 } // Inner Quadrature Loop
@@ -674,19 +549,19 @@ void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmod
     {
         for (int i = 0; i < lenMode; i++)
         {
-            C_Stoch_Norm[i + j * lenMode] = C_Mode_Array[i + j * lenMode]/(stochFactors[i+j*lenMode]*sqrt(IPMatxFE[j+j*N_S]));
+            C_Stoch_Norm[i + j * lenMode] = C_Mode_Array[i + j * lenMode]/sqrt(IPMatxFE[j+j*N_S]*sqrt(24*4e5));
         }
     }
-
-    printToTxt("stoch.txt",stochFactors,lenMode,N_S,'C');
-
+    double *IPNew = new double[N_S*N_S]();
+    calcIPMatx(IPNew,C_Stoch_Norm,lenMode,N_S,'C');
+    printToTxt("stoch.txt",IPNew,N_S,N_S,'C');
     delete[] C_Mode_Array_i;
     delete[] C_Mode_Array_j;
-    
+
     delete[] IPMatxFE;
-    
+
     return;
-} // calc_MFE function end
+} // stochastic normalization function end
 
 // This function will take care of the Additional terms that go into both the co-efficient equation and the mode equation
 // The terms in the Coefficient equation and the Mode equation are repeating , So the local RHS matrix will be reused in both the
@@ -733,7 +608,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
     double *C_Array = FeVector_C->GetValues();
     double *C_Array_i = new double[len]();
     double *C_Array_a = new double[len]();
-
+double val =0;
     for (int cellId = 0; cellId < N_Cells; cellId++)
     { // Cell Loop
         TBaseCell *currentCell = coll->GetCell(cellId);
@@ -824,7 +699,6 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
         }
 
         int *DOF = GlobalNumbers + BeginIndex[cellId];
-        double val = 0;
         memcpy(C_Array_i, C_Array + (i_index * len), len * SizeOfDouble);
 
         // Save Values of C at all quadrature points for I component
@@ -865,6 +739,9 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
 
         for (int a = 0; a < N_S; a++)
         {
+
+            val = 0;
+
             memcpy(C_Array_a, C_Array + (a * len), len * SizeOfDouble);
 
             double C_a[N_Points2];
@@ -888,7 +765,6 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
                 }
             }
 
-            double val = 0;
             // Get Coefficients b1 and b2
             double *Param[MaxN_QuadPoints_2D];
             double **Coeffs = new double *[MaxN_QuadPoints_2D];
@@ -924,7 +800,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C, int N_S, doubl
 
                 for (int j = 0; j < N_BaseFunct; j++)
                 {
-                    rhs[j] += (-1.0 * val) * orgD00[j] * Mult;
+                    rhs[j] += (-1.0 * val)  * Mult* orgD00[j];
                     // rhs[j] +=orgD00[j]* Mult;
                     // rhs[j] += (1.0*val);
                 }
@@ -1238,10 +1114,10 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
     return;
 } // function end
 
-void calc_MeanFieldEnergy(TFESpace2D *Fespace, TFEFunction2D *FeScalar_Cmean, TFEVectFunct2D *FeVector_Cmode, double *mfe, int N_S)
+double calc_MeanFieldEnergy(TFESpace2D *Fespace, TFEFunction2D *FeScalar_Cmean)
 {
     // double val = 0;
-
+    double mfe = 0;
     int N_Cells = Fespace->GetN_Cells();
     TCollection *coll = Fespace->GetCollection();
 
@@ -1266,15 +1142,7 @@ void calc_MeanFieldEnergy(TFESpace2D *Fespace, TFEFunction2D *FeScalar_Cmean, TF
     double **origvaluesD02; // Shape Function 2nd Derivatives ( y ) at Quadrature Points
 
     int lenMean = FeScalar_Cmean->GetLength();
-    double *C_Mean_Array = new double[lenMean]();
-    C_Mean_Array = FeScalar_Cmean->GetValues();
-
-    int lenMode = FeVector_Cmode->GetLength();
-    double *C_Mode_Array = new double[lenMode * N_S]();
-    C_Mode_Array = FeVector_Cmode->GetValues();
-
-    double *C_Mode_Array_i = new double[lenMode]();
-    double *C_Mode_Array_j = new double[lenMode]();
+    double *C_Mean_Array = FeScalar_Cmean->GetValues();
 
     for (int cellId = 0; cellId < N_Cells; cellId++)
     { // cell loop
@@ -1386,46 +1254,171 @@ void calc_MeanFieldEnergy(TFESpace2D *Fespace, TFEFunction2D *FeScalar_Cmean, TF
         for (int quadPt = 0; quadPt < N_Points2; quadPt++)
         {
             double Mult = Weights2[quadPt] * AbsDetjk[quadPt];
-            double *orgD00 = origvaluesD00[quadPt];
-            double *orgD10 = origvaluesD10[quadPt];
-            double *orgD01 = origvaluesD01[quadPt];
-            double *orgD20 = origvaluesD20[quadPt];
-            double *orgD02 = origvaluesD02[quadPt];
-
-            mfe[0] += C_Mean[quadPt] * C_Mean[quadPt] * Mult; // This is Final "f"
+            mfe += C_Mean[quadPt] * C_Mean[quadPt] * Mult; // This is Final "f"
 
         } // inner quadrature loop
 
+        // --
+    } // cell loop
+
+    return mfe;
+} // calc_MFE function end
+
+void calc_ModeOrtho(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmode, int N_S, double *IPMatxFE)
+{
+    // double val = 0;
+    int N_Cells = Fespace->GetN_Cells();
+    TCollection *coll = Fespace->GetCollection();
+
+    // Get the Global DOF arrays INdex from the FE Space.
+    int *GlobalNumbers = Fespace->GetGlobalNumbers();
+    int *BeginIndex = Fespace->GetBeginIndex();
+
+    // --- Quadrature Formula Arrays  ------------------//
+    int N_Points2;
+    double *Weights2, *t1, *t2; // Weights - Quadrature Weights array ; t1  -- Quadrature point ( xi ) in ref coordinate ; t2 -  Quadrature Point ( eta ) in Ref Coordinate
+    bool Needs2ndDer[1];
+    Needs2ndDer[0] = TRUE;
+    double AbsDetjk[MaxN_PointsForNodal2D];
+    double X[MaxN_PointsForNodal2D];
+    double Y[MaxN_PointsForNodal2D];
+
+    // FE Values Arrays
+    double **origvaluesD00; // Shape function values at quadrature Points
+    double **origvaluesD10; // Shape Function Derivatives ( x ) at Quadrature Points
+    double **origvaluesD01; // Shape Function Derivatives ( y ) at Quadrature Points
+    double **origvaluesD20; // Shape Function 2nd Derivatives ( x ) at Quadrature Points
+    double **origvaluesD02; // Shape Function 2nd Derivatives ( y ) at Quadrature Points
+
+    int lenMode = FeVector_Cmode->GetLength();
+    double *C_Mode_Array = FeVector_Cmode->GetValues();
+
+    double *C_Mode_Array_i = new double[lenMode * N_S]();
+    double *C_Mode_Array_j = new double[lenMode * N_S]();
+
+    for (int cellId = 0; cellId < N_Cells; cellId++)
+    { // cell loop
+        TBaseCell *currentCell = coll->GetCell(cellId);
+        // Get the "ID" of Finite Element for the given 2D Element ( Conforming/NonConforming-Order Finite Element : eg : it could be Conforming-2nd order Finite Element )
+        FE2D elementId = Fespace->GetFE2D(cellId, currentCell);
+        // Get the Class object for that 2d FEM Element , which has all the details like Shape functions , Nodal point locations for that location, Reference Transformation ( Affine , Bilinear )
+        TFE2D *element = TFEDatabase2D::GetFE2D(elementId);
+        TFEDesc2D *fedesc = element->GetFEDesc2D();
+        // Class for basis functions in 2D ( Number of basis functions ), basis function values and Derivatives
+        TBaseFunct2D *bf = element->GetBaseFunct2D();
+        // Get the Reference Elemet
+        BF2DRefElements RefElement = TFEDatabase2D::GetRefElementFromFE2D(elementId);
+        // Get the reference Transformation -- Affine Mapping / Bilnea Mapping of Triangle or Quadrilateral
+        RefTrans2D referenceTransformation = TFEDatabase2D::GetRefTrans2D_IDFromFE2D(elementId);
+        // Get the number of basis functions in the Current Cell ( Number of Local DOF)
+        int N_BaseFunct = element->GetN_DOF();
+        // Type of Basis Function in 2D
+        BaseFunct2D BaseFunct_ID = element->GetBaseFunct2D_ID();
+
+        // get cell measure
+        double hK = currentCell->GetDiameter();
+
+        switch (referenceTransformation)
+        {
+        case QuadBilinear:
+        {
+            int l = bf->GetPolynomialDegree();                                     // Get the Polynomial Degreee  of the basis functions
+            QuadFormula2D QF2 = TFEDatabase2D::GetQFQuadFromDegree(3 * l);         // Get te ID of Quadrature Formula
+            TQuadFormula2D *QuadratureRule = TFEDatabase2D::GetQuadFormula2D(QF2); // Get the Quadrature Rule Objetc based on Quadrature ID
+            QuadratureRule->GetFormulaData(N_Points2, Weights2, t1, t2);           // get the Quadrature points , Weights
+
+            // Set the values on the Reference Cell
+            TRefTrans2D *F_K = TFEDatabase2D::GetRefTrans2D(QuadBilinear);
+            TFEDatabase2D::SetCellForRefTrans(currentCell, QuadBilinear); // Set the Cell for Current reference Transformation
+
+            // Get Original Coordinates from reference Coordinates and the Determinant of jacobian
+            TFEDatabase2D::GetOrigFromRef(QuadBilinear, N_Points2, t1, t2, X, Y, AbsDetjk); // Get the Original Co-orinates for the cell from xi values
+
+            // Get all the original Values from the Referece cell values.
+            TFEDatabase2D::GetOrigValues(QuadBilinear, 1, &BaseFunct_ID, N_Points2, t1, t2, QF2, Needs2ndDer);
+
+            // The below are 2D arrays in the form
+            // Values[QuadraturePointLocation][ShapeFunction]  i.e, the Value of Shapefunction at all quadrature points for each shape functions
+            origvaluesD00 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D00); // Shape Function Values at Quadrature Points
+            origvaluesD10 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D10); // Shape Function Derivative Values at Quadrature Points
+            origvaluesD01 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D01); // Shape Function Derivative Values at Quadrature Point
+            origvaluesD20 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D20); // Shape Function 2nd Derivative Values at Quadrature Point
+            origvaluesD02 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D02); // Shape Function 2nd Derivative Values at Quadrature Point
+            break;
+        }
+
+        case QuadAffin:
+        {
+            int l = bf->GetPolynomialDegree();                                     // Get the Polynomial Degreee  of the basis functions
+            QuadFormula2D QF2 = TFEDatabase2D::GetQFQuadFromDegree(3 * l);         // Get te ID of Quadrature Formula
+            TQuadFormula2D *QuadratureRule = TFEDatabase2D::GetQuadFormula2D(QF2); // Get the Quadrature Rule Objetc based on Quadrature ID
+            QuadratureRule->GetFormulaData(N_Points2, Weights2, t1, t2);           // get the Quadrature points , Weights
+
+            // Set the values on the Reference Cell
+            TRefTrans2D *F_K = TFEDatabase2D::GetRefTrans2D(QuadAffin);
+            TFEDatabase2D::SetCellForRefTrans(currentCell, QuadAffin); // Set the Cell for Current reference Transformation
+
+            // Get Original Coordinates from reference Coordinates and the Determinant of jacobian
+            TFEDatabase2D::GetOrigFromRef(QuadAffin, N_Points2, t1, t2, X, Y, AbsDetjk); // Get the Original Co-orinates for the cell from xi values
+
+            // Get all the original Values from the Referece cell values.
+            TFEDatabase2D::GetOrigValues(QuadAffin, 1, &BaseFunct_ID, N_Points2, t1, t2, QF2, Needs2ndDer);
+
+            // The below are 2D arrays in the form
+            // Values[QuadraturePointLocation][ShapeFunction]  i.e, the Value of Shapefunction at all quadrature points for each shape functions
+            origvaluesD00 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D00); // Shape Function Values at Quadrature Points
+            origvaluesD10 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D10); // Shape Function Derivative Values at Quadrature Points
+            origvaluesD01 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D01); // Shape Function Derivative Values at Quadrature Point
+            origvaluesD20 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D20); // Shape Function 2nd Derivative Values at Quadrature Points
+            origvaluesD02 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D02); // Shape Function 2nd Derivative Values at Quadrature Point
+
+            break;
+        }
+
+        default:
+        {
+            cout << " [ERROR] - Error in File : CoeffEqn_DO.C " << endl;
+            cout << " Unknown Reftype " << endl;
+            cout << " REF TYPE : " << referenceTransformation << endl;
+            exit(0);
+            break;
+        }
+        }
+
+        int *DOF = GlobalNumbers + BeginIndex[cellId];
+
         for (int i = 0; i < N_S; i++)
         { // i-loop start
-            C_Mode_Array_i = C_Mode_Array + i * lenMode;
+            memcpy(C_Mode_Array_i, C_Mode_Array + i * lenMode, lenMode * SizeOfDouble);
+            
             double C_i[N_Points2];
             for (int quadPt = 0; quadPt < N_Points2; quadPt++)
                 C_i[quadPt] = 0.;
             // Obtain all values for C_a
+
             for (int quadPt = 0; quadPt < N_Points2; quadPt++)
             { // quadpt loop start
-                for (int j = 0; j < N_BaseFunct; j++)
+                for (int nb = 0; nb < N_BaseFunct; nb++)
                 {
-                    int globDOF = DOF[j];
-                    C_i[quadPt] += origvaluesD00[quadPt][j] * C_Mode_Array_i[globDOF];
+                    int globDOF = DOF[nb];
+                    C_i[quadPt] += origvaluesD00[quadPt][nb] * C_Mode_Array_i[globDOF];
                 }
             } // quadpt loop end
 
             for (int j = 0; j < N_S; j++)
             { // j-loop start
 
-                C_Mode_Array_j = C_Mode_Array + j * lenMode;
+                memcpy(C_Mode_Array_j, C_Mode_Array + j * lenMode, lenMode * SizeOfDouble);
                 double C_j[N_Points2];
                 for (int quadPt = 0; quadPt < N_Points2; quadPt++)
                     C_j[quadPt] = 0.;
                 // Obtain all values for C_a
                 for (int quadPt = 0; quadPt < N_Points2; quadPt++)
                 { // quadpt loop start
-                    for (int j = 0; j < N_BaseFunct; j++)
+                    for (int x = 0; x < N_BaseFunct; x++)
                     {
-                        int globDOF = DOF[j];
-                        C_j[quadPt] += origvaluesD00[quadPt][j] * C_Mode_Array_j[globDOF];
+                        int globDOF = DOF[x];
+                        C_j[quadPt] += origvaluesD00[quadPt][x] * C_Mode_Array_j[globDOF];
                     }
                 } // quadpt loop end
 
@@ -1433,22 +1426,16 @@ void calc_MeanFieldEnergy(TFESpace2D *Fespace, TFEFunction2D *FeScalar_Cmean, TF
                 for (int quadPt = 0; quadPt < N_Points2; quadPt++)
                 {
                     double Mult = Weights2[quadPt] * AbsDetjk[quadPt];
-                    double *orgD00 = origvaluesD00[quadPt];
-                    double *orgD10 = origvaluesD10[quadPt];
-                    double *orgD01 = origvaluesD01[quadPt];
-                    double *orgD20 = origvaluesD20[quadPt];
-                    double *orgD02 = origvaluesD02[quadPt];
-
-                    mfe[i + j * N_S + 1] += C_i[quadPt] * C_j[quadPt] * Mult;
+                    IPMatxFE[i + j * N_S] += C_i[quadPt]*C_j[quadPt]*Mult;
 
                 } // Inner Quadrature Loop
 
             } // j-loop end
 
         } // i-loop end
-
-        // --
-    } // cell loop
+    }     // cell loop
+    delete[] C_Mode_Array_i;
+    delete[] C_Mode_Array_j;
     return;
 } // calc_MFE function end
 
@@ -1604,25 +1591,6 @@ void calcStdDevRealization(const double *RealznVect, double *StdDevVect, const i
 }
 
 
-
-void calcIPMatx(double *IPMatx, double *Vector, int height, int width, char RoworColMaj)
-{
-    if (RoworColMaj == 'R')
-        cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, width, width, height, 1, Vector, width, Vector, width, 0.0, IPMatx, width);
-    else if (RoworColMaj == 'C')
-    {
-        double *TempRowMaj = new double[height * width]();
-        for (int i = 0; i < height; i++)
-        {
-            for (int j = 0; j < width; j++)
-            {
-                TempRowMaj[i * width + j] = Vector[j * height + i];
-            } // end for j
-        }     // end for i
-        cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, width, width, height, 1, TempRowMaj, width, TempRowMaj, width, 0.0, IPMatx, width);
-    }
-    return;
-}
 
 void readFromText(std::string fileName, double *Vector, int height, int width, char RowOrColMaj)
 {

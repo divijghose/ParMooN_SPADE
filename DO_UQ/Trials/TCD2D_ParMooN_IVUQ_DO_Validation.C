@@ -14,7 +14,8 @@
  * @author Divij Ghose
  * @author Thivin Anandh
 
- *
+ *@bug Stochastic Normalization of Modes for inner product -
+       The inner product in the finite element calculation doesn't produce the same inner product matrix as the vector sense, the modes have to be normalized for this *Divij - 01/08/22*
  */
 
 // =======================================================================
@@ -80,8 +81,6 @@ int main(int argc, char *argv[])
     char *VtkBaseName;
     char *VtkBaseNameMean;
     char *VtkBaseNameMode;
-
-    const char vtkdir[] = "VTK";
 
     TDomain *Domain;
     TDatabase *Database = new TDatabase();
@@ -151,13 +150,15 @@ int main(int argc, char *argv[])
         Domain->PS("Domain.ps", It_Finest, 0);
 
     // create output directory, if not already existing
-    mkdir(vtkdir, 0777);
+
+    const char vtkdir[] = "VTK";
     const char modedir[] = "Modes";
     const char meandir[] = "Mean";
     const char coeffdir[] = "Coefficients";
     const char mcdir[] = "MonteCarlo";
     const char endir[] = "Energy_Data";
 
+    mkdir(vtkdir, 0777);
     mkdir(meandir, 0777);
     mkdir(modedir, 0777);
     mkdir(coeffdir, 0777);
@@ -462,8 +463,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    std::string fileoutPert = "PerturbationVector.txt";
-    printToTxt(fileoutPert, PerturbationVector, N_DOF, N_Realisations, 'R');
+    printToTxt("PerturbationVector.txt", PerturbationVector, N_DOF, N_Realisations, 'R');
 
     //================================================================================================
     /////////////////////////////DO - Initialization SVD//////////////////////////////////////////////
@@ -605,7 +605,7 @@ int main(int argc, char *argv[])
     oldsolModeAll = new double[N_DOF]();
     oldrhsModeAll = new double[N_DOF]();
 
-    Scalar_FeFunction_Mean = new TFEFunction2D(Scalar_FeSpace, (char *)"C_Mean", (char *)"sol", solMean, N_DOF);
+    Scalar_FeFunction_Mean = new TFEFunction2D(Scalar_FeSpace, (char *)"C_Mean", (char *)"Mean Solution", solMean, N_DOF);
 
     TFEFunction2D **Scalar_FeFunction_ModeAll = new TFEFunction2D *[subDim];
     for (int s = 0; s < subDim; s++)
@@ -665,7 +665,7 @@ int main(int argc, char *argv[])
     //------------------------------------------ CO EFFICIENT EQUATION SETUP -----------------------------------------------------//
     // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
 
-    TFEVectFunct2D *FeVector_Coefficient = new TFEVectFunct2D(Scalar_FeSpace, (char *)"sol", (char *)"sol", CoeffVector, N_Realisations, subDim);
+    TFEVectFunct2D *FeVector_Coefficient = new TFEVectFunct2D(Scalar_FeSpace, (char *)"Phi", (char *)"Coefficients", CoeffVector, N_Realisations, subDim);
 
     // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
     //------------------------------------------ CO EFFICIENT EQUATION SETUP END -------------------------------------------------------//
@@ -692,7 +692,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    TFEVectFunct2D *FEFVector_Mode = new TFEVectFunct2D(Scalar_FeSpace, (char *)"C_Mode", (char *)"sol", solMode, N_DOF, subDim);
+    TFEVectFunct2D *FEFVector_Mode = new TFEVectFunct2D(Scalar_FeSpace, (char *)"C_Mode", (char *)"Mode Solution", solMode, N_DOF, subDim);
 
     double *stochNormModes = new double[N_DOF * subDim]();
     TFEVectFunct2D *FEFVector_StochNormMode = new TFEVectFunct2D(Scalar_FeSpace, (char *)"StochNormMode", (char *)"Stochastic Normalized Modes", stochNormModes, N_DOF, subDim);
@@ -768,6 +768,7 @@ int main(int argc, char *argv[])
         OutputMean->WriteVtk(os.str().c_str());
         meanimg++;
     }
+
     for (int s = 0; s < subDim; s++)
     {
         std::string filenameMode = "Mode_" + std::to_string(s) + "_NRealisations_" + std::to_string(N_Realisations);
@@ -823,7 +824,6 @@ int main(int argc, char *argv[])
     std::string IPMeanBaseName = "IPMatrices/IPMean_NRealisations_";
 
     fileoutMean = generateFileName(meanBaseName, m, N_Realisations);
-
     printToTxt(fileoutMean, solMean, N_DOF, 1, 'C');
 
     fileoutMode = generateFileName(modeBaseName, m, N_Realisations);
@@ -856,23 +856,34 @@ int main(int argc, char *argv[])
     std::ofstream fileOrtho;
     std::ofstream fileprincVar;
 
-    std::string orthoBaseName = "Energy_Data/Ortho_NRealisations_";
-    std::string mfeBaseName = "Energy_Data/MFE_NRealisations_";
-    std::string princVarBaseName = "Energy_Data/PrincVariances_NRealisations_";
+    const char mfedir[] = "Energy_Data/MFE";
+    mkdir(mfedir, 0777);
 
-    double *mfe = new double[(subDim * subDim) + 1]();
+    const char ipfedir[] = "Energy_Data/IPModeFE";
+    mkdir(ipfedir, 0777);
+
+    const char pvdir[] = "Energy_Data/PV";
+    mkdir(pvdir, 0777);
+
+    std::string orthoBaseName = "Energy_Data/IPModeFE/Ortho_NRealisations_";
+    std::string mfeBaseName = "Energy_Data/MFE/MFE_NRealisations_";
+    std::string princVarBaseName = "Energy_Data/PV/PrincVariances_NRealisations_";
+
+    double *modeOrtho = new double[subDim * subDim]();
     double *princVariances = new double[subDim]();
+    double mfe = 0;
 
-    memset(mfe, 0, ((subDim * subDim) + 1) * SizeOfDouble);
-    calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean, FEFVector_Mode, mfe, subDim);
+    memset(modeOrtho, 0, (subDim * subDim) * SizeOfDouble);
+    mfe = calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean);
 
     calc_princVariance(princVariances, subDim);
 
     fileoutMFE = generateFileName(mfeBaseName, m, N_Realisations);
-    printToTxt(mfeBaseName, mfe, 1, 1, 'R');
+    printToTxt(fileoutMFE, &mfe, 1, 1, 'R');
 
     fileoutOrtho = generateFileName(orthoBaseName, m, N_Realisations);
-    printToTxt(fileoutOrtho, mfe + 1, subDim, subDim, 'R');
+    calc_ModeOrtho(Scalar_FeSpace, FEFVector_Mode, subDim, modeOrtho);
+    printToTxt(fileoutOrtho, modeOrtho, subDim, subDim, 'R');
 
     fileoutprincVar = generateFileName(princVarBaseName, m, N_Realisations);
     printToTxt(fileoutprincVar, princVariances, subDim, 1, 'R');
@@ -968,17 +979,18 @@ int main(int argc, char *argv[])
         fileoutCoeff = generateFileName(coeffBaseName, m, N_Realisations);
         printToTxt(fileoutCoeff, CoeffVector, N_Realisations, subDim, 'C');
 
-        memset(mfe, 0, ((subDim * subDim) + 1) * SizeOfDouble);
-        calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean, FEFVector_Mode, mfe, subDim);
+        memset(modeOrtho, 0, (subDim * subDim) * SizeOfDouble);
+        mfe = calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean);
         CalcCovarianceMatx(CoeffVector);
 
         calc_princVariance(princVariances, subDim);
 
         fileoutMFE = generateFileName(mfeBaseName, m, N_Realisations);
-        printToTxt(mfeBaseName, mfe, 1, 1, 'R');
+        printToTxt(fileoutMFE, &mfe, 1, 1, 'R');
 
         fileoutOrtho = generateFileName(orthoBaseName, m, N_Realisations);
-        printToTxt(fileoutOrtho, mfe + 1, subDim, subDim, 'R');
+        calc_ModeOrtho(Scalar_FeSpace, FEFVector_Mode, subDim, modeOrtho);
+        printToTxt(fileoutOrtho, modeOrtho, subDim, subDim, 'R');
 
         fileoutprincVar = generateFileName(princVarBaseName, m, N_Realisations);
         printToTxt(fileoutprincVar, princVariances, subDim, 1, 'R');
@@ -1072,18 +1084,19 @@ int main(int argc, char *argv[])
     fileoutCoeff = generateFileName(coeffBaseName, m, N_Realisations);
     printToTxt(fileoutCoeff, CoeffVector, N_Realisations, subDim, 'C');
 
-    memset(mfe, 0, ((subDim * subDim) + 1) * SizeOfDouble);
-    calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean, FEFVector_Mode, mfe, subDim);
+    memset(modeOrtho, 0, (subDim * subDim) * SizeOfDouble);
+    mfe = calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean);
 
     CalcCovarianceMatx(CoeffVector);
 
     calc_princVariance(princVariances, subDim);
 
     fileoutMFE = generateFileName(mfeBaseName, m, N_Realisations);
-    printToTxt(mfeBaseName, mfe, 1, 1, 'R');
+    printToTxt(fileoutMFE, &mfe, 1, 1, 'R');
 
     fileoutOrtho = generateFileName(orthoBaseName, m, N_Realisations);
-    printToTxt(fileoutOrtho, mfe + 1, subDim, subDim, 'R');
+    calc_ModeOrtho(Scalar_FeSpace,FEFVector_Mode,subDim,modeOrtho);
+    printToTxt(fileoutOrtho, modeOrtho, subDim, subDim, 'R');
 
     fileoutprincVar = generateFileName(princVarBaseName, m, N_Realisations);
     printToTxt(fileoutprincVar, princVariances, subDim, 1, 'R');
