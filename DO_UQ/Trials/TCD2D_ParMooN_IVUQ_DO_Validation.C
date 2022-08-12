@@ -961,10 +961,11 @@ int main(int argc, char *argv[])
 
             // restore the mass matrix for the next time step
             // unless the stiffness matrix or rhs change in time, it is not necessary to assemble the system matrix in every time step
-            // reorthonormalize(solModeAll,N_DOF,subDim);
+            
 
         } // for(l=0;l< N_SubSteps;l++)
         reorthonormalizeB(solModeAll, CoeffVector, N_DOF, subDim, N_Realisations);
+        // reorthonormalize(solModeAll, N_DOF, subDim);
 
         //======================================================================
         // produce outout
@@ -1069,6 +1070,7 @@ int main(int argc, char *argv[])
 
             OutPut("Linfty " << Linfty << endl);
         } //  if(TDatabase::ParamDB->MEASURE_ERRORS)
+
         memcpy(solMode, solModeAll, N_DOF * subDim * SizeOfDouble);
     } // while(TDatabase::TimeDB->CURRENTTIME< end_time)
 
@@ -1095,7 +1097,7 @@ int main(int argc, char *argv[])
     printToTxt(fileoutMFE, &mfe, 1, 1, 'R');
 
     fileoutOrtho = generateFileName(orthoBaseName, m, N_Realisations);
-    calc_ModeOrtho(Scalar_FeSpace,FEFVector_Mode,subDim,modeOrtho);
+    calc_ModeOrtho(Scalar_FeSpace, FEFVector_Mode, subDim, modeOrtho);
     printToTxt(fileoutOrtho, modeOrtho, subDim, subDim, 'R');
 
     fileoutprincVar = generateFileName(princVarBaseName, m, N_Realisations);
