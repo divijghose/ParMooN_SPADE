@@ -1166,7 +1166,6 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
         {
             phi_New[l] += ipval * phi_Array_a[l];
         }
-       
 
     } // new a loop end
     double timeStep = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
@@ -1175,7 +1174,6 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
         phi_Array_i[l] = phi_Old_i[l] + timeStep * phi_New[l];
     }
 
- 
     delete[] Phi_Old;
     delete[] phi_New;
     delete[] C_Array_i;
@@ -1662,6 +1660,7 @@ void calcStdDevRealization(const double *RealznVect, double *StdDevVect, const i
     return;
 }
 
+
 void readFromText(std::string fileName, double *Vector, int height, int width, char RowOrColMaj)
 {
     cout << "Read In" << endl;
@@ -1806,7 +1805,7 @@ lapack_int matInv(double *A, unsigned n)
     return ret;
 }
 
-void reorthonormalize(double *Mode, int N_DOF, int N_S)
+void reorthonormalizeA(double *Mode, int N_DOF, int N_S)
 {
     double *Temp = new double[N_DOF * N_S]();
     for (int i = 0; i < N_DOF; i++)
@@ -2034,7 +2033,95 @@ void reorthonormalizeB(double *Mode, double *Coeff, int N_DOF, int N_S, int N_R)
 
     return;
 }
+void reorthonormalizeC(double *Mode, int N_DOF, int N_S)
+{
+    double *Temp = new double[N_S * N_S]();
+    double *P = new double[N_S * N_S]();
 
+    calcIPMatx(Temp, Mode, N_DOF, N_S, 'C');
+    for (int i = 0; i < N_S; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            P[i * N_S + j] = Temp[j * N_S + i];
+        }
+    }
+
+    double *wi, *VL, *VR;
+    int info, lwork;
+    double wkopt;
+    double *work;
+    wi = new double[N_S]();
+    VL = new double[N_S * N_S]();
+    VR = new double[N_S * N_S]();
+    int N = N_S;
+    int LDA = N_S;
+    int LDVL = N_S;
+    int LDVR = N_S;
+    double *wr = new double[N_S]();
+    lwork = -1;
+    double *D = new double[N_S]();
+
+    info = LAPACKE_dgeev(LAPACK_ROW_MAJOR, 'V', 'V', N_S, P, LDA, D, wi,
+                         VL, LDVL, VR, LDVR);
+
+    if (info == 0)
+        cout << "The routine computing eignevalues of coefficient matrix was successful" << endl;
+    else if (info < 0)
+    {
+        cout << "The routine computing eignevalues of coefficient matrix was unsuccessful" << endl
+             << -1 * info << "th argument invalid" << endl;
+        exit(0);
+    }
+    else if (info > 0)
+    {
+        cout << "the QR algorithm failed to compute all the eigenvalues" << endl;
+
+        exit(0);
+    }
+
+    double *RootD = new double[N_S * N_S]();
+    for (int i = 0; i < N_S; i++)
+        RootD[i + i * N_S] = sqrt(D[i]);
+
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_S, N_S, N_S, 1.0, VL, N_S, RootD, N_S, 0.0, Temp, N_S);
+
+    double *RootP = new double[N_S * N_S]();
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasTrans, N_S, N_S, N_S, 1.0, Temp, N_S, VL, N_S, 0.0, RootP, N_S);
+
+    matInv(RootP, N_S);
+
+    double *ModeOld = new double[N_DOF * N_S]();
+    double *ModeNew = new double[N_DOF * N_S]();
+
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            ModeOld[i * N_S + j] = Mode[j * N_DOF + i];
+        }
+    }
+
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_DOF, N_S, N_S, 1.0, ModeOld, N_S, RootP, N_S, 0.0, ModeNew, N_S);
+
+    for (int i = 0; i < N_DOF; i++)
+    {
+        for (int j = 0; j < N_S; j++)
+        {
+            Mode[j * N_DOF + i] = ModeNew[i * N_S + j];
+        }
+    }
+    delete[] P;
+    delete[] Temp;
+    delete[] VR;
+    delete[] VL;
+    delete[] ModeNew;
+    delete[] ModeOld;
+    delete[] RootD;
+    delete[] RootP;
+    
+    return;
+}
 std::string generateFileName(std::string baseName, int m, int N_R)
 {
     std::string fileName;

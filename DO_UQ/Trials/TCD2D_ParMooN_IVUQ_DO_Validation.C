@@ -165,6 +165,22 @@ int main(int argc, char *argv[])
     mkdir(mcdir, 0777);
     mkdir(endir, 0777);
 
+    const char dir1[] = "MonteCarlo/Mean";
+    const char dir2[] = "MonteCarlo/MeanPlusSigma";
+    const char dir3[] = "MonteCarlo/MeanMinusSigma";
+    const char dir4[] = "MonteCarlo/MeanPlus2Sigma";
+    const char dir5[] = "MonteCarlo/MeanMinus2Sigma";
+    const char dir6[] = "MonteCarlo/MeanPlus3Sigma";
+    const char dir7[] = "MonteCarlo/MeanMinus3Sigma";
+
+    mkdir(dir1, 0777);
+    mkdir(dir2, 0777);
+    mkdir(dir3, 0777);
+    mkdir(dir4, 0777);
+    mkdir(dir5, 0777);
+    mkdir(dir6, 0777);
+    mkdir(dir7, 0777);
+
     //=========================================================================
     // construct all finite element spaces
     //=========================================================================
@@ -561,8 +577,12 @@ int main(int argc, char *argv[])
     }
     printToTxt("Mode.txt", ModeVector, N_DOF, subDim, 'C');
 
-    const char ip[] = "IPMatrices";
-    mkdir(ip, 0777);
+    const char ipdir[] = "IPMatrices";
+    mkdir(ipdir, 0777);
+    const char ipmean[] = "IPMatrices/Mean";
+    mkdir(ipmean, 0777);
+    const char ipmode[] = "IPMatrices/Mode";
+    mkdir(ipmode, 0777);
 
     double *IPMatxMode = new double[subDim * subDim]();
     double *IPMatxMean = new double[1 * 1]();
@@ -820,8 +840,8 @@ int main(int argc, char *argv[])
     std::string meanBaseName = "Mean/Mean_NRealisations_";
     std::string modeBaseName = "Modes/Mode_NRealisations_";
     std::string coeffBaseName = "Coefficients/Coeff_NRealisations_";
-    std::string IPModeBaseName = "IPMatrices/IPMode_NRealisations_";
-    std::string IPMeanBaseName = "IPMatrices/IPMean_NRealisations_";
+    std::string IPModeBaseName = "IPMatrices/Mode/IPMode_NRealisations_";
+    std::string IPMeanBaseName = "IPMatrices/Mean/IPMean_NRealisations_";
 
     fileoutMean = generateFileName(meanBaseName, m, N_Realisations);
     printToTxt(fileoutMean, solMean, N_DOF, 1, 'C');
@@ -961,11 +981,10 @@ int main(int argc, char *argv[])
 
             // restore the mass matrix for the next time step
             // unless the stiffness matrix or rhs change in time, it is not necessary to assemble the system matrix in every time step
-            
 
         } // for(l=0;l< N_SubSteps;l++)
-        reorthonormalizeB(solModeAll, CoeffVector, N_DOF, subDim, N_Realisations);
-        // reorthonormalize(solModeAll, N_DOF, subDim);
+        // reorthonormalizeB(solModeAll, CoeffVector, N_DOF, subDim, N_Realisations);
+        reorthonormalizeC(solModeAll, N_DOF, subDim);
 
         //======================================================================
         // produce outout
@@ -1198,36 +1217,44 @@ int main(int argc, char *argv[])
     for (int RealNo = 0; RealNo < N_Composite; RealNo++)
     {
         std::string filename;
+        std::string subfoldername;
         cout << " ============================================================================================================= " << endl;
         switch (RealNo)
         {
         case 0:
             cout << "Solving for Mean Solution" << endl;
-            filename = "MonteCarlo_Mean_NR_" + std::to_string(N_Realisations);
+            filename = "MonteCarlo_Mean_NR_";
+            subfoldername = "Mean/";
             break;
         case 1:
             cout << "Solving for Mean + sigma Solution" << endl;
-            filename = "MonteCarlo_MeanPlusSigma_NR_" + std::to_string(N_Realisations);
+            filename = "MonteCarlo_MeanPlusSigma_NR_";
+            subfoldername = "MeanPlusSigma/";
             break;
         case 2:
             cout << "Solving for Mean - sigma Solution" << endl;
-            filename = "MonteCarlo_MeanMinusSigma_NR_" + std::to_string(N_Realisations);
+            filename = "MonteCarlo_MeanMinusSigma_NR_";
+            subfoldername = "MeanMinusSigma/";
             break;
         case 3:
             cout << "Solving for Mean + 2*sigma Solution" << endl;
-            filename = "MonteCarlo_MeanPlus2Sigma_NR_" + std::to_string(N_Realisations);
+            filename = "MonteCarlo_MeanPlus2Sigma_NR_";
+            subfoldername = "MeanPlus2Sigma/";
             break;
         case 4:
             cout << "Solving for Mean - 2*sigma Solution" << endl;
-            filename = "MonteCarlo_MeanMinus2Sigma_NR_" + std::to_string(N_Realisations);
+            filename = "MonteCarlo_MeanMinus2Sigma_NR_";
+            subfoldername = "MeanMinus2Sigma/";
             break;
         case 5:
             cout << "Solving for Mean + 3*sigma Solution" << endl;
-            filename = "MonteCarlo_MeanPlus3Sigma_NR_" + std::to_string(N_Realisations);
+            filename = "MonteCarlo_MeanPlus3Sigma_NR_";
+            subfoldername = "MeanPlus3Sigma/";
             break;
         case 6:
             cout << "Solving for Mean - 3*sigma Solution" << endl;
-            filename = "MonteCarlo_MeanMinus3Sigma_NR_" + std::to_string(N_Realisations);
+            filename = "MonteCarlo_MeanMinus3Sigma_NR_";
+            subfoldername = "MeanMinus3Sigma/";
             break;
         }
         cout << " ============================================================================================================= " << endl;
@@ -1258,7 +1285,7 @@ int main(int argc, char *argv[])
                << "/" << VtkBaseName << "." << imgm[RealNo] << ".vtk" << ends;
         Output->WriteVtk(os.str().c_str());
 
-        fileoutMC = generateFileName("MonteCarlo/" + filename, imgm[RealNo], N_Realisations);
+        fileoutMC = generateFileName("MonteCarlo/" + subfoldername + filename, imgm[RealNo], N_Realisations);
         printToTxt(fileoutMC, sol, N_DOF, 1, 'C');
         imgm[RealNo]++;
 
@@ -1349,7 +1376,7 @@ int main(int argc, char *argv[])
                         os << "VTK"
                            << "/" << VtkBaseName << "." << imgm[RealNo] << ".vtk" << ends;
                     Output->WriteVtk(os.str().c_str());
-                    fileoutMC = generateFileName("MonteCarlo/" + filename, imgm[RealNo], N_Realisations);
+                    fileoutMC = generateFileName("MonteCarlo/" + subfoldername + filename, imgm[RealNo], N_Realisations);
                     printToTxt(fileoutMC, sol, N_DOF, 1, 'C');
                     imgm[RealNo]++;
                 }
@@ -1380,7 +1407,7 @@ int main(int argc, char *argv[])
                << "/" << VtkBaseName << "." << imgm[RealNo] << ".vtk" << ends;
         Output->WriteVtk(os.str().c_str());
 
-        fileoutMC = generateFileName("MonteCarlo/" + filename, imgm[RealNo], N_Realisations);
+        fileoutMC = generateFileName("MonteCarlo/" + subfoldername + filename, imgm[RealNo], N_Realisations);
         printToTxt(fileoutMC, sol, N_DOF, 1, 'C');
         imgm[RealNo]++;
 
@@ -1435,6 +1462,7 @@ int main(int argc, char *argv[])
         delete[] stdDevVectorDO;
         std::string fileDOname;
         std::string fileMCname;
+        std::string subfoldername;
         double *ErrorVector = new double[N_DOF * 1]();
         for (int RealNo = 0; RealNo < N_Composite; RealNo++)
         {
@@ -1443,37 +1471,44 @@ int main(int argc, char *argv[])
             case 0:
                 cout << "Reconstructing Mean Solution" << endl;
                 fileDOname = "DO_Mean_NR_" + std::to_string(N_Realisations);
-                fileMCname = "MonteCarlo_Mean_NR_" + std::to_string(N_Realisations);
+                fileMCname = "MonteCarlo_Mean_NR_";
+                subfoldername = "Mean/";
                 break;
             case 1:
                 cout << "Reconstructing Mean + sigma Solution" << endl;
                 fileDOname = "DO_MeanPlusSigma_NR_" + std::to_string(N_Realisations);
-                fileMCname = "MonteCarlo_MeanPlusSigma_NR_" + std::to_string(N_Realisations);
+                fileMCname = "MonteCarlo_MeanPlusSigma_NR_";
+                subfoldername = "MeanPlusSigma/";
                 break;
             case 2:
                 cout << "Reconstructing Mean - sigma Solution" << endl;
                 fileDOname = "DO_MeanMinusSigma_NR_" + std::to_string(N_Realisations);
-                fileMCname = "MonteCarlo_MeanMinusSigma_NR_" + std::to_string(N_Realisations);
+                fileMCname = "MonteCarlo_MeanMinusSigma_NR_";
+                subfoldername = "MeanMinusSigma/";
                 break;
             case 3:
                 cout << "Reconstructing Mean + 2*sigma Solution" << endl;
                 fileDOname = "DO_MeanPlus2Sigma_NR_" + std::to_string(N_Realisations);
-                fileMCname = "MonteCarlo_MeanPlus2Sigma_NR_" + std::to_string(N_Realisations);
+                fileMCname = "MonteCarlo_MeanPlus2Sigma_NR_";
+                subfoldername = "MeanPlus2Sigma/";
                 break;
             case 4:
                 cout << "Reconstructing Mean - 2*sigma Solution" << endl;
                 fileDOname = "DO_MeanMinus2Sigma_NR_" + std::to_string(N_Realisations);
-                fileMCname = "MonteCarlo_MeanMinus2Sigma_NR_" + std::to_string(N_Realisations);
+                fileMCname = "MonteCarlo_MeanMinus2Sigma_NR_";
+                subfoldername = "MeanMinus2Sigma/";
                 break;
             case 5:
                 cout << "Reconstructing Mean + 3*sigma Solution" << endl;
                 fileDOname = "DO_MeanPlus3Sigma_NR_" + std::to_string(N_Realisations);
-                fileMCname = "MonteCarlo_MeanPlus3Sigma_NR_" + std::to_string(N_Realisations);
+                fileMCname = "MonteCarlo_MeanPlus3Sigma_NR_";
+                subfoldername = "MeanPlus3Sigma/";
                 break;
             case 6:
                 cout << "Reconstructing Mean - 3*sigma Solution" << endl;
                 fileDOname = "DO_MeanMinus3Sigma_NR_" + std::to_string(N_Realisations);
-                fileMCname = "MonteCarlo_MeanMinus3Sigma_NR_" + std::to_string(N_Realisations);
+                fileMCname = "MonteCarlo_MeanMinus3Sigma_NR_";
+                subfoldername = "MeanMinus3Sigma/";
                 break;
             }
 
@@ -1499,7 +1534,7 @@ int main(int argc, char *argv[])
                    << "/" << VtkBaseName << "." << t << ".vtk" << ends;
             Output->WriteVtk(os.str().c_str());
 
-            fileoutMC = generateFileName("MonteCarlo/" + fileMCname, t, N_Realisations);
+            fileoutMC = generateFileName("MonteCarlo/" + subfoldername + fileMCname, t, N_Realisations);
             readFromText(fileoutMC, ErrorVector, N_DOF, 1, 'C');
             double dnorm = Ddot(N_DOF, ErrorVector, ErrorVector);
             for (int i = 0; i < N_DOF; i++)
