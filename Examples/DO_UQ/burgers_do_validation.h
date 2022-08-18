@@ -718,7 +718,6 @@ void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmod
     return;
 } // stochastic normalization function end
 
-
 void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, double *GlobalRhs_mean, int N_U)
 {
 
@@ -871,23 +870,13 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
                                                                                             //  double* phi_Array_a = Phi_Array + a*lenMode;??
 
             double U1_Mode_a[N_Points2];
-            double U1x_Mode_a[N_Points2];
-            double U1y_Mode_a[N_Points2];
-
             double U2_Mode_a[N_Points2];
-            double U2x_Mode_a[N_Points2];
-            double U2y_Mode_a[N_Points2];
 
             for (int quadPt = 0; quadPt < N_Points2; quadPt++) // Initialize
             {
                 // C_i[quadPt] = 0;
                 U1_Mode_a[quadPt] = 0;
-                U1x_Mode_a[quadPt] = 0;
-                U1y_Mode_a[quadPt] = 0;
-
                 U2_Mode_a[quadPt] = 0;
-                U2x_Mode_a[quadPt] = 0;
-                U2y_Mode_a[quadPt] = 0;
             }
 
             // Obtain all values for C_a
@@ -897,14 +886,10 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
                 {
                     int globDOF = DOF[j];
                     U1_Mode_a[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp1_a[globDOF];
-                    U1x_Mode_a[quadPt] += origvaluesD10[quadPt][j] * Mode_Comp1_a[globDOF];
-                    U1y_Mode_a[quadPt] += origvaluesD01[quadPt][j] * Mode_Comp1_a[globDOF];
-
                     U2_Mode_a[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp2_a[globDOF];
-                    U2x_Mode_a[quadPt] += origvaluesD10[quadPt][j] * Mode_Comp2_a[globDOF];
-                    U2y_Mode_a[quadPt] += origvaluesD01[quadPt][j] * Mode_Comp2_a[globDOF];
                 }
             }
+
             for (int b = 0; b < N_S; b++)
             { //"b" loop
                 val1 = 0;
@@ -912,22 +897,16 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
                 memcpy(Mode_Comp1_b, U_Mode + (b * 2 * lenMode), lenMode * SizeOfDouble);       // col Major
                 memcpy(Mode_Comp2_b, U_Mode + ((b * 2 + 1) * lenMode), lenMode * SizeOfDouble); // col Major
 
-                double U1_Mode_b[N_Points2];
                 double U1x_Mode_b[N_Points2];
                 double U1y_Mode_b[N_Points2];
-
-                double U2_Mode_b[N_Points2];
                 double U2x_Mode_b[N_Points2];
                 double U2y_Mode_b[N_Points2];
 
                 for (int quadPt = 0; quadPt < N_Points2; quadPt++) // Initialize
                 {
                     // C_i[quadPt] = 0;
-                    U1_Mode_b[quadPt] = 0;
                     U1x_Mode_b[quadPt] = 0;
                     U1y_Mode_b[quadPt] = 0;
-
-                    U2_Mode_b[quadPt] = 0;
                     U2x_Mode_b[quadPt] = 0;
                     U2y_Mode_b[quadPt] = 0;
                 }
@@ -937,11 +916,8 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
                     for (int j = 0; j < N_BaseFunct; j++)
                     {
                         int globDOF = DOF[j];
-                        U1_Mode_b[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp1_b[globDOF];
                         U1x_Mode_b[quadPt] += origvaluesD10[quadPt][j] * Mode_Comp1_b[globDOF];
                         U1y_Mode_b[quadPt] += origvaluesD01[quadPt][j] * Mode_Comp1_b[globDOF];
-
-                        U2_Mode_b[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp2_b[globDOF];
                         U2x_Mode_b[quadPt] += origvaluesD10[quadPt][j] * Mode_Comp2_b[globDOF];
                         U2y_Mode_b[quadPt] += origvaluesD01[quadPt][j] * Mode_Comp2_b[globDOF];
                     }
@@ -952,9 +928,9 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
                     double Mult = Weights2[qdpt] * AbsDetjk[qdpt];
                     double *orgD00 = origvaluesD00[qdpt];
 
-                    val1 += -1.0 * (U1_Mode_a[qdpt] * U1x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U1y_Mode_b[qdpt]) * TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult;
+                    val1 = -1.0 * (U1_Mode_a[qdpt] * U1x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U1y_Mode_b[qdpt]) * TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult;
 
-                    val2 += -1.0 * (U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt]) * TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult;
+                    val2 = -1.0 * (U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt]) * TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult; // check if = or +=
 
                     for (int j = 0; j < N_BaseFunct; j++)
                     {
@@ -980,7 +956,7 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
     delete[] Mode_Comp2_a;
     delete[] Mode_Comp1_b;
     delete[] Mode_Comp2_b;
-}
+} // looks right
 
 //======================================================================
 // ************************** Mode RHS********************************//
@@ -1035,7 +1011,11 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
     double *Mode_Comp2_b = new double[lenMode]();
     double *Mode_Comp1_p = new double[lenMode]();
     double *Mode_Comp2_p = new double[lenMode]();
-
+    for (int p = 0; o < N_S; p++)
+    {
+        memcpy(Mode_Comp1_p, U_Mode + (p * 2 * lenMode), lenMode * SizeOfDouble);
+        memcpy(Mode_Comp2_p, U_Mode + ((p * 2 + 1) * lenMode), lenMode * SizeOfDouble);
+    }
     for (int cellId = 0; cellId < N_Cells; cellId++)
     {
         TBaseCell *currentCell = coll->GetCell(cellId);
@@ -1898,8 +1878,6 @@ void DO_Mode_RHS_Aux_Param(double *in, double *out)
     out = in;
 }
 
-
-
 double calc_MeanFieldEnergy(TFESpace2D *Fespace, TFEFunction2D *FeScalar_Cmean)
 {
     // double val = 0;
@@ -2224,7 +2202,6 @@ void calc_ModeOrtho(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmode, int N_S
     return;
 } // calc_MFE function end
 
-
 void calc_princVariance(double *princVariance, int N_S)
 {
 
@@ -2406,7 +2383,6 @@ void readFromText(std::string fileName, double *Vector, int height, int width, c
     return;
 }
 
-
 void reconstructMCfromDO(double *recon, double *meanDO, double *coeffDO, double *modeDO, int N_R, int N_DOF, int N_S)
 {
     double *PertVect = new double[N_DOF * N_R]();
@@ -2437,7 +2413,6 @@ void reconstructMCfromDO(double *recon, double *meanDO, double *coeffDO, double 
     delete[] PertVect;
     return;
 }
-
 
 void qr(double *const _Q, double *const _R, double *const _A, const size_t _m, const size_t _n)
 {
