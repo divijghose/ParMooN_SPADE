@@ -257,9 +257,9 @@ int main(int argc, char *argv[])
 
 				else if (TDatabase::ParamDB->stddev_switch == 2)
 				{
-
-					double sig_r1 = 0.1 * sin(-1.0 * Pi * (2 * actual_x - 2)) * sin(-1.0 * Pi * (2 * actual_y - 2));
-					double sig_r2 = 0.1 * sin(-1.0 * Pi * (2 * local_x - 2)) * sin(-1.0 * Pi * (2 * local_y - 2));
+					double amplitude = TDatabase::ParamDB->stddev_power;
+					double sig_r1 = amplitude * sin(-1.0 * Pi * (2 * actual_x - 2)) * sin(-1.0 * Pi * (2 * actual_y - 2));
+					double sig_r2 = amplitude * sin(-1.0 * Pi * (2 * local_x - 2)) * sin(-1.0 * Pi * (2 * local_y - 2));
 					C[i * N_U + j] *= sig_r1 * sig_r2;
 				}
 
@@ -610,6 +610,10 @@ int main(int argc, char *argv[])
 
 	Velocity_Mode = new TFEVectFunct2D(VelocityMode_FeSpace, (char *)"U_Mode", (char *)"Mode Component", solMode, N_M, 2 * subDim); // check length ??
 
+	double *stochNormModes = new double[N_Total_ModeDOF]();
+	TFEVectFunct2D *VelocityStochNorm;
+	VelocityStochNorm = new TFEVectFunct2D(VelocityMode_FeSpace,(char *)"U_Mode_StochNorm",(char *)"Stochastically normalized modes",stochNormModes,N_M,2*subDim);
+
 	u1Mean = Velocity_Mean->GetComponent(0);
 	u2Mean = Velocity_Mean->GetComponent(1);
 
@@ -942,7 +946,7 @@ int main(int argc, char *argv[])
 			// copy sol, rhs to olssol, oldrhs
 			memcpy(old_rhsMean, rhsMean, N_Total_MeanDOF * SizeOfDouble);
 			memcpy(old_solMean, solMean, N_Total_MeanDOF * SizeOfDouble);
-
+			normalizeStochasticModes(VelocityMode_FeSpace,Velocity_Mode,subDim,stochNormModes);
 			DO_Mean_RHS(VelocityMean_FeSpace, Velocity_Mode, subDim, rhsMean, N_U);
 
 			// assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
@@ -1151,6 +1155,8 @@ int main(int argc, char *argv[])
 		}
 
 		// xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+		// reorthonormalizeC(solModeAll,N_Total_ModeDOF,subDim);
+        memcpy(solMode, solModeAll, N_Total_ModeDOF * SizeOfDouble);
 
 	} // while(TDatabase::TimeDB->CURRENTTIME< e
 
