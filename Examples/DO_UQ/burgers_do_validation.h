@@ -950,6 +950,11 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
             GlobalRhs_mean[GlobalDOF + lenMean] += rhs2[j];
         }
         // --
+        for (int i = 0; i < MaxN_QuadPoints_2D; i++)
+        {
+            delete[] Coeffs[i];
+        }
+        delete[] Coeffs;
     } // cell loop
 
     delete[] Mode_Comp1_a;
@@ -1410,7 +1415,12 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 
                 } // b loop end for ipval calc 2
             }     // a loop end for ip calc 2
-        }         // cell loop
+            for (int i = 0; i < MaxN_QuadPoints_2D; i++)
+            {
+                delete[] Coeffs[i];
+            }
+            delete[] Coeffs;
+        } // cell loop
 
     } // p loop end
     for (int cellId = 0; cellId < N_Cells; cellId++)
@@ -1625,7 +1635,11 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
             GlobalRhs_mode[GlobalDOF] += rhs1[j];
             GlobalRhs_mode[GlobalDOF + lenMode] += rhs2[j];
         }
-
+        for (int i = 0; i < MaxN_QuadPoints_2D; i++)
+        {
+            delete[] Coeffs[i];
+        }
+        delete[] Coeffs;
     } // cell loop final rhs ass 1 end
 
     for (int cellId = 0; cellId < N_Cells; cellId++)
@@ -1824,7 +1838,12 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
                 } // cc loop end
             }     // b
         }         // a
-    }             // cell loop final rhs ass 2 end
+        for (int i = 0; i < MaxN_QuadPoints_2D; i++)
+        {
+            delete[] Coeffs[i];
+        }
+        delete[] Coeffs;
+    } // cell loop final rhs ass 2 end
 
     for (int cellId = 0; cellId < N_Cells; cellId++)
     { // cell loop rhs ass 3
@@ -1972,7 +1991,11 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
                 GlobalRhs_mode[GlobalDOF + lenMode] += rhs2[j];
             }
         } // p loop
-
+        for (int i = 0; i < MaxN_QuadPoints_2D; i++)
+        {
+            delete[] Coeffs[i];
+        }
+        delete[] Coeffs;
     } // cell loop rhs ass 3 end
 
     delete[] Mean_Comp1;
@@ -2075,10 +2098,11 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
     double *Mode_Comp2_b = new double[lenMode]();
     double *phi_Array_b = new double[lenPhi]();
 
-    double ipval1 = 0;
-    double ipval2 = 0;
+    double ipval1 = 0.0;
+    double ipval2 = 0.0;
     for (int a = 0; a < N_S; a++)
     { // a loop ip1
+        ipval1 = 0;
         for (int cellId = 0; cellId < N_Cells; cellId++)
         { // cell loop ip1
             TBaseCell *currentCell = coll->GetCell(cellId);
@@ -2179,6 +2203,7 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
             }
             memcpy(Mode_Comp1_a, U_Mode + (a * 2 * lenMode), lenMode * SizeOfDouble);
             memcpy(Mode_Comp2_a, U_Mode + ((a * 2 + 1) * lenMode), lenMode * SizeOfDouble);
+            memcpy(phi_Array_a, Phi_Array + a * lenPhi, lenPhi * SizeOfDouble);
             // Save Values of C at all quadrature points for I component
             double U1_Mode_i[N_Points2];
             double U2_Mode_i[N_Points2];
@@ -2275,271 +2300,156 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
                 }
             }
 
-
-        } // cell loop ip1 end
-    }     // a loop end ip1
-    for (int cellId = 0; cellId < N_Cells; cellId++)
-    { // cell loop
-        TBaseCell *currentCell = coll->GetCell(cellId);
-        // Get the "ID" of Finite Element for the given 2D Element ( Conforming/NonConforming-Order Finite Element : eg : it could be Conforming-2nd order Finite Element )
-        FE2D elementId = Fespace->GetFE2D(cellId, currentCell);
-        // Get the Class object for that 2d FEM Element , which has all the details like Shape functions , Nodal point locations for that location, Reference Transformation ( Affine , Bilinear )
-        TFE2D *element = TFEDatabase2D::GetFE2D(elementId);
-        TFEDesc2D *fedesc = element->GetFEDesc2D();
-        // Class for basis functions in 2D ( Number of basis functions ), basis function values and Derivatives
-        TBaseFunct2D *bf = element->GetBaseFunct2D();
-        // Get the Reference Element
-        BF2DRefElements RefElement = TFEDatabase2D::GetRefElementFromFE2D(elementId);
-        // Get the reference Transformation -- Affine Mapping / Bilnear Mapping of Triangle or Quadrilateral
-        RefTrans2D referenceTransformation = TFEDatabase2D::GetRefTrans2D_IDFromFE2D(elementId);
-        // Get the number of basis functions in the Current Cell ( Number of Local DOF)
-        int N_BaseFunct = element->GetN_DOF();
-        // Type of Basis Function in 2D
-        BaseFunct2D BaseFunct_ID = element->GetBaseFunct2D_ID();
-
-        // get cell measure
-        double hK = currentCell->GetDiameter();
-
-        switch (referenceTransformation)
-        {
-        case QuadBilinear:
-        {
-            int l = bf->GetPolynomialDegree();                                     // Get the Polynomial Degreee  of the basis functions
-            QuadFormula2D QF2 = TFEDatabase2D::GetQFQuadFromDegree(3 * l);         // Get te ID of Quadrature Formula
-            TQuadFormula2D *QuadratureRule = TFEDatabase2D::GetQuadFormula2D(QF2); // Get the Quadrature Rule Objetc based on Quadrature ID
-            QuadratureRule->GetFormulaData(N_Points2, Weights2, t1, t2);           // get the Quadrature points , Weights
-
-            // Set the values on the Reference Cell
-            TRefTrans2D *F_K = TFEDatabase2D::GetRefTrans2D(QuadBilinear);
-            TFEDatabase2D::SetCellForRefTrans(currentCell, QuadBilinear); // Set the Cell for Current reference Transformation
-
-            // Get Original Coordinates from reference Coordinates and the Determinant of jacobian
-            TFEDatabase2D::GetOrigFromRef(QuadBilinear, N_Points2, t1, t2, X, Y, AbsDetjk); // Get the Original Co-orinates for the cell from xi values
-
-            // Get all the original Values from the Referece cell values.
-            TFEDatabase2D::GetOrigValues(QuadBilinear, 1, &BaseFunct_ID, N_Points2, t1, t2, QF2, Needs2ndDer);
-
-            // The below are 2D arrays in the form
-            // Values[QuadraturePointLocation][ShapeFunction]  i.e, the Value of Shapefunction at all quadrature points for each shape functions
-            origvaluesD00 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D00); // Shape Function Values at Quadrature Points
-            origvaluesD10 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D10); // Shape Function Derivative Values at Quadrature Points
-            origvaluesD01 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D01); // Shape Function Derivative Values at Quadrature Point
-            origvaluesD20 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D20); // Shape Function 2nd Derivative Values at Quadrature Point
-            origvaluesD02 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D02); // Shape Function 2nd Derivative Values at Quadrature Point
-            break;
-        }
-
-        case QuadAffin:
-        {
-            int l = bf->GetPolynomialDegree();                                     // Get the Polynomial Degreee  of the basis functions
-            QuadFormula2D QF2 = TFEDatabase2D::GetQFQuadFromDegree(3 * l);         // Get te ID of Quadrature Formula
-            TQuadFormula2D *QuadratureRule = TFEDatabase2D::GetQuadFormula2D(QF2); // Get the Quadrature Rule Objetc based on Quadrature ID
-            QuadratureRule->GetFormulaData(N_Points2, Weights2, t1, t2);           // get the Quadrature points , Weights
-
-            // Set the values on the Reference Cell
-            TRefTrans2D *F_K = TFEDatabase2D::GetRefTrans2D(QuadAffin);
-            TFEDatabase2D::SetCellForRefTrans(currentCell, QuadAffin); // Set the Cell for Current reference Transformation
-
-            // Get Original Coordinates from reference Coordinates and the Determinant of jacobian
-            TFEDatabase2D::GetOrigFromRef(QuadAffin, N_Points2, t1, t2, X, Y, AbsDetjk); // Get the Original Co-orinates for the cell from xi values
-
-            // Get all the original Values from the Referece cell values.
-            TFEDatabase2D::GetOrigValues(QuadAffin, 1, &BaseFunct_ID, N_Points2, t1, t2, QF2, Needs2ndDer);
-
-            // The below are 2D arrays in the form
-            // Values[QuadraturePointLocation][ShapeFunction]  i.e, the Value of Shapefunction at all quadrature points for each shape functions
-            origvaluesD00 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D00); // Shape Function Values at Quadrature Points
-            origvaluesD10 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D10); // Shape Function Derivative Values at Quadrature Points
-            origvaluesD01 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D01); // Shape Function Derivative Values at Quadrature Point
-            origvaluesD20 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D20); // Shape Function 2nd Derivative Values at Quadrature Points
-            origvaluesD02 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D02); // Shape Function 2nd Derivative Values at Quadrature Point
-
-            break;
-        }
-
-        default:
-        {
-            cout << " [ERROR] - Error in File : CoeffEqn_DO.C " << endl;
-            cout << " Unknown Reftype " << endl;
-            cout << " REF TYPE : " << referenceTransformation << endl;
-            exit(0);
-            break;
-        }
-        }
-
-        int *DOF = GlobalNumbers + BeginIndex[cellId];
-        val = 0;
-
-        // Get Coefficients b1 and b2
-        double *Param[MaxN_QuadPoints_2D];
-        double **Coeffs = new double *[MaxN_QuadPoints_2D];
-        for (int i = 0; i < MaxN_QuadPoints_2D; i++)
-        {
-            Coeffs[i] = new double[10]();
-        }
-
-        // Save Values of C at all quadrature points for I component
-        double C_i[N_Points2];
-        double C_x_i[N_Points2];
-        double C_y_i[N_Points2];
-
-        double U1_Mode_i[N_Points2];
-        double U1x_Mode_i[N_Points2];
-        double U1y_Mode_i[N_Points2];
-
-        double U2_Mode_i[N_Points2];
-        double U2x_Mode_i[N_Points2];
-        double U2y_Mode_i[N_Points2];
-
-        double U1_Mean[N_Points2];
-        double U1x_Mean[N_Points2];
-        double U1y_Mean[N_Points2];
-
-        double U2_Mean[N_Points2];
-        double U2x_Mean[N_Points2];
-        double U2y_Mean[N_Points2];
-
-        for (int quadPt = 0; quadPt < N_Points2; quadPt++) // Initialize
-        {
-            // C_i[quadPt] = 0;
-            U1_Mode_i[quadPt] = 0;
-            U1x_Mode_i[quadPt] = 0;
-            U1y_Mode_i[quadPt] = 0;
-
-            U2_Mode_i[quadPt] = 0;
-            U2x_Mode_i[quadPt] = 0;
-            U2y_Mode_i[quadPt] = 0;
-
-            U1_Mean[quadPt] = 0;
-            U1x_Mean[quadPt] = 0;
-            U1y_Mean[quadPt] = 0;
-
-            U2_Mean[quadPt] = 0;
-            U2x_Mean[quadPt] = 0;
-            U2y_Mean[quadPt] = 0;
-        }
-        // for ( int quadPt = 0 ; quadPt < N_Points2; quadPt++) C_x_i[quadPt] = 0;
-        // for ( int quadPt = 0 ; quadPt < N_Points2; quadPt++) C_y_i[quadPt] = 0;
-
-        for (int quadPt = 0; quadPt < N_Points2; quadPt++)
-        {
-            for (int j = 0; j < N_BaseFunct; j++)
+            for (int qdpt = 0; qdpt < N_Points2; qdpt++)
             {
-                int globDOF = DOF[j];
-                U1_Mode_i[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp1_i[globDOF];
-                U1x_Mode_i[quadPt] += origvaluesD10[quadPt][j] * Mode_Comp1_i[globDOF];
-                U1y_Mode_i[quadPt] += origvaluesD01[quadPt][j] * Mode_Comp1_i[globDOF];
+                double nu = Coeffs[qdpt][0];
+                double Mult = Weights2[qdpt] * AbsDetjk[qdpt];
+                ipval1 += (U1_Mode_a[qdpt] * U1x_Mean[qdpt] + U2_Mode_a[qdpt] * U1y_Mean[qdpt] + U1_Mean[qdpt] * U1x_Mode_a[qdpt] + U2_Mean[qdpt] * U1y_Mode_a[qdpt] - nu * U1xx_Mode_a[qdpt] - nu * U1yy_Mode_a[qdpt]) * U1_Mode_i[qdpt] * Mult;
 
-                U2_Mode_i[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp2_i[globDOF];
-                U2x_Mode_i[quadPt] += origvaluesD10[quadPt][j] * Mode_Comp2_i[globDOF];
-                U2y_Mode_i[quadPt] += origvaluesD01[quadPt][j] * Mode_Comp2_i[globDOF];
-
-                U1_Mean[quadPt] += origvaluesD00[quadPt][j] * Mean_Comp1[globDOF];
-                U1x_Mean[quadPt] += origvaluesD10[quadPt][j] * Mean_Comp1[globDOF];
-                U1y_Mean[quadPt] += origvaluesD01[quadPt][j] * Mean_Comp1[globDOF];
-
-                U2_Mean[quadPt] += origvaluesD00[quadPt][j] * Mean_Comp2[globDOF];
-                U2x_Mean[quadPt] += origvaluesD10[quadPt][j] * Mean_Comp2[globDOF];
-                U2y_Mean[quadPt] += origvaluesD01[quadPt][j] * Mean_Comp2[globDOF];
-
-                // C_x_i[quadPt] += origvaluesD10[quadPt][j] * C_Array_i[globDOF];
-                // C_y_i[quadPt] += origvaluesD01[quadPt][j] * C_Array_i[globDOF];
+                ipval1 += (U1_Mode_a[qdpt] * U2x_Mean[qdpt] + U2_Mode_a[qdpt] * U2y_Mean[qdpt] + U1_Mean[qdpt] * U2x_Mode_a[qdpt] + U2_Mean[qdpt] * U2y_Mode_a[qdpt] - nu * U2xx_Mode_a[qdpt] - nu * U2yy_Mode_a[qdpt]) * U2_Mode_i[qdpt] * Mult;
             }
-        }
-
-        // for ( int j = 0 ; j < N_BaseFunct; j++) rhs[j] = 0;
-        for (int a = 0; a < N_S; a++)
-        { //"a" loop
-          // double* C_Array_a = U_Mode + a*lenMode;
-            // Check
-            memcpy(Mode_Comp1_a, U_Mode + a * 2 * lenMode, lenMode * SizeOfDouble);       // col Major
-            memcpy(Mode_Comp2_a, U_Mode + (a * 2 + 1) * lenMode, lenMode * SizeOfDouble); // col Major
-            // double* phi_Array_a = Phi_Array + a*lenMode;??
-            memcpy(phi_Array_a, Phi_Array + a * lenPhi, lenPhi * SizeOfDouble);
-
-            double U1_Mode_a[N_Points2];
-            double U1x_Mode_a[N_Points2];
-            double U1y_Mode_a[N_Points2];
-            double U1xx_Mode_a[N_Points2];
-            double U1yy_Mode_a[N_Points2];
-
-            double U2_Mode_a[N_Points2];
-            double U2x_Mode_a[N_Points2];
-            double U2y_Mode_a[N_Points2];
-            double U2xx_Mode_a[N_Points2];
-            double U2yy_Mode_a[N_Points2];
-
-            for (int quadPt = 0; quadPt < N_Points2; quadPt++) // Initialize
-            {
-                // C_i[quadPt] = 0;
-                U1_Mode_a[quadPt] = 0;
-                U1x_Mode_a[quadPt] = 0;
-                U1y_Mode_a[quadPt] = 0;
-                U1xx_Mode_a[quadPt] = 0;
-                U1yy_Mode_a[quadPt] = 0;
-
-                U2_Mode_a[quadPt] = 0;
-                U2x_Mode_a[quadPt] = 0;
-                U2y_Mode_a[quadPt] = 0;
-                U2xx_Mode_a[quadPt] = 0;
-                U2yy_Mode_a[quadPt] = 0;
-            }
-            // for ( int quadPt = 0 ; quadPt < N_Points2; quadPt++) C_x_a[quadPt] = 0;
-            // for ( int quadPt = 0 ; quadPt < N_Points2; quadPt++) C_y_a[quadPt] = 0;
-
-            // Obtain all values for C_a
-            for (int quadPt = 0; quadPt < N_Points2; quadPt++)
-            {
-                for (int j = 0; j < N_BaseFunct; j++)
-                {
-                    int globDOF = DOF[j];
-                    U1_Mode_a[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp1_a[globDOF];
-                    U1x_Mode_a[quadPt] += origvaluesD10[quadPt][j] * Mode_Comp1_a[globDOF];
-                    U1y_Mode_a[quadPt] += origvaluesD01[quadPt][j] * Mode_Comp1_a[globDOF];
-                    U1xx_Mode_a[quadPt] += origvaluesD20[quadPt][j] * Mode_Comp1_a[globDOF];
-                    U1yy_Mode_a[quadPt] += origvaluesD02[quadPt][j] * Mode_Comp1_a[globDOF];
-
-                    U2_Mode_a[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp2_a[globDOF];
-                    U2x_Mode_a[quadPt] += origvaluesD10[quadPt][j] * Mode_Comp2_a[globDOF];
-                    U2y_Mode_a[quadPt] += origvaluesD01[quadPt][j] * Mode_Comp2_a[globDOF];
-                    U2xx_Mode_a[quadPt] += origvaluesD20[quadPt][j] * Mode_Comp2_a[globDOF];
-                    U2yy_Mode_a[quadPt] += origvaluesD02[quadPt][j] * Mode_Comp2_a[globDOF];
-                }
-            }
-
-            // Get Coefficients b1 and b2
-            double *Param[MaxN_QuadPoints_2D];
-            double **Coeffs = new double *[MaxN_QuadPoints_2D];
             for (int i = 0; i < MaxN_QuadPoints_2D; i++)
             {
-                Coeffs[i] = new double[10]();
+                delete[] Coeffs[i];
             }
+            delete[] Coeffs;
+        } // cell loop ip1 end
+        for (int r = 0; r < lenPhi; r++)
+        {
+            phi_New[r] = ipval1 * phi_Array_a[r] * -1.0;
+        }
+    } // a loop end ip1
+    for (int a = 0; a < N_S; a++)
+    { // a loop ip2
+        for (int b = 0; b < N_S; b++)
+        { // b loop ip2
+            ipval2 = 0.0;
+            for (int cellId = 0; cellId < N_Cells; cellId++)
+            { // cell loop ip2
+                TBaseCell *currentCell = coll->GetCell(cellId);
+                // Get the "ID" of Finite Element for the given 2D Element ( Conforming/NonConforming-Order Finite Element : eg : it could be Conforming-2nd order Finite Element )
+                FE2D elementId = Fespace->GetFE2D(cellId, currentCell);
+                // Get the Class object for that 2d FEM Element , which has all the details like Shape functions , Nodal point locations for that location, Reference Transformation ( Affine , Bilinear )
+                TFE2D *element = TFEDatabase2D::GetFE2D(elementId);
+                TFEDesc2D *fedesc = element->GetFEDesc2D();
+                // Class for basis functions in 2D ( Number of basis functions ), basis function values and Derivatives
+                TBaseFunct2D *bf = element->GetBaseFunct2D();
+                // Get the Reference Element
+                BF2DRefElements RefElement = TFEDatabase2D::GetRefElementFromFE2D(elementId);
+                // Get the reference Transformation -- Affine Mapping / Bilnear Mapping of Triangle or Quadrilateral
+                RefTrans2D referenceTransformation = TFEDatabase2D::GetRefTrans2D_IDFromFE2D(elementId);
+                // Get the number of basis functions in the Current Cell ( Number of Local DOF)
+                int N_BaseFunct = element->GetN_DOF();
+                // Type of Basis Function in 2D
+                BaseFunct2D BaseFunct_ID = element->GetBaseFunct2D_ID();
 
-            DO_Mode_Equation_Coefficients(N_Points2, X, Y, Param, Coeffs);
+                // get cell measure
+                double hK = currentCell->GetDiameter();
 
-            for (int b = 0; b < N_S; b++)
-            { //"b" loop
+                switch (referenceTransformation)
+                {
+                case QuadBilinear:
+                {
+                    int l = bf->GetPolynomialDegree();                                     // Get the Polynomial Degreee  of the basis functions
+                    QuadFormula2D QF2 = TFEDatabase2D::GetQFQuadFromDegree(3 * l);         // Get te ID of Quadrature Formula
+                    TQuadFormula2D *QuadratureRule = TFEDatabase2D::GetQuadFormula2D(QF2); // Get the Quadrature Rule Objetc based on Quadrature ID
+                    QuadratureRule->GetFormulaData(N_Points2, Weights2, t1, t2);           // get the Quadrature points , Weights
+
+                    // Set the values on the Reference Cell
+                    TRefTrans2D *F_K = TFEDatabase2D::GetRefTrans2D(QuadBilinear);
+                    TFEDatabase2D::SetCellForRefTrans(currentCell, QuadBilinear); // Set the Cell for Current reference Transformation
+
+                    // Get Original Coordinates from reference Coordinates and the Determinant of jacobian
+                    TFEDatabase2D::GetOrigFromRef(QuadBilinear, N_Points2, t1, t2, X, Y, AbsDetjk); // Get the Original Co-orinates for the cell from xi values
+
+                    // Get all the original Values from the Referece cell values.
+                    TFEDatabase2D::GetOrigValues(QuadBilinear, 1, &BaseFunct_ID, N_Points2, t1, t2, QF2, Needs2ndDer);
+
+                    // The below are 2D arrays in the form
+                    // Values[QuadraturePointLocation][ShapeFunction]  i.e, the Value of Shapefunction at all quadrature points for each shape functions
+                    origvaluesD00 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D00); // Shape Function Values at Quadrature Points
+                    origvaluesD10 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D10); // Shape Function Derivative Values at Quadrature Points
+                    origvaluesD01 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D01); // Shape Function Derivative Values at Quadrature Point
+                    origvaluesD20 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D20); // Shape Function 2nd Derivative Values at Quadrature Point
+                    origvaluesD02 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D02); // Shape Function 2nd Derivative Values at Quadrature Point
+                    break;
+                }
+
+                case QuadAffin:
+                {
+                    int l = bf->GetPolynomialDegree();                                     // Get the Polynomial Degreee  of the basis functions
+                    QuadFormula2D QF2 = TFEDatabase2D::GetQFQuadFromDegree(3 * l);         // Get te ID of Quadrature Formula
+                    TQuadFormula2D *QuadratureRule = TFEDatabase2D::GetQuadFormula2D(QF2); // Get the Quadrature Rule Objetc based on Quadrature ID
+                    QuadratureRule->GetFormulaData(N_Points2, Weights2, t1, t2);           // get the Quadrature points , Weights
+
+                    // Set the values on the Reference Cell
+                    TRefTrans2D *F_K = TFEDatabase2D::GetRefTrans2D(QuadAffin);
+                    TFEDatabase2D::SetCellForRefTrans(currentCell, QuadAffin); // Set the Cell for Current reference Transformation
+
+                    // Get Original Coordinates from reference Coordinates and the Determinant of jacobian
+                    TFEDatabase2D::GetOrigFromRef(QuadAffin, N_Points2, t1, t2, X, Y, AbsDetjk); // Get the Original Co-orinates for the cell from xi values
+
+                    // Get all the original Values from the Referece cell values.
+                    TFEDatabase2D::GetOrigValues(QuadAffin, 1, &BaseFunct_ID, N_Points2, t1, t2, QF2, Needs2ndDer);
+
+                    // The below are 2D arrays in the form
+                    // Values[QuadraturePointLocation][ShapeFunction]  i.e, the Value of Shapefunction at all quadrature points for each shape functions
+                    origvaluesD00 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D00); // Shape Function Values at Quadrature Points
+                    origvaluesD10 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D10); // Shape Function Derivative Values at Quadrature Points
+                    origvaluesD01 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D01); // Shape Function Derivative Values at Quadrature Point
+                    origvaluesD20 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D20); // Shape Function 2nd Derivative Values at Quadrature Points
+                    origvaluesD02 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D02); // Shape Function 2nd Derivative Values at Quadrature Point
+
+                    break;
+                }
+
+                default:
+                {
+                    cout << " [ERROR] - Error in File : CoeffEqn_DO.C " << endl;
+                    cout << " Unknown Reftype " << endl;
+                    cout << " REF TYPE : " << referenceTransformation << endl;
+                    exit(0);
+                    break;
+                }
+                }
+
+                int *DOF = GlobalNumbers + BeginIndex[cellId];
                 val = 0;
+
+                // Get Coefficients b1 and b2
+                double *Param[MaxN_QuadPoints_2D];
+                double **Coeffs = new double *[MaxN_QuadPoints_2D];
+                for (int i = 0; i < MaxN_QuadPoints_2D; i++)
+                {
+                    Coeffs[i] = new double[10]();
+                }
+
+                // Save Values of C at all quadrature points for I component
+                memcpy(Mode_Comp1_a, U_Mode + a * 2 * lenMode, lenMode * SizeOfDouble);       // col Major
+                memcpy(Mode_Comp2_a, U_Mode + (a * 2 + 1) * lenMode, lenMode * SizeOfDouble); // col Major
                 memcpy(Mode_Comp1_b, U_Mode + b * 2 * lenMode, lenMode * SizeOfDouble);       // col Major
                 memcpy(Mode_Comp2_b, U_Mode + (b * 2 + 1) * lenMode, lenMode * SizeOfDouble); // col Major
+                memcpy(phi_Array_a, Phi_Array + a * lenPhi, lenPhi * SizeOfDouble);
                 memcpy(phi_Array_b, Phi_Array + b * lenPhi, lenPhi * SizeOfDouble);
 
-                double U1_Mode_b[N_Points2];
+                double U1_Mode_i[N_Points2];
+                double U2_Mode_i[N_Points2];
+                double U1_Mode_a[N_Points2];
+                double U2_Mode_a[N_Points2];
                 double U1x_Mode_b[N_Points2];
                 double U1y_Mode_b[N_Points2];
-
-                double U2_Mode_b[N_Points2];
                 double U2x_Mode_b[N_Points2];
                 double U2y_Mode_b[N_Points2];
 
                 for (int quadPt = 0; quadPt < N_Points2; quadPt++) // Initialize
                 {
                     // C_i[quadPt] = 0;
-                    U1_Mode_b[quadPt] = 0;
+                    U1_Mode_i[quadPt] = 0;
+                    U2_Mode_i[quadPt] = 0;
+                    U1_Mode_a[quadPt] = 0;
+                    U2_Mode_a[quadPt] = 0;
                     U1x_Mode_b[quadPt] = 0;
                     U1y_Mode_b[quadPt] = 0;
-
-                    U2_Mode_b[quadPt] = 0;
                     U2x_Mode_b[quadPt] = 0;
                     U2y_Mode_b[quadPt] = 0;
                 }
@@ -2549,47 +2459,37 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
                     for (int j = 0; j < N_BaseFunct; j++)
                     {
                         int globDOF = DOF[j];
-                        U1_Mode_b[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp1_b[globDOF];
+                        U1_Mode_i[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp1_i[globDOF];
+                        U2_Mode_i[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp2_i[globDOF];
+                        U1_Mode_a[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp1_a[globDOF];
+                        U2_Mode_a[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp2_a[globDOF];
                         U1x_Mode_b[quadPt] += origvaluesD10[quadPt][j] * Mode_Comp1_b[globDOF];
                         U1y_Mode_b[quadPt] += origvaluesD01[quadPt][j] * Mode_Comp1_b[globDOF];
-
-                        U2_Mode_b[quadPt] += origvaluesD00[quadPt][j] * Mode_Comp2_b[globDOF];
                         U2x_Mode_b[quadPt] += origvaluesD10[quadPt][j] * Mode_Comp2_b[globDOF];
                         U2y_Mode_b[quadPt] += origvaluesD01[quadPt][j] * Mode_Comp2_b[globDOF];
                     }
                 }
-
                 for (int qdpt = 0; qdpt < N_Points2; qdpt++)
                 {
                     double Mult = Weights2[qdpt] * AbsDetjk[qdpt];
 
-                    val += (U1_Mode_a[qdpt] * U1x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U1y_Mode_b[qdpt]) * U1_Mode_i[qdpt] * Mult;
-                    val += (U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt]) * U2_Mode_i[qdpt] * Mult;
+                    ipval2 += (U1_Mode_a[qdpt] * U1x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U1y_Mode_b[qdpt]) * U1_Mode_i[qdpt] * Mult;
+                    ipval2 += (U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt]) * U2_Mode_i[qdpt] * Mult;
                 }
-
-                for (int r = 0; r < lenPhi; r++)
+                for (int i = 0; i < MaxN_QuadPoints_2D; i++)
                 {
-                    phi_New[r] += -1.0 * (phi_Array_a[r] * phi_Array_b[r] - TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b]) * val;
+                    delete[] Coeffs[i];
                 }
-            } //"b" loop ends
-            val = 0;
-            for (int qdpt = 0; qdpt < N_Points2; qdpt++)
-            {
-                double nu = Coeffs[qdpt][0];
-                double Mult = Weights2[qdpt] * AbsDetjk[qdpt];
-                val += (U1_Mode_a[qdpt] * U1x_Mean[qdpt] + U2_Mode_a[qdpt] * U1y_Mean[qdpt] + U1_Mean[qdpt] * U1x_Mode_a[qdpt] + U2_Mean[qdpt] * U1y_Mode_a[qdpt] - nu * U1xx_Mode_a[qdpt] - nu * U1yy_Mode_a[qdpt]) * U1_Mode_i[qdpt] * Mult;
+                delete[] Coeffs;
+            } // cell loop end ip2
 
-                val += (U1_Mode_a[qdpt] * U2x_Mean[qdpt] + U2_Mode_a[qdpt] * U2y_Mean[qdpt] + U1_Mean[qdpt] * U2x_Mode_a[qdpt] + U2_Mean[qdpt] * U2y_Mode_a[qdpt] - nu * U2xx_Mode_a[qdpt] - nu * U2yy_Mode_a[qdpt]) * U2_Mode_i[qdpt] * Mult;
+            for (int r = 0; r < lenPhi; r++)
+            {
+                phi_New[r] += -1.0 * (phi_Array_a[r] * phi_Array_b[r] - TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b]) * ipval2;
             }
 
-            for (int i = 0; i < lenPhi; i++)
-            {
-                phi_New[i] += val * phi_Array_a[i] * -1.0;
-            }
-
-        } //"a" loop ends
-
-    } // cell loop
+        } // b loop end ip2
+    }     // a loop end ip2
 
     double timeStep = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
     for (int i = 0; i < lenPhi; i++)
@@ -2603,7 +2503,6 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
     delete[] Phi_Old;
     delete[] Mode_Comp1_i;
     delete[] Mode_Comp2_i;
-    // delete[] phi_Array_i;
     delete[] phi_Old_i;
     delete[] Mode_Comp1_a;
     delete[] Mode_Comp2_a;
@@ -3498,6 +3397,9 @@ void reorthonormalizeC(double *Mode, int N_DOF, int N_S)
             Mode[j * N_DOF + i] = ModeNew[i * N_S + j];
         }
     }
+    delete[] wi;
+    delete[] wr;
+    delete[] D;
     delete[] P;
     delete[] Temp;
     delete[] VR;
@@ -3509,6 +3411,7 @@ void reorthonormalizeC(double *Mode, int N_DOF, int N_S)
 
     return;
 }
+
 std::string generateFileName(std::string baseName, int m, int N_R)
 {
     std::string fileName;
