@@ -99,6 +99,7 @@ int main(int argc, char *argv[])
 	const char coeffdir[] = "Coefficients";
 	const char mcdir[] = "MonteCarlo";
 	const char endir[] = "Energy_Data";
+	const char initdir[] = "Init";
 
 	mkdir(vtkdir, 0777);
 	mkdir(meandir, 0777);
@@ -106,6 +107,7 @@ int main(int argc, char *argv[])
 	mkdir(coeffdir, 0777);
 	mkdir(mcdir, 0777);
 	mkdir(endir, 0777);
+	mkdir(initdir, 0777);
 
 	// ======================================================================
 	// set the database values and generate mesh
@@ -273,7 +275,7 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		std::string fileOutCorrelation = "Correlation_" + std::to_string(N_U) + "_NR_" + std::to_string(N_Realisations) + ".txt";
+		std::string fileOutCorrelation = "Init/Correlation_" + std::to_string(N_U) + "_NR_" + std::to_string(N_Realisations) + ".txt";
 		printToTxt(fileOutCorrelation, C, N_U, N_U, 'R');
 
 		////////////////////////////////////////////////////// SVD ////////////////////////////////////////////
@@ -293,13 +295,13 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 
-		std::string fileOutCorrS = "Corr_S_" + std::to_string(N_U) + "_NR_" + std::to_string(N_Realisations) + ".txt";
+		std::string fileOutCorrS = "Init/Corr_S_" + std::to_string(N_U) + "_NR_" + std::to_string(N_Realisations) + ".txt";
 		printToTxt(fileOutCorrS, S, N_U, 1, 'C');
 
-		std::string fileOutCorrU = "Corr_U_" + std::to_string(N_U) + "_NR_" + std::to_string(N_Realisations) + ".txt";
+		std::string fileOutCorrU = "Init/Corr_U_" + std::to_string(N_U) + "_NR_" + std::to_string(N_Realisations) + ".txt";
 		printToTxt(fileOutCorrU, U, N_U, N_U, 'R');
 
-		std::string fileOutCorrVt = "Corr_Vt_" + std::to_string(N_U) + "_NR_" + std::to_string(N_Realisations) + ".txt";
+		std::string fileOutCorrVt = "Init/Corr_Vt_" + std::to_string(N_U) + "_NR_" + std::to_string(N_Realisations) + ".txt";
 		printToTxt(fileOutCorrVt, Vt, N_U, N_U, 'R');
 
 		int energyVal = 0;
@@ -403,6 +405,7 @@ int main(int argc, char *argv[])
 			 << TDatabase::ParamDB->toggleRealznSource << " is not an acceptable value" << endl;
 		exit(0);
 	}
+
 	/////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
 
 	////////////////////////////////////// -------- START OF DO INITIALIZATION ------------ ////////////////////////////////////////////////////////////////
@@ -415,7 +418,7 @@ int main(int argc, char *argv[])
 			MeanVector[i] += (RealizationVector[i * N_Realisations + j] / N_Realisations);
 		}
 	}
-	printToTxt("Mean.txt", MeanVector, N_U, 1, 'C');
+	printToTxt("Init/Mean.txt", MeanVector, N_U, 1, 'C');
 
 	double *PerturbationVector = new double[N_U * N_Realisations](); // \hat{C}^{i}_{dof} = C^{i}_{dof} - \overline{C}_{dof}
 	for (int i = 0; i < N_U; ++i)
@@ -425,7 +428,7 @@ int main(int argc, char *argv[])
 			PerturbationVector[i * N_Realisations + j] = RealizationVector[i * N_Realisations + j] - MeanVector[i];
 		}
 	}
-	printToTxt("PerturbationVector.txt", PerturbationVector, N_U, N_Realisations, 'R');
+	printToTxt("Init/PerturbationVector.txt", PerturbationVector, N_U, N_Realisations, 'R');
 
 	//================================================================================================
 	/////////////////////////////DO - Initialization SVD//////////////////////////////////////////////
@@ -508,7 +511,7 @@ int main(int argc, char *argv[])
 			CoeffVector[j * N_Realisations + i] = ProjectionVector[i * minDim + j]; // CoeffVector in Col Major form
 		}
 	}
-	printToTxt("Coeff.txt", CoeffVector, N_Realisations, subDim, 'C');
+	printToTxt("Init/Coeff.txt", CoeffVector, N_Realisations, subDim, 'C');
 
 	////////////Initialize Mode Vector - First subDim columns of Left Singular Vector//////////////////
 
@@ -521,18 +524,22 @@ int main(int argc, char *argv[])
 			ModeVector[j * N_U + i] = L[i * minDim + j]; // ModeVector in Col Major form
 		}
 	}
-	printToTxt("Mode.txt", ModeVector, N_U, subDim, 'C');
+	printToTxt("Init/Mode.txt", ModeVector, N_U, subDim, 'C');
 	const char ip[] = "IPMatrices";
 	mkdir(ip, 0777);
+	const char ipmeandir[] = "IPMatrices/IPMean";
+	mkdir(ipmeandir, 0777);
+	const char ipmodedir[] = "IPMatrices/IPMode";
+	mkdir(ipmodedir, 0777);
 
 	double *IPMatxMode = new double[subDim * subDim]();
 	double *IPMatxMean = new double[1 * 1]();
 
 	calcIPMatx(IPMatxMode, ModeVector, N_U, subDim, 'C');
-	printToTxt("IPMatxMode_Init.txt", IPMatxMode, subDim, subDim, 'R');
+	printToTxt("Init/IPMatxMode_Init.txt", IPMatxMode, subDim, subDim, 'R');
 
 	calcIPMatx(IPMatxMean, MeanVector, N_U, 1, 'C');
-	printToTxt("IPMatxMean_Init.txt", IPMatxMean, 1, 1, 'R');
+	printToTxt("Init/IPMatxMean_Init.txt", IPMatxMean, 1, 1, 'R');
 
 	m = 0;
 
@@ -605,14 +612,26 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	double *solMode1 = new double[N_M * subDim]();
+	for (int j = 0; j < subDim; j++)
+	{
+		for (int i = 0; i < N_M; i++)
+		{
+			solMode1[j * N_M + i] = solModeAll[(2 * j * N_M) + i];
+		}
+	}
+
 	TFEVectFunct2D *Velocity_Mean, *Velocity_Mode, *Velocity;
 	Velocity_Mean = new TFEVectFunct2D(VelocityMean_FeSpace, (char *)"U_Mean", (char *)"Mean Component", solMean, N_U, 2); // check length
 
 	Velocity_Mode = new TFEVectFunct2D(VelocityMode_FeSpace, (char *)"U_Mode", (char *)"Mode Component", solMode, N_M, 2 * subDim); // check length ??
 
 	double *stochNormModes = new double[N_Total_ModeDOF]();
-	TFEVectFunct2D *VelocityStochNorm;
-	VelocityStochNorm = new TFEVectFunct2D(VelocityMode_FeSpace,(char *)"U_Mode_StochNorm",(char *)"Stochastically normalized modes",stochNormModes,N_M,2*subDim);
+	TFEVectFunct2D *VelocityStochNormMode;
+	VelocityStochNormMode = new TFEVectFunct2D(VelocityMode_FeSpace, (char *)"U_Mode_StochNorm", (char *)"Stochastically normalized modes", stochNormModes, N_M, 2 * subDim);
+
+	double *stochNormMean = new double[N_Total_MeanDOF]();
+	TFEVectFunct2D *VelocityStochNormMean = new TFEVectFunct2D(VelocityMean_FeSpace, (char *)"U_Mean_StochNorm", (char *)"Stochastically Normalized mean", stochNormMean, N_U, 2);
 
 	u1Mean = Velocity_Mean->GetComponent(0);
 	u2Mean = Velocity_Mean->GetComponent(1);
@@ -641,18 +660,6 @@ int main(int argc, char *argv[])
 								 TimeNSN_FEValues2, fespMean, fefctMean, TimeNSFct2, TimeNSFEFctIndex2,
 								 TimeNSFEMultiIndex2, TimeNSN_Params2, TimeNSBeginParam2);
 
-	// aux for calculating the error
-	// if (TDatabase::ParamDB->MEASURE_ERRORS)
-	// {
-	// 	BEaux_error_mean = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2,
-	// 									   TimeNSN_ParamFct2,
-	// 									   TimeNSN_FEValues2,
-	// 									   fespMean, FeFct,
-	// 									   TimeNSFct2,
-	// 									   TimeNSFEFctIndex2, TimeNSFEMultiIndex2,
-	// 									   TimeNSN_Params2, TimeNSBeginParam2);
-	// }
-
 	BEaux_modeAll = new TAuxParam2D *[subDim];
 	fespMode[0] = VelocityMode_FeSpace;
 
@@ -665,20 +672,6 @@ int main(int argc, char *argv[])
 											  TimeNSN_FEValues2, fespMode, fefctModeAll[subD], TimeNSFct2, TimeNSFEFctIndex2,
 											  TimeNSFEMultiIndex2, TimeNSN_Params2, TimeNSBeginParam2);
 	}
-
-	// aux for calculating the error
-	// if (TDatabase::ParamDB->MEASURE_ERRORS)
-	// {
-	// 	BEaux_error_mode = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2,
-	// 									   TimeNSN_ParamFct2,
-	// 									   TimeNSN_FEValues2,
-	// 									   fespMode, FeFct,
-	// 									   TimeNSFct2,
-	// 									   TimeNSFEFctIndex2, TimeNSFEMultiIndex2,
-	// 									   TimeNSN_Params2, TimeNSBeginParam2);
-	// }
-
-	// SystemMatrix_Mode->Init(DO_Mode_Equation_Coefficients, BoundCondition, U1BoundValue, U2BoundValue, BEaux_mode, BEaux_error_mode);
 
 	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
 	//------------------------------------------ MEAN EQUATION SETUP -----------------------------------------------------//
@@ -716,20 +709,7 @@ int main(int argc, char *argv[])
 	}
 
 	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
-	// int N_terms_Mode = 3; // Number of Shape function derivatives required ( in this case 3, N, NX, NY )
-	// MultiIndex2D Derivatives_MatrixARhs_Mode[3] = {D00, D10, D01};
-	// int SpacesNumbers_MatrixARhs_Mode[3] = {0, 0, 0};
-	// int N_Matrices_MatrixARhs_Mode = 1;
-	// int RowSpace_MatrixARhs_Mode[1] = {0};
-	// int ColumnSpace_MatrixARhs_Mode[1] = {0};
-	// int N_Rhs_MatrixARhs_Mode = 1;
-	// int RhsSpace_MatrixARhs_Mode[1] = {0};
-	// SystemMatrix_Mode->Init_WithDiscreteform(DO_Mode_Equation_Coefficients, BoundCondition, BoundValue, "DO_LINEAR_Mode", "DO_LINEAR_Mode",
-	//                                          N_terms_Mode, Derivatives_MatrixARhs_Mode, SpacesNumbers_MatrixARhs_Mode,
-	//                                          N_Matrices_MatrixARhs_Mode, N_Rhs_MatrixARhs_Mode,
-	//                                          RowSpace_MatrixARhs_Mode, ColumnSpace_MatrixARhs_Mode, RhsSpace_MatrixARhs_Mode,
-	//                                          DO_Mode_Equation_Assembly, DO_Mode_Equation_Coefficients,
-	//                                          NULL);
+
 	TDatabase::ParamDB->N_Subspace_Dim = subDim;
 	TDatabase::ParamDB->COVARIANCE_MATRIX_DO = new double[subDim * subDim]();
 	TDatabase::ParamDB->COSKEWNESS_MATRIX_DO = new double[subDim * subDim * subDim]();
@@ -739,35 +719,6 @@ int main(int argc, char *argv[])
 
 	CalcCoskewnessMatx(CoeffVector);
 	InvertCov();
-
-	// 	// double* ModeVector_OldRHS = new double[N_U]();
-
-	// // Set up a FE VECT FUNCTION TO STORE ALL THE Components of CTilde
-
-	//     // TFEVectFunct2D* linModesFeVectFunct =
-
-	// int TimeLinear_FESpaces_DO = 1;
-	// int TimeLinear_Fct_DO = 1; // \tilde(C)
-	// int TimeLinear_ParamFct_DO = 1;
-	// int TimeLinear_FEValues_DO = 3;
-	// int TimeLinear_Params_DO = 3;
-	// int TimeNSFEFctIndex_DO[3] = {0, 0, 0};
-	// MultiIndex2D TimeNSFEMultiIndex_DO[3] = {D00, D01, D10};
-	// ParamFct *TimeNSFct_DO[1] = {DO_Mode_RHS_Aux_Param};
-	// int TimeNSBeginParam_DO[1] = {0};
-
-	// TFEFunction2D *fefct_RHS[4];
-	// TFESpace2D *fesp_RHS[2];
-
-	// ;
-	//     // Set Up Aux  Param for the given MOde
-	//     // The mode equation needs the entire values of the C_tilde matrix array
-	//     // TAuxParam2D* aux_RHS_DO = new TAuxParam2D (	TimeLinear_FESpaces_DO, <FE VECT FUNCTION>, TimeLinear_ParamFct_DO,
-	// 	// 											TimeLinear_FEValues_DO,
-	// 	// 											fesp_RHS,
-	// 	// 											TimeNSFct_DO,
-	// 	// 											TimeNSFEMultiIndex_DO,
-	// 	// 											TimeLinear_Params_DO, TimeNSBeginParam_DO);
 
 	TAuxParam2D *aux_RHS_DO = new TAuxParam2D(1, 0, 0, 0, fespMean, NULL, NULL, NULL, NULL, 0, NULL);
 	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
@@ -803,9 +754,6 @@ int main(int argc, char *argv[])
 		OutputModeAll[sd]->AddFEVectFunct(VelocityModeAll[sd]);
 	}
 
-	// OutputMode = new TOutput2D(2, 2*subDim, 1, 1, Domain);
-	// OutputMode->AddFEVectFunct(Velocity_Mode);
-
 	int meanimg = 0;
 	int *modeimg = new int[subDim]();
 	int coeffimg = 0;
@@ -815,8 +763,8 @@ int main(int argc, char *argv[])
 	std::string meanBaseName = "Mean/Mean_NRealisations_";
 	std::string modeBaseName = "Modes/Mode_NRealisations_";
 	std::string coeffBaseName = "Coefficients/Coeff_NRealisations_";
-	std::string IPMeanBaseName = "IPMatrices/IPMean_NRealisations_";
-	std::string IPModeBaseName = "IPMatrices/IPMode_NRealisations_";
+	std::string IPMeanBaseName = "IPMatrices/IPMean/IPMean_NRealisations_";
+	std::string IPModeBaseName = "IPMatrices/IPMode/IPMode_NRealisations_";
 
 	if (TDatabase::ParamDB->WRITE_VTK)
 	{
@@ -861,7 +809,8 @@ int main(int argc, char *argv[])
 	}
 	fileoutMode = generateFileName(modeBaseName, m, N_Realisations);
 	printToTxt(fileoutMode, solModeAll, 2 * N_U, subDim, 'C');
-
+	fileoutCoeff = generateFileName(coeffBaseName, m, N_Realisations);
+	printToTxt(fileoutCoeff, CoeffVector, N_Realisations, subDim, 'C');
 	// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 	// coll->GetHminHmax(&hmin, &hmax);
 	// OutPut("h_min : " << hmin << " h_max : " << hmax << endl);
@@ -870,9 +819,6 @@ int main(int argc, char *argv[])
 	// time disc loop
 	//======================================================================
 	// parameters for time stepping scheme
-
-	fileoutCoeff = generateFileName(coeffBaseName, m, N_Realisations);
-	printToTxt(fileoutCoeff, CoeffVector, N_Realisations, subDim, 'C');
 
 	double *u1_Mode = new double[N_U * subDim]();
 	double *u2_Mode = new double[N_U * subDim]();
@@ -884,6 +830,11 @@ int main(int argc, char *argv[])
 			u2_Mode[j * N_U + i] = 0;							  //??
 		}
 	}
+	std::string fileoutIPMode;
+	std::string fileoutIPMean;
+	calcIPMatx(IPMatxMode, u1_Mode, N_U, subDim, 'C');
+	fileoutIPMode = generateFileName(IPModeBaseName, m, N_Realisations);
+	printToTxt(fileoutIPMode, IPMatxMode, subDim, subDim, 'C');
 
 	double *u1_Mean = new double[N_U * 1]();
 	double *u2_Mean = new double[N_U * 1]();
@@ -891,17 +842,11 @@ int main(int argc, char *argv[])
 	for (int i = 0; i < N_U; i++)
 		u1_Mean[i] = solMean[i];
 
-	std::string fileoutIPMode;
-	std::string fileoutIPMean;
-
 	fileoutIPMean = generateFileName(IPMeanBaseName, m, N_Realisations);
-	fileoutIPMode = generateFileName(IPModeBaseName, m, N_Realisations);
 
-	calcIPMatx(IPMatxMode, u1_Mode, N_U, subDim, 'C');
 	calcIPMatx(IPMatxMean, u1_Mean, N_U, 1, 'C');
 
-	printToTxt(fileoutIPMean, IPMatxMean, N_M, 1, 'C');
-	printToTxt(fileoutIPMode, IPMatxMode, N_M, subDim, 'C');
+	printToTxt(fileoutIPMean, IPMatxMean, 1, 1, 'C');
 
 	N_SubSteps = GetN_SubSteps();
 	oldtau = 1.;
@@ -910,6 +855,7 @@ int main(int argc, char *argv[])
 	Max_It = TDatabase::ParamDB->SC_NONLIN_MAXIT_SADDLE;
 	memset(AllErrors, 0, 7. * SizeOfDouble);
 
+	double currTime = 0.0;
 	while (TDatabase::TimeDB->CURRENTTIME < end_time)
 	{ // time cycle
 		// fileoutCoeff = generateFileName(coeffBaseName, m, N_Realisations);
@@ -925,8 +871,10 @@ int main(int argc, char *argv[])
 		// printToTxt(fileoutMean, solMean, 2 * N_U, 1, 'C');
 		m++;
 		TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
+		currTime = TDatabase::TimeDB->CURRENTTIME;
 		for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
 		{
+
 			SetTimeDiscParameters(1);
 
 			if (m == 1)
@@ -940,13 +888,14 @@ int main(int argc, char *argv[])
 			tau = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
 			TDatabase::TimeDB->CURRENTTIME += tau;
 
-			OutPut(endl << "CURRENT TIME: ");
+			OutPut(endl
+				   << "CURRENT TIME: ");
 			OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
 
 			// copy sol, rhs to olssol, oldrhs
 			memcpy(old_rhsMean, rhsMean, N_Total_MeanDOF * SizeOfDouble);
 			memcpy(old_solMean, solMean, N_Total_MeanDOF * SizeOfDouble);
-			normalizeStochasticModes(VelocityMode_FeSpace,Velocity_Mode,subDim,stochNormModes);
+
 			DO_Mean_RHS(VelocityMean_FeSpace, Velocity_Mode, subDim, rhsMean, N_U);
 
 			// assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
@@ -1006,59 +955,20 @@ int main(int argc, char *argv[])
 			// SystemMatrix_Mean->RestoreMassMat();
 			SystemMatrix_Mean->RestoreMassMat();
 
-		} // for(l=0;l<N_SubSteps;
+			normalizeStochasticMean(VelocityMean_FeSpace, Velocity_Mean, subDim, stochNormMean);
+			normalizeStochasticModes(VelocityMode_FeSpace, Velocity_Mode, subDim, stochNormModes);
 
-		//======================================================================
-		// produce outout
-		//======================================================================
-		if (m == 1 || m % TDatabase::TimeDB->STEPS_PER_IMAGE == 0)
-			if (TDatabase::ParamDB->WRITE_VTK)
+			for (int subSpaceNum = 0; subSpaceNum < subDim; subSpaceNum++)
 			{
-				os.seekp(std::ios::beg);
-				if (meanimg < 10)
-					os << "VTK/" << VtkBaseNameMean << ".0000" << meanimg << ".vtk" << ends;
-				else if (meanimg < 100)
-					os << "VTK/" << VtkBaseNameMean << ".000" << meanimg << ".vtk" << ends;
-				else if (meanimg < 1000)
-					os << "VTK/" << VtkBaseNameMean << ".00" << meanimg << ".vtk" << ends;
-				else if (meanimg < 10000)
-					os << "VTK/" << VtkBaseNameMean << ".0" << meanimg << ".vtk" << ends;
-				else
-					os << "VTK/" << VtkBaseNameMean << "." << meanimg << ".vtk" << ends;
-				OutputMean->WriteVtk(os.str().c_str());
-				meanimg++;
+				DO_CoEfficient(Velocity_FeSpace, VelocityStochNormMode, FeVector_Coefficient, VelocityStochNormMean, subDim, subSpaceNum, N_Realisations);
+				// DO_CoEfficient(Velocity_FeSpace, Velocity_Mode, FeVector_Coefficient, Velocity_Mean, subDim, subSpaceNum, N_Realisations);
 			}
+			CalcCovarianceMatx(CoeffVector);
+			CalcCoskewnessMatx(CoeffVector);
+			InvertCov();
 
-		// OutPut("Ddot Coeff Vector Before Coeff Solve:" << Ddot(N_Realisations*subDim, CoeffVector, CoeffVector) << endl);
-		for (int subSpaceNum = 0; subSpaceNum < subDim; subSpaceNum++)
-		{
-
-			DO_CoEfficient(Velocity_FeSpace, Velocity_Mode, FeVector_Coefficient, Velocity_Mean, subDim, subSpaceNum, N_Realisations);
-		}
-
-		// OutPut("Ddot Coeff Vector After Coeff Solve:" << Ddot(N_Realisations*subDim, CoeffVector, CoeffVector) << endl);
-		CalcCovarianceMatx(CoeffVector);
-		CalcCoskewnessMatx(CoeffVector);
-		InvertCov();
-		for (int subSpaceNum = 0; subSpaceNum < subDim; subSpaceNum++)
-		{
-			// xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-			for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
-			{
-				SetTimeDiscParameters(1);
-
-				if (m == 1)
-				{
-					OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
-					OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
-					OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
-					OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
-				}
-
-				tau = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
-				// TDatabase::TimeDB->CURRENTTIME += tau;
-
-				// subspace loop
+			for (int subSpaceNum = 0; subSpaceNum < subDim; subSpaceNum++)
+			{																 // subspace loop
 				double *modeSolution_i = solModeAll + subSpaceNum * 2 * N_M; // This works for column major
 				double *modeSolution_rhs = rhsModeAll + subSpaceNum * 2 * N_M;
 
@@ -1067,7 +977,9 @@ int main(int argc, char *argv[])
 				// memcpy(old_solMode, modeSolution_i, N_Total_MeanDOF * SizeOfDouble);
 
 				// Assemble rhs
-				DO_Mode_RHS(VelocityMode_FeSpace, Velocity_Mean, Velocity_Mode, subDim, modeSolution_rhs, subSpaceNum);
+				// normalizeStochasticMean(VelocityMean_FeSpace, Velocity_Mean, subDim, stochNormMean);
+				// normalizeStochasticModes(VelocityMode_FeSpace, Velocity_Mode, subDim, stochNormModes);
+				DO_Mode_RHS(VelocityMode_FeSpace, VelocityStochNormMean, VelocityStochNormMode, subDim, modeSolution_rhs, subSpaceNum);
 
 				SystemMatrixModeAll[subSpaceNum]->Assemble(modeSolution_i, modeSolution_rhs);
 				//   }
@@ -1122,9 +1034,68 @@ int main(int argc, char *argv[])
 
 				} // for(j=1;j<=Max_It;j++)
 				SystemMatrixModeAll[subSpaceNum]->RestoreMassMat();
-			} // l loop end
+			}
+			for (int j = 0; j < subDim; j++)
+			{
+				for (int i = 0; i < N_M; i++)
+				{
+					solMode1[j * N_M + i] = solModeAll[(2 * j * N_M) + i];
+				}
+			}
+			reorthonormalizeC(solMode1, N_M, subDim);
+			for (int j = 0; j < subDim; j++)
+			{
+				for (int i = 0; i < N_M; i++)
+				{
+					solModeAll[(2 * j * N_M) + i] = solMode1[j * N_M + i];
+				}
+			}
+			memcpy(solMode, solModeAll, N_Total_ModeDOF * SizeOfDouble);
+			for (int i = 0; i < N_U; i++)
+			{
+				for (int j = 0; j < subDim; j++)
+				{
+					u1_Mode[j * N_U + i] = solModeAll[(2 * j * N_U) + i]; //??
+					u2_Mode[j * N_U + i] = 0;							  //??
+				}
+			}
 
-		} //  subspace loop end
+			calcIPMatx(IPMatxMode, u1_Mode, N_U, subDim, 'C');
+			fileoutIPMode = generateFileName(IPModeBaseName, m, N_Realisations);
+			printToTxt(fileoutIPMode, IPMatxMode, subDim, subDim, 'C');
+
+		} // for(l=0;l<N_SubSteps;
+
+		//======================================================================
+		// produce outout
+		//======================================================================
+		if (m == 1 || m % TDatabase::TimeDB->STEPS_PER_IMAGE == 0)
+			if (TDatabase::ParamDB->WRITE_VTK)
+			{
+				os.seekp(std::ios::beg);
+				if (meanimg < 10)
+					os << "VTK/" << VtkBaseNameMean << ".0000" << meanimg << ".vtk" << ends;
+				else if (meanimg < 100)
+					os << "VTK/" << VtkBaseNameMean << ".000" << meanimg << ".vtk" << ends;
+				else if (meanimg < 1000)
+					os << "VTK/" << VtkBaseNameMean << ".00" << meanimg << ".vtk" << ends;
+				else if (meanimg < 10000)
+					os << "VTK/" << VtkBaseNameMean << ".0" << meanimg << ".vtk" << ends;
+				else
+					os << "VTK/" << VtkBaseNameMean << "." << meanimg << ".vtk" << ends;
+				OutputMean->WriteVtk(os.str().c_str());
+				meanimg++;
+			}
+		fileoutCoeff = generateFileName(coeffBaseName, m, N_Realisations);
+		printToTxt(fileoutCoeff, CoeffVector, N_Realisations, subDim, 'C');
+		// OutPut("Ddot Coeff Vector Before Coeff Solve:" << Ddot(N_Realisations*subDim, CoeffVector, CoeffVector) << endl);
+		fileoutMode = generateFileName(modeBaseName, m, N_Realisations);
+		printToTxt(fileoutMode, solModeAll, 2 * N_U, subDim, 'C');
+
+		fileoutMean = generateFileName(meanBaseName, m, N_Realisations);
+		printToTxt(fileoutMean, solMean, 2 * N_U, 1, 'C');
+		// OutPut("Ddot Coeff Vector After Coeff Solve:" << Ddot(N_Realisations*subDim, CoeffVector, CoeffVector) << endl);
+
 		//======================================================================
 		// produce outout
 		//======================================================================
@@ -1156,7 +1127,6 @@ int main(int argc, char *argv[])
 
 		// xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 		// reorthonormalizeC(solModeAll,N_Total_ModeDOF,subDim);
-        memcpy(solMode, solModeAll, N_Total_ModeDOF * SizeOfDouble);
 
 	} // while(TDatabase::TimeDB->CURRENTTIME< e
 
@@ -1234,16 +1204,16 @@ int main(int argc, char *argv[])
 	double *stdDevVectorMC = new double[N_U * 1]();
 	calcStdDevRealization(RealizationVectorCopy, stdDevVectorMC, N_Realisations, N_U);
 
-	double *CompositeVectorMC = new double[N_U * 7]();
+	double *CompositeVectorMC = new double[N_U * 2 * 7]();
 	for (int i = 0; i < N_U; i++)
 	{
 		CompositeVectorMC[i] = MeanVectorMC[i];
-		CompositeVectorMC[N_U + i] = MeanVectorMC[i] + stdDevVectorMC[i];
-		CompositeVectorMC[2 * N_U + i] = MeanVectorMC[i] - stdDevVectorMC[i];
-		CompositeVectorMC[3 * N_U + i] = MeanVectorMC[i] + (2 * stdDevVectorMC[i]);
-		CompositeVectorMC[4 * N_U + i] = MeanVectorMC[i] - (2 * stdDevVectorMC[i]);
-		CompositeVectorMC[5 * N_U + i] = MeanVectorMC[i] + (3 * stdDevVectorMC[i]);
-		CompositeVectorMC[6 * N_U + i] = MeanVectorMC[i] - (3 * stdDevVectorMC[i]);
+		CompositeVectorMC[N_U * 2 + i] = MeanVectorMC[i] + stdDevVectorMC[i];
+		CompositeVectorMC[2 * N_U * 2 + i] = MeanVectorMC[i] - stdDevVectorMC[i];
+		CompositeVectorMC[3 * N_U * 2 + i] = MeanVectorMC[i] + (2 * stdDevVectorMC[i]);
+		CompositeVectorMC[4 * N_U * 2 + i] = MeanVectorMC[i] - (2 * stdDevVectorMC[i]);
+		CompositeVectorMC[5 * N_U * 2 + i] = MeanVectorMC[i] + (3 * stdDevVectorMC[i]);
+		CompositeVectorMC[6 * N_U * 2 + i] = MeanVectorMC[i] - (3 * stdDevVectorMC[i]);
 	}
 
 	double *solMC = new double[2 * N_U]();
