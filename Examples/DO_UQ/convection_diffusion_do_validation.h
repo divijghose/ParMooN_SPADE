@@ -990,6 +990,7 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_C_Mode, TFEVec
     double *phi_Array_a = new double[lenPhi]();
     double ipval = 0.0;
     double rval = 0.0;
+    
     for (int a = 0; a < N_S; a++)
     { // new a loop
         ipval = 0.0;
@@ -1739,7 +1740,10 @@ void reconstructMCfromDO(double *recon, double *meanDO, double *coeffDO, double 
             recon[i * N_R + j] = PertVect[i * N_R + j] + meanDO[i];
         }
     }
+    
     delete[] PertVect;
+    delete[] modeRowMaj;
+    delete[] coeffRowMaj;
     return;
 }
 
@@ -2033,6 +2037,7 @@ void reorthonormalizeB(double *Mode, double *Coeff, int N_DOF, int N_S, int N_R)
 
     return;
 }
+
 void reorthonormalizeC(double *Mode, int N_DOF, int N_S)
 {
     double *Temp = new double[N_S * N_S]();
@@ -2113,6 +2118,9 @@ void reorthonormalizeC(double *Mode, int N_DOF, int N_S)
     }
     delete[] P;
     delete[] Temp;
+    delete[] wi;
+    delete[] wr;
+    delete[] D;
     delete[] VR;
     delete[] VL;
     delete[] ModeNew;
@@ -2122,6 +2130,7 @@ void reorthonormalizeC(double *Mode, int N_DOF, int N_S)
     
     return;
 }
+
 std::string generateFileName(std::string baseName, int m, int N_R)
 {
     std::string fileName;
