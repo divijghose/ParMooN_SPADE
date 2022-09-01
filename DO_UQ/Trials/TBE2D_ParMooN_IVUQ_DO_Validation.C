@@ -260,8 +260,8 @@ int main(int argc, char *argv[])
 				else if (TDatabase::ParamDB->stddev_switch == 2)
 				{
 					double amplitude = TDatabase::ParamDB->stddev_power;
-					double sig_r1 = amplitude * sin(-1.0 * Pi * (2 * actual_x - 2)) * sin(-1.0 * Pi * (2 * actual_y - 2));
-					double sig_r2 = amplitude * sin(-1.0 * Pi * (2 * local_x - 2)) * sin(-1.0 * Pi * (2 * local_y - 2));
+					double sig_r1 = (amplitude/0.2) * sin(-1.0 * Pi * (2 * actual_x - 2)*2) * sin(-1.0 * Pi * (2 * actual_y - 2));
+					double sig_r2 = (amplitude/0.2) * sin(-1.0 * Pi * (2 * local_x - 2)*2) * sin(-1.0 * Pi * (2 * local_y - 2));
 					C[i * N_U + j] *= sig_r1 * sig_r2;
 				}
 
@@ -497,21 +497,9 @@ int main(int argc, char *argv[])
 
 	/////Projection Matrix///////////
 	////////////////////////////////
-	double *ProjectionVector = new double[N_Realisations * minDim]();
-
-	cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, N_Realisations, minDim, N_U, 1.0, PerturbationVector, N_Realisations, L, minDim, 0.0, ProjectionVector, minDim);
 
 	/// Initialize Coefficient Matrix - First subDim columns of Projection Matrix ////////////////////
 	double *CoeffVector = new double[N_Realisations * subDim]();
-
-	for (int i = 0; i < N_Realisations; i++)
-	{
-		for (int j = 0; j < subDim; j++)
-		{
-			CoeffVector[j * N_Realisations + i] = ProjectionVector[i * minDim + j]; // CoeffVector in Col Major form
-		}
-	}
-	printToTxt("Init/Coeff.txt", CoeffVector, N_Realisations, subDim, 'C');
 
 	////////////Initialize Mode Vector - First subDim columns of Left Singular Vector//////////////////
 
@@ -524,6 +512,34 @@ int main(int argc, char *argv[])
 			ModeVector[j * N_U + i] = L[i * minDim + j]; // ModeVector in Col Major form
 		}
 	}
+
+	TFESpace2D *VelocityModeDOInit_FeSpace = new TFESpace2D(coll, (char *)"Mode_Init", (char *)"FE Space for Mode Solution", BoundCondition, ORDER, NULL);
+	TFEVectFunct2D *Velocity_ModeDOInit = new TFEVectFunct2D(VelocityModeDOInit_FeSpace, (char *)"U_Mode_Init", (char *)"Mode Component", ModeVector, N_U, subDim); // check length ??
+
+	double *normzdModeVector = new double[N_U * subDim]();
+	double *tempModeVector = new double[N_U * subDim]();
+
+	normalizeStochasticModes(VelocityModeDOInit_FeSpace, Velocity_ModeDOInit, subDim, tempModeVector);
+	for (int i = 0; i < N_U; i++)
+	{
+		for (int j = 0; j < subDim; j++)
+		{
+			normzdModeVector[i * subDim + j] = tempModeVector[j * N_U + i];
+		}
+	}
+	double *ProjectionVector = new double[N_Realisations * subDim]();
+
+	cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, N_Realisations, subDim, N_U, 1.0, PerturbationVector, N_Realisations, normzdModeVector, subDim, 0.0, ProjectionVector, subDim);
+	for (int i = 0; i < N_Realisations; i++)
+	{
+		for (int j = 0; j < subDim; j++)
+		{
+			CoeffVector[j * N_Realisations + i] = ProjectionVector[i * subDim + j]; // CoeffVector in Col Major form
+		}
+	}
+
+	memcpy(ModeVector,tempModeVector,N_U*subDim*SizeOfDouble);
+	printToTxt("Init/Coeff.txt", CoeffVector, N_Realisations, subDim, 'C');
 	printToTxt("Init/Mode.txt", ModeVector, N_U, subDim, 'C');
 	const char ip[] = "IPMatrices";
 	mkdir(ip, 0777);
@@ -955,13 +971,13 @@ int main(int argc, char *argv[])
 			// SystemMatrix_Mean->RestoreMassMat();
 			SystemMatrix_Mean->RestoreMassMat();
 
-			normalizeStochasticMean(VelocityMean_FeSpace, Velocity_Mean, subDim, stochNormMean);
-			normalizeStochasticModes(VelocityMode_FeSpace, Velocity_Mode, subDim, stochNormModes);
+			// normalizeStochasticMean(VelocityMean_FeSpace, Velocity_Mean, subDim, stochNormMean);
+			// normalizeStochasticModes(VelocityMode_FeSpace, Velocity_Mode, subDim, stochNormModes);
 
 			for (int subSpaceNum = 0; subSpaceNum < subDim; subSpaceNum++)
 			{
-				DO_CoEfficient(Velocity_FeSpace, VelocityStochNormMode, FeVector_Coefficient, VelocityStochNormMean, subDim, subSpaceNum, N_Realisations);
-				// DO_CoEfficient(Velocity_FeSpace, Velocity_Mode, FeVector_Coefficient, Velocity_Mean, subDim, subSpaceNum, N_Realisations);
+				// DO_CoEfficient(Velocity_FeSpace, VelocityStochNormMode, FeVector_Coefficient, VelocityStochNormMean, subDim, subSpaceNum, N_Realisations);
+				DO_CoEfficient(Velocity_FeSpace, Velocity_Mode, FeVector_Coefficient, Velocity_Mean, subDim, subSpaceNum, N_Realisations);
 			}
 			CalcCovarianceMatx(CoeffVector);
 			CalcCoskewnessMatx(CoeffVector);
@@ -979,7 +995,7 @@ int main(int argc, char *argv[])
 				// Assemble rhs
 				// normalizeStochasticMean(VelocityMean_FeSpace, Velocity_Mean, subDim, stochNormMean);
 				// normalizeStochasticModes(VelocityMode_FeSpace, Velocity_Mode, subDim, stochNormModes);
-				DO_Mode_RHS(VelocityMode_FeSpace, VelocityStochNormMean, VelocityStochNormMode, subDim, modeSolution_rhs, subSpaceNum);
+				DO_Mode_RHS(VelocityMode_FeSpace, Velocity_Mean, Velocity_Mode, subDim, modeSolution_rhs, subSpaceNum);
 
 				SystemMatrixModeAll[subSpaceNum]->Assemble(modeSolution_i, modeSolution_rhs);
 				//   }

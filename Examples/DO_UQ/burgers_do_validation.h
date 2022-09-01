@@ -507,6 +507,216 @@ void calcIPMatx(double *IPMatx, double *Vector, int height, int width, char Rowo
         cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, width, width, height, 1, TempRowMaj, width, TempRowMaj, width, 0.0, IPMatx, width);
     }
 }
+// void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmode, int N_S, double *C_Stoch_Norm)
+// {
+
+//     double *IPMatxFE = new double[N_S * N_S]();
+//     int N_Cells = Fespace->GetN_Cells();
+//     TCollection *coll = Fespace->GetCollection();
+
+//     // Get the Global DOF arrays INdex from the FE Space.
+//     int *GlobalNumbers = Fespace->GetGlobalNumbers();
+//     int *BeginIndex = Fespace->GetBeginIndex();
+
+//     // --- Quadrature Formula Arrays  ------------------//
+//     int N_Points2;
+//     double *Weights2, *t1, *t2; // Weights - Quadrature Weights array ; t1  -- Quadrature point ( xi ) in ref coordinate ; t2 -  Quadrature Point ( eta ) in Ref Coordinate
+//     bool Needs2ndDer[1];
+//     Needs2ndDer[0] = TRUE;
+//     double AbsDetjk[MaxN_PointsForNodal2D];
+//     double X[MaxN_PointsForNodal2D];
+//     double Y[MaxN_PointsForNodal2D];
+
+//     // FE Values Arrays
+//     double **origvaluesD00; // Shape function values at quadrature Points
+//     double **origvaluesD10; // Shape Function Derivatives ( x ) at Quadrature Points
+//     double **origvaluesD01; // Shape Function Derivatives ( y ) at Quadrature Points
+//     double **origvaluesD20; // Shape Function 2nd Derivatives ( x ) at Quadrature Points
+//     double **origvaluesD02; // Shape Function 2nd Derivatives ( y ) at Quadrature Points
+
+//     int lenMode = FeVector_Cmode->GetLength();
+//     double *C_Mode_Array = FeVector_Cmode->GetValues();
+
+//     double *C_Mode_Array_i = new double[lenMode]();
+//     double *C_Mode_Array_j = new double[lenMode]();
+
+//     double *stochFactors = new double[lenMode * N_S]();
+
+//     for (int cellId = 0; cellId < N_Cells; cellId++)
+//     { // cell loop
+//         TBaseCell *currentCell = coll->GetCell(cellId);
+//         // Get the "ID" of Finite Element for the given 2D Element ( Conforming/NonConforming-Order Finite Element : eg : it could be Conforming-2nd order Finite Element )
+//         FE2D elementId = Fespace->GetFE2D(cellId, currentCell);
+//         // Get the Class object for that 2d FEM Element , which has all the details like Shape functions , Nodal point locations for that location, Reference Transformation ( Affine , Bilinear )
+//         TFE2D *element = TFEDatabase2D::GetFE2D(elementId);
+//         TFEDesc2D *fedesc = element->GetFEDesc2D();
+//         // Class for basis functions in 2D ( Number of basis functions ), basis function values and Derivatives
+//         TBaseFunct2D *bf = element->GetBaseFunct2D();
+//         // Get the Reference Elemet
+//         BF2DRefElements RefElement = TFEDatabase2D::GetRefElementFromFE2D(elementId);
+//         // Get the reference Transformation -- Affine Mapping / Bilnea Mapping of Triangle or Quadrilateral
+//         RefTrans2D referenceTransformation = TFEDatabase2D::GetRefTrans2D_IDFromFE2D(elementId);
+//         // Get the number of basis functions in the Current Cell ( Number of Local DOF)
+//         int N_BaseFunct = element->GetN_DOF();
+//         // Type of Basis Function in 2D
+//         BaseFunct2D BaseFunct_ID = element->GetBaseFunct2D_ID();
+
+//         // get cell measure
+//         double hK = currentCell->GetDiameter();
+
+//         switch (referenceTransformation)
+//         {
+//         case QuadBilinear:
+//         {
+//             int l = bf->GetPolynomialDegree();                                     // Get the Polynomial Degreee  of the basis functions
+//             QuadFormula2D QF2 = TFEDatabase2D::GetQFQuadFromDegree(3 * l);         // Get te ID of Quadrature Formula
+//             TQuadFormula2D *QuadratureRule = TFEDatabase2D::GetQuadFormula2D(QF2); // Get the Quadrature Rule Objetc based on Quadrature ID
+//             QuadratureRule->GetFormulaData(N_Points2, Weights2, t1, t2);           // get the Quadrature points , Weights
+
+//             // Set the values on the Reference Cell
+//             TRefTrans2D *F_K = TFEDatabase2D::GetRefTrans2D(QuadBilinear);
+//             TFEDatabase2D::SetCellForRefTrans(currentCell, QuadBilinear); // Set the Cell for Current reference Transformation
+
+//             // Get Original Coordinates from reference Coordinates and the Determinant of jacobian
+//             TFEDatabase2D::GetOrigFromRef(QuadBilinear, N_Points2, t1, t2, X, Y, AbsDetjk); // Get the Original Co-orinates for the cell from xi values
+
+//             // Get all the original Values from the Referece cell values.
+//             TFEDatabase2D::GetOrigValues(QuadBilinear, 1, &BaseFunct_ID, N_Points2, t1, t2, QF2, Needs2ndDer);
+
+//             // The below are 2D arrays in the form
+//             // Values[QuadraturePointLocation][ShapeFunction]  i.e, the Value of Shapefunction at all quadrature points for each shape functions
+//             origvaluesD00 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D00); // Shape Function Values at Quadrature Points
+//             origvaluesD10 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D10); // Shape Function Derivative Values at Quadrature Points
+//             origvaluesD01 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D01); // Shape Function Derivative Values at Quadrature Point
+//             origvaluesD20 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D20); // Shape Function 2nd Derivative Values at Quadrature Point
+//             origvaluesD02 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D02); // Shape Function 2nd Derivative Values at Quadrature Point
+//             break;
+//         }
+
+//         case QuadAffin:
+//         {
+//             int l = bf->GetPolynomialDegree();                                     // Get the Polynomial Degreee  of the basis functions
+//             QuadFormula2D QF2 = TFEDatabase2D::GetQFQuadFromDegree(3 * l);         // Get te ID of Quadrature Formula
+//             TQuadFormula2D *QuadratureRule = TFEDatabase2D::GetQuadFormula2D(QF2); // Get the Quadrature Rule Objetc based on Quadrature ID
+//             QuadratureRule->GetFormulaData(N_Points2, Weights2, t1, t2);           // get the Quadrature points , Weights
+
+//             // Set the values on the Reference Cell
+//             TRefTrans2D *F_K = TFEDatabase2D::GetRefTrans2D(QuadAffin);
+//             TFEDatabase2D::SetCellForRefTrans(currentCell, QuadAffin); // Set the Cell for Current reference Transformation
+
+//             // Get Original Coordinates from reference Coordinates and the Determinant of jacobian
+//             TFEDatabase2D::GetOrigFromRef(QuadAffin, N_Points2, t1, t2, X, Y, AbsDetjk); // Get the Original Co-orinates for the cell from xi values
+
+//             // Get all the original Values from the Referece cell values.
+//             TFEDatabase2D::GetOrigValues(QuadAffin, 1, &BaseFunct_ID, N_Points2, t1, t2, QF2, Needs2ndDer);
+
+//             // The below are 2D arrays in the form
+//             // Values[QuadraturePointLocation][ShapeFunction]  i.e, the Value of Shapefunction at all quadrature points for each shape functions
+//             origvaluesD00 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D00); // Shape Function Values at Quadrature Points
+//             origvaluesD10 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D10); // Shape Function Derivative Values at Quadrature Points
+//             origvaluesD01 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D01); // Shape Function Derivative Values at Quadrature Point
+//             origvaluesD20 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D20); // Shape Function 2nd Derivative Values at Quadrature Points
+//             origvaluesD02 = TFEDatabase2D::GetOrigElementValues(BaseFunct_ID, D02); // Shape Function 2nd Derivative Values at Quadrature Point
+
+//             break;
+//         }
+
+//         default:
+//         {
+//             cout << " [ERROR] - Error in File : CoeffEqn_DO.C " << endl;
+//             cout << " Unknown Reftype " << endl;
+//             cout << " REF TYPE : " << referenceTransformation << endl;
+//             exit(0);
+//             break;
+//         }
+//         }
+
+//         int *DOF = GlobalNumbers + BeginIndex[cellId];
+
+//         for (int i = 0; i < N_S; i++)
+//         { // i-loop start
+//             memcpy(C_Mode_Array_i, C_Mode_Array + (2 * i * lenMode), lenMode * SizeOfDouble);
+//             double C_i[N_Points2];
+
+//             for (int quadPt = 0; quadPt < N_Points2; quadPt++)
+//                 C_i[quadPt] = 0.;
+//             // Obtain all values for C_a
+
+//             for (int quadPt = 0; quadPt < N_Points2; quadPt++)
+//             { // quadpt loop start
+//                 for (int nb = 0; nb < N_BaseFunct; nb++)
+//                 {
+//                     int globDOF = DOF[nb];
+//                     C_i[quadPt] += origvaluesD00[quadPt][nb] * C_Mode_Array_i[globDOF];
+//                     stochFactors[globDOF + i * lenMode] += 1;
+//                 }
+//             } // quadpt loop end
+
+//             for (int j = 0; j < N_S; j++)
+//             { // j-loop start
+
+//                 memcpy(C_Mode_Array_j, C_Mode_Array + (2 * j * lenMode), lenMode * SizeOfDouble);
+//                 double C_j[N_Points2];
+//                 for (int quadPt = 0; quadPt < N_Points2; quadPt++)
+//                     C_j[quadPt] = 0.;
+//                 // Obtain all values for C_a
+//                 for (int quadPt = 0; quadPt < N_Points2; quadPt++)
+//                 { // quadpt loop start
+//                     for (int nb = 0; nb < N_BaseFunct; nb++)
+//                     {
+//                         int globDOF = DOF[nb];
+//                         C_j[quadPt] += origvaluesD00[quadPt][nb] * C_Mode_Array_j[globDOF];
+//                     }
+//                 } // quadpt loop end
+
+//                 // INner Quadrature Loop
+//                 for (int quadPt = 0; quadPt < N_Points2; quadPt++)
+//                 {
+//                     double Mult = Weights2[quadPt] * AbsDetjk[quadPt];
+//                     IPMatxFE[i + j * N_S] += C_i[quadPt] * C_j[quadPt] * Mult;
+
+//                 } // Inner Quadrature Loop
+
+//             } // j-loop end
+
+//         } // i-loop end
+
+//         // --
+//     } // cell loop
+
+//     for (int j = 0; j < N_S; j++)
+//     {
+//         for (int i = 0; i < lenMode; i++)
+//         {
+//             C_Stoch_Norm[i + (2 * j * lenMode)] = C_Mode_Array[i + (2 * j * lenMode)] / sqrt(IPMatxFE[j + j * N_S]);
+//         }
+//     }
+
+//     double *C_temp = new double[lenMode*N_S]();
+//      for (int j = 0; j < N_S; j++)
+//     {
+//         for (int i = 0; i < lenMode; i++)
+//         {
+//             C_temp[i + j * lenMode] = C_Stoch_Norm[i + (2 * j * lenMode)];
+//         }
+//     }
+//     double *IPNew = new double[N_S * N_S]();
+//     calcIPMatx(IPNew, C_temp, lenMode, N_S, 'C');
+//     for (int j = 0; j < N_S; j++)
+//     {
+//         for (int i = 0; i < lenMode; i++)
+//         {
+//             C_Stoch_Norm[i + (2 * j * lenMode)] = C_temp[i+j*lenMode]/ sqrt(IPNew[j + j * N_S]);
+//         }
+//     }
+
+//     delete[] C_Mode_Array_i;
+//     delete[] C_Mode_Array_j;
+
+//     delete[] IPMatxFE;
+
+//     return;
+// } // stochastic normalization function end
 void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmode, int N_S, double *C_Stoch_Norm)
 {
 
@@ -635,7 +845,7 @@ void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmod
 
         for (int i = 0; i < N_S; i++)
         { // i-loop start
-            memcpy(C_Mode_Array_i, C_Mode_Array + (2 * i * lenMode), lenMode * SizeOfDouble);
+            memcpy(C_Mode_Array_i, C_Mode_Array + i * lenMode, lenMode * SizeOfDouble);
             double C_i[N_Points2];
 
             for (int quadPt = 0; quadPt < N_Points2; quadPt++)
@@ -655,7 +865,7 @@ void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmod
             for (int j = 0; j < N_S; j++)
             { // j-loop start
 
-                memcpy(C_Mode_Array_j, C_Mode_Array + (2 * j * lenMode), lenMode * SizeOfDouble);
+                memcpy(C_Mode_Array_j, C_Mode_Array + j * lenMode, lenMode * SizeOfDouble);
                 double C_j[N_Points2];
                 for (int quadPt = 0; quadPt < N_Points2; quadPt++)
                     C_j[quadPt] = 0.;
@@ -688,35 +898,35 @@ void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmod
     {
         for (int i = 0; i < lenMode; i++)
         {
-            C_Stoch_Norm[i + (2 * j * lenMode)] = C_Mode_Array[i + (2 * j * lenMode)] / sqrt(IPMatxFE[j + j * N_S]);
-        }
-    }
-
-    double *C_temp = new double[lenMode*N_S]();
-     for (int j = 0; j < N_S; j++)
-    {
-        for (int i = 0; i < lenMode; i++)
-        {
-            C_temp[i + j * lenMode] = C_Stoch_Norm[i + (2 * j * lenMode)];
+            C_Stoch_Norm[i + j * lenMode] = C_Mode_Array[i + j * lenMode] / sqrt(IPMatxFE[j + j * N_S]);
         }
     }
     double *IPNew = new double[N_S * N_S]();
-    calcIPMatx(IPNew, C_temp, lenMode, N_S, 'C');
+    calcIPMatx(IPNew, C_Stoch_Norm, lenMode, N_S, 'C');
     for (int j = 0; j < N_S; j++)
     {
         for (int i = 0; i < lenMode; i++)
         {
-            C_Stoch_Norm[i + (2 * j * lenMode)] = C_temp[i+j*lenMode]/ sqrt(IPNew[j + j * N_S]);
+            C_Stoch_Norm[i + j * lenMode] = C_Stoch_Norm[i + j * lenMode] / sqrt(IPNew[j + j * N_S]);
         }
     }
+    calcIPMatx(IPNew, C_Stoch_Norm, lenMode, N_S, 'C');
+    // for (int j = 0; j < N_S; j++)
+    // {
+    //     for (int i = 0; i < lenMode; i++)
+    //     {
+    //         C_Stoch_Norm[i + j * lenMode] = C_Mode_Array[i + j * lenMode];
+    //     }
+    // }
 
+    printToTxt("stoch.txt", IPNew, N_S, N_S, 'C');
     delete[] C_Mode_Array_i;
     delete[] C_Mode_Array_j;
 
     delete[] IPMatxFE;
 
     return;
-} // stochastic normalization function end
+} 
 
 void normalizeStochasticMean(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_CMean, int N_S, double *C_Stoch_Norm)
 {
