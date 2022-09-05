@@ -254,14 +254,14 @@ int main(int argc, char *argv[])
 					double sig_r1 = (exp(-1.0 * pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E))) * (exp(-1.0 * pow((2 * actual_y - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E)));
 					double sig_r2 = (exp(-1.0 * pow((2 * local_x - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E))) * (exp(-1.0 * pow((2 * local_y - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E)));
 					// Co Variance
-					C[i * N_U + j] *= sig_r1 * sig_r2;
+					C[i * N_U + j] *= 2 *sig_r1 * sig_r2;
 				}
 
 				else if (TDatabase::ParamDB->stddev_switch == 2)
 				{
 					double amplitude = TDatabase::ParamDB->stddev_power;
-					double sig_r1 = (amplitude/0.2) * sin(-1.0 * Pi * (2 * actual_x - 2)*2) * sin(-1.0 * Pi * (2 * actual_y - 2));
-					double sig_r2 = (amplitude/0.2) * sin(-1.0 * Pi * (2 * local_x - 2)*2) * sin(-1.0 * Pi * (2 * local_y - 2));
+					double sig_r1 = (amplitude) * sin(-1.0 * Pi * (2 * actual_x - 2)) * sin(-1.0 * Pi * (2 * actual_y - 2));
+					double sig_r2 = (amplitude) * sin(-1.0 * Pi * (2 * local_x - 2)) * sin(-1.0 * Pi * (2 * local_y - 2));
 					C[i * N_U + j] *= sig_r1 * sig_r2;
 				}
 

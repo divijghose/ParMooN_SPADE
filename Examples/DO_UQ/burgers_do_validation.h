@@ -490,6 +490,9 @@ void printToTxt(std::string filename, double *printArray, int height, int width,
     printFile.close();
     cout << "File printed succesfully: " << filename << endl;
 }
+
+
+
 void calcIPMatx(double *IPMatx, double *Vector, int height, int width, char RoworColMaj)
 {
     if (RoworColMaj == 'R')
@@ -507,6 +510,8 @@ void calcIPMatx(double *IPMatx, double *Vector, int height, int width, char Rowo
         cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, width, width, height, 1, TempRowMaj, width, TempRowMaj, width, 0.0, IPMatx, width);
     }
 }
+
+
 // void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmode, int N_S, double *C_Stoch_Norm)
 // {
 
@@ -717,6 +722,8 @@ void calcIPMatx(double *IPMatx, double *Vector, int height, int width, char Rowo
 
 //     return;
 // } // stochastic normalization function end
+
+
 void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmode, int N_S, double *C_Stoch_Norm)
 {
 
@@ -926,7 +933,9 @@ void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmod
     delete[] IPMatxFE;
 
     return;
-} 
+}
+
+
 
 void normalizeStochasticMean(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_CMean, int N_S, double *C_Stoch_Norm)
 {
@@ -1090,6 +1099,7 @@ void normalizeStochasticMean(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_CMean
         C_Stoch_Norm[i] = C_Mean[i] * (sqrt(IPVal / mfeval));
     }
 }
+
 
 void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, double *GlobalRhs_mean, int N_U)
 {
@@ -2473,7 +2483,6 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
     double ipval2 = 0.0;
     for (int a = 0; a < N_S; a++)
     { // a loop ip1
-        ipval1 = 0;
         for (int cellId = 0; cellId < N_Cells; cellId++)
         { // cell loop ip1
             TBaseCell *currentCell = coll->GetCell(cellId);
@@ -2572,6 +2581,8 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
             {
                 Coeffs[i] = new double[10]();
             }
+            DO_Mode_Equation_Coefficients(N_Points2, X, Y, Param, Coeffs);
+
             memcpy(Mode_Comp1_a, U_Mode + (a * 2 * lenMode), lenMode * SizeOfDouble);
             memcpy(Mode_Comp2_a, U_Mode + ((a * 2 + 1) * lenMode), lenMode * SizeOfDouble);
             memcpy(phi_Array_a, Phi_Array + (a * lenPhi), lenPhi * SizeOfDouble);
@@ -2688,14 +2699,15 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
 
         for (int r = 0; r < lenPhi; r++)
         {
-            phi_New[r] = ipval1 * phi_Array_a[r] * -1.0;
+            phi_New[r] += (ipval1 * phi_Array_a[r] * -1.0);
         }
+        ipval1 = 0.0;
+
     } // a loop end ip1
     for (int a = 0; a < N_S; a++)
     { // a loop ip2
         for (int b = 0; b < N_S; b++)
         { // b loop ip2
-            ipval2 = 0.0;
             for (int cellId = 0; cellId < N_Cells; cellId++)
             { // cell loop ip2
                 TBaseCell *currentCell = coll->GetCell(cellId);
@@ -2795,12 +2807,12 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
                 {
                     Coeffs[i] = new double[10]();
                 }
-
+                DO_Mode_Equation_Coefficients(N_Points2, X, Y, Param, Coeffs);
                 // Save Values of C at all quadrature points for I component
-                memcpy(Mode_Comp1_a, U_Mode + a * 2 * lenMode, lenMode * SizeOfDouble);       // col Major
-                memcpy(Mode_Comp2_a, U_Mode + (a * 2 + 1) * lenMode, lenMode * SizeOfDouble); // col Major
-                memcpy(Mode_Comp1_b, U_Mode + b * 2 * lenMode, lenMode * SizeOfDouble);       // col Major
-                memcpy(Mode_Comp2_b, U_Mode + (b * 2 + 1) * lenMode, lenMode * SizeOfDouble); // col Major
+                memcpy(Mode_Comp1_a, U_Mode + (a * 2 * lenMode), lenMode * SizeOfDouble);       // col Major
+                memcpy(Mode_Comp2_a, U_Mode + ((a * 2 + 1) * lenMode), lenMode * SizeOfDouble); // col Major
+                memcpy(Mode_Comp1_b, U_Mode + (b * 2 * lenMode), lenMode * SizeOfDouble);       // col Major
+                memcpy(Mode_Comp2_b, U_Mode + ((b * 2 + 1) * lenMode), lenMode * SizeOfDouble); // col Major
                 memcpy(phi_Array_a, Phi_Array + a * lenPhi, lenPhi * SizeOfDouble);
                 memcpy(phi_Array_b, Phi_Array + b * lenPhi, lenPhi * SizeOfDouble);
 
@@ -2857,12 +2869,13 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
 
             for (int r = 0; r < lenPhi; r++)
             {
-                phi_New[r] += -1.0 * (phi_Array_a[r] * phi_Array_b[r] - TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b]) * ipval2;
+                phi_New[r] += (-1.0 * (phi_Array_a[r] * phi_Array_b[r] - TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b]) * ipval2);
             }
+            ipval2 = 0.0;
 
         } // b loop end ip2
     }     // a loop end ip2
-
+    cout << "phi new" << Ddot(lenPhi, phi_New, phi_New) << endl;
     double timeStep = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
     for (int i = 0; i < lenPhi; i++)
     {
@@ -3461,6 +3474,7 @@ void qr(double *const _Q, double *const _R, double *const _A, const size_t _m, c
     return;
 }
 
+
 void reorthonormalizeA(double *Mode, int N_DOF, int N_S)
 {
 
@@ -3691,6 +3705,7 @@ void reorthonormalizeB(double *Mode, double *Coeff, int N_DOF, int N_S, int N_R)
 
     return;
 }
+
 void reorthonormalizeC(double *Mode, int N_DOF, int N_S)
 {
     double *Temp = new double[N_S * N_S]();
@@ -3783,6 +3798,7 @@ void reorthonormalizeC(double *Mode, int N_DOF, int N_S)
 
     return;
 }
+
 
 std::string generateFileName(std::string baseName, int m, int N_R)
 {
