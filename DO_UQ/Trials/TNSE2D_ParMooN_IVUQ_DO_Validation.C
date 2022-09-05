@@ -1459,21 +1459,8 @@ exit(0);      */
 
 		// start here 12-05-21
 		// xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-		for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
-		{
-			SetTimeDiscParameters(1);
-
-			if (m == 1)
-			{
-				OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
-				OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
-				OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
-				OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
-			}
-
-			tau = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
-
-		} // sub steps - mode end for(l=0;l<N_SubSteps;
+		fileoutCoeff = generateFileName(coeffBaseName, m, N_Realisations);
+		printToTxt(fileoutCoeff, CoeffVector, N_Realisations, subDim, 'C');
 
 		//======================================================================
 		// produce outout
