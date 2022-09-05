@@ -689,6 +689,11 @@ int TDomain::ReadParam(char *ParamFile)
       dat >> TDatabase::ParamDB->toggleRealznSource;
       N_Param++;
     }
+    if (!strcmp(line, "Divergence_Free_Adjustment:"))
+    {
+      dat >> TDatabase::ParamDB->toggleDivFreeAdj;
+      N_Param++;
+    }
     if (!strcmp(line, "Write_Realizations_To_Text:"))
     {
       dat >> TDatabase::ParamDB->writeRealznToText;
