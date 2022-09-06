@@ -112,6 +112,15 @@ int main(int argc, char *argv[])
 	std::ostringstream os;
 	os << " ";
 
+	std::string meanBaseName = "Mean/Mean_NRealisations_";
+	std::string modeBaseName = "Modes/Mode_NRealisations_";
+	std::string coeffBaseName = "Coefficients/Coeff_NRealisations_";
+	std::string IPMeanBaseName = "IPMatrices/IPMean/IPMean_NRealisations_";
+	std::string IPModeBaseName = "IPMatrices/IPMode/IPMode_NRealisations_";
+	std::string fileoutCoeff;
+	std::string fileoutMean;
+	std::string fileoutMode;
+	std::string fileoutMC;
 	// ======================================================================
 	// set the database values and generate mesh
 	// ======================================================================
@@ -923,14 +932,22 @@ int main(int argc, char *argv[])
 	rhsMode = new double[N_Total_ModeDOF]();
 	old_rhsMode = new double[2 * N_M + N_P]();
 
+	double *solMode1 = new double[N_M * subDim]();
+	double *solMode2 = new double[N_M * subDim]();
+
+	double *solModeAll = new double[N_Total_ModeDOF]();
+
 	for (int j = 0; j < subDim; j++)
 	{
 		for (int i = 0; i < N_M; i++)
 		{
 			solMode[(j * (2 * N_M + N_P)) + i] = ModeVector[j * N_U + i]; // first component velocity
-																		  // solMode[(j * (2 * N_M + N_P)) + N_M + i] = 0;				  // second component velocity
+			solModeAll[(j * (2 * N_M + N_P)) + i] = ModeVector[j * N_U + i];
+			// solMode[(j * (2 * N_M + N_P)) + N_M + i] = 0;				  // second component velocity
 		}
 	}
+
+
 
 	// for (int j = 0; j < subDim; j++)
 	// {
@@ -967,11 +984,11 @@ int main(int argc, char *argv[])
 
 	TFEVectFunct2D **VelocityModeAll = new TFEVectFunct2D *[subDim];
 	for (int subD = 0; subD < subDim; subD++)
-		VelocityModeAll[subD] = new TFEVectFunct2D(VelocityMode_FeSpace, (char *)"U_Mode", (char *)"Mode Component", solMode + (subD * (2 * N_M + N_P)), N_M, 2);
+		VelocityModeAll[subD] = new TFEVectFunct2D(VelocityMode_FeSpace, (char *)"U_Mode", (char *)"Mode Component", solModeAll + (subD * (2 * N_M + N_P)), N_M, 2);
 
 	TFEFunction2D **PressureModeAll = new TFEFunction2D *[subDim];
 	for (int subD = 0; subD < subDim; subD++)
-		PressureModeAll[subD] = new TFEFunction2D(PressureMode_FeSpace, (char *)"P_Mode", (char *)"Mode Component", solMode + (subDim * (2 * N_M + N_P)) + 2 * N_M, N_P);
+		PressureModeAll[subD] = new TFEFunction2D(PressureMode_FeSpace, (char *)"P_Mode", (char *)"Mode Component", solModeAll + (subDim * (2 * N_M + N_P)) + 2 * N_M, N_P);
 
 	//======================================================================
 	// SystemMatrix construction and solution
@@ -1050,9 +1067,10 @@ int main(int argc, char *argv[])
 
 	// -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
 	//------------------------------------------ MODE EQUATION SETUP -----------------------------------------------------//
+	double *rhsModeAll = new double[N_Total_ModeDOF]();
 	TSystemTNSE2D **SystemMatrixModeAll = new TSystemTNSE2D *[subDim];
 	for (int subD = 0; subD < subDim; subD++)
-		SystemMatrixModeAll[subD] = new TSystemTNSE2D(VelocityMode_FeSpace, PressureMode_FeSpace, VelocityModeAll[subD], PressureModeAll[subD], solMode + (subD * (2 * N_M + N_P)), rhsMode + (subD * (2 * N_M + N_P)), Disctype, NSEType, DIRECT
+		SystemMatrixModeAll[subD] = new TSystemTNSE2D(VelocityMode_FeSpace, PressureMode_FeSpace, VelocityModeAll[subD], PressureModeAll[subD], solModeAll + (subD * (2 * N_M + N_P)), rhsModeAll + (subD * (2 * N_M + N_P)), Disctype, NSEType, DIRECT
 #ifdef __PRIVATE__
 													  ,
 													  Projection_space, NULL, NULL
@@ -1135,7 +1153,7 @@ int main(int argc, char *argv[])
 	for (int subD = 0; subD < subDim; subD++)
 	{
 		SystemMatrixModeAll[subD]->Init(DO_Mode_Equation_Coefficients, BoundCondition, U1BoundValue, U2BoundValue, auxModeAll[subD], NSEaux_error_modeAll[subD]);
-		SystemMatrixModeAll[subD]->Assemble(solMode + (subD * (2 * N_M + N_P)), rhsMode + (subD * (2 * N_M + N_P))); // seg fault
+		SystemMatrixModeAll[subD]->Assemble(solModeAll + (subD * (2 * N_M + N_P)), rhsModeAll + (subD * (2 * N_M + N_P))); // seg fault
 	}
 	TDatabase::ParamDB->COVARIANCE_MATRIX_DO = new double[subDim * subDim]();
 	TDatabase::ParamDB->COSKEWNESS_MATRIX_DO = new double[subDim * subDim * subDim]();
@@ -1150,7 +1168,7 @@ int main(int argc, char *argv[])
 	// done here
 	SystemMatrix_Mean->Assemble(solMean, rhsMean);
 	for (int subD = 0; subD < subDim; subD++)
-		SystemMatrixModeAll[subD]->Assemble(solMode + (subD * (2 * N_M + N_P)), rhsMode + (subD * (2 * N_M + N_P)));
+		SystemMatrixModeAll[subD]->Assemble(solModeAll + (subD * (2 * N_M + N_P)), rhsModeAll + (subD * (2 * N_M + N_P)));
 
 	// Setup Output for Mean and N_S outputs for modes
 	char *PsBaseNameMean, *VtkBaseNameMean, *GEOMean;
@@ -1433,6 +1451,35 @@ exit(0);      */
 				SystemMatrixModeAll[subSpaceNum]->RestoreMassMat();
 
 			} // Subspace Loop Ends
+
+			for (int j = 0; j < subDim; j++)
+			{
+				for (int i = 0; i < N_M; i++)
+				{
+					solMode1[j * N_M + i] = solModeAll[(2 * j * N_M) + i];
+				}
+			}
+			reorthonormalizeC(solMode1, N_M, subDim);
+			for (int j = 0; j < subDim; j++)
+			{
+				for (int i = 0; i < N_M; i++)
+				{
+					solModeAll[(2 * j * N_M) + i] = solMode1[j * N_M + i];
+				}
+			}
+			memcpy(solMode, solModeAll, N_Total_ModeDOF * SizeOfDouble);
+			// for (int i = 0; i < N_U; i++)
+			// {
+			// 	for (int j = 0; j < subDim; j++)
+			// 	{
+			// 		u1_Mode[j * N_U + i] = solModeAll[(2 * j * N_U) + i]; //??
+			// 		u2_Mode[j * N_U + i] = 0;							  //??
+			// 	}
+			// }
+
+			// calcIPMatx(IPMatxMode, u1_Mode, N_U, subDim, 'C');
+			// fileoutIPMode = generateFileName(IPModeBaseName, m, N_Realisations);
+			// printToTxt(fileoutIPMode, IPMatxMode, subDim, subDim, 'C');
 
 		} // for(l=0;l<N_SubSteps;
 

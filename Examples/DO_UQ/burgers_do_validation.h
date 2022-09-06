@@ -491,8 +491,6 @@ void printToTxt(std::string filename, double *printArray, int height, int width,
     cout << "File printed succesfully: " << filename << endl;
 }
 
-
-
 void calcIPMatx(double *IPMatx, double *Vector, int height, int width, char RoworColMaj)
 {
     if (RoworColMaj == 'R')
@@ -510,7 +508,6 @@ void calcIPMatx(double *IPMatx, double *Vector, int height, int width, char Rowo
         cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, width, width, height, 1, TempRowMaj, width, TempRowMaj, width, 0.0, IPMatx, width);
     }
 }
-
 
 // void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmode, int N_S, double *C_Stoch_Norm)
 // {
@@ -723,7 +720,6 @@ void calcIPMatx(double *IPMatx, double *Vector, int height, int width, char Rowo
 //     return;
 // } // stochastic normalization function end
 
-
 void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmode, int N_S, double *C_Stoch_Norm)
 {
 
@@ -935,8 +931,6 @@ void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmod
     return;
 }
 
-
-
 void normalizeStochasticMean(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_CMean, int N_S, double *C_Stoch_Norm)
 {
     double *IPMatxFE = new double[N_S * N_S]();
@@ -1100,7 +1094,6 @@ void normalizeStochasticMean(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_CMean
     }
 }
 
-
 void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, double *GlobalRhs_mean, int N_U)
 {
 
@@ -1137,7 +1130,7 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
     double **origvaluesD01; // Shape Function Derivatives ( y ) at Quadrature Points
     double **origvaluesD20; // Shape Function 2nd Derivatives ( x ) at Quadrature Points
     double **origvaluesD02; // Shape Function 2nd Derivatives ( y ) at Quadrature Points
-
+    double ip = 0.0;
     for (int cellId = 0; cellId < N_Cells; cellId++)
     { // Cell Loop
         TBaseCell *currentCell = coll->GetCell(cellId);
@@ -1314,9 +1307,10 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
                     val1 = -1.0 * ((U1_Mode_a[qdpt] * U1x_Mode_b[qdpt]) + (U2_Mode_a[qdpt] * U1y_Mode_b[qdpt])) * TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult;
 
                     val2 = -1.0 * ((U1_Mode_a[qdpt] * U2x_Mode_b[qdpt]) + (U2_Mode_a[qdpt] * U2y_Mode_b[qdpt])) * TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult; // check if = or +=
-
+                    
                     for (int j = 0; j < N_BaseFunct; j++)
                     {
+
                         rhs1[j] += val1 * orgD00[j];
                         rhs2[j] += val2 * orgD00[j]; // * Mult;
                     }
@@ -1339,6 +1333,7 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
         }
         delete[] Coeffs;
     } // cell loop
+    cout << "value of ip" << ip << endl;
 
     delete[] Mode_Comp1_a;
     delete[] Mode_Comp2_a;
@@ -1551,8 +1546,8 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
                 U2x_Mean[quadPt] = 0;
                 U2y_Mean[quadPt] = 0;
 
-                U1_Mode_p[N_Points2] = 0;
-                U2_Mode_p[N_Points2] = 0;
+                U1_Mode_p[quadPt] = 0;
+                U2_Mode_p[quadPt] = 0;
             }
             for (int quadPt = 0; quadPt < N_Points2; quadPt++)
             {
@@ -1606,6 +1601,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
             }
             delete[] Coeffs;
         } // cell loop end
+
 
         for (int cellId = 0; cellId < N_Cells; cellId++)
         { // cell loop
@@ -1794,7 +1790,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 
                             ipval12[p] += -1.0 * (TDatabase::ParamDB->COVARIANCE_INVERSE_DO[N_S * c + i_index] * TDatabase::ParamDB->COSKEWNESS_MATRIX_DO[N_S * N_S * b + N_S * c + a]) * (U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt]) * U2_Mode_p[qdpt] * Mult;
                         }
-                    }
+                    }//c loop end for ipval cal2
 
                 } // b loop end for ipval calc 2
             }     // a loop end for ip calc 2
@@ -1806,6 +1802,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
         } // cell loop
 
     } // p loop end
+    
     for (int cellId = 0; cellId < N_Cells; cellId++)
     { // cell loop final rhs ass 1
         TBaseCell *currentCell = coll->GetCell(cellId);
@@ -2396,6 +2393,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
     delete[] ipval11;
     delete[] ipval12;
 }
+
 
 //======================================================================
 // ************************** Coefficient ********************************//
@@ -3474,7 +3472,6 @@ void qr(double *const _Q, double *const _R, double *const _A, const size_t _m, c
     return;
 }
 
-
 void reorthonormalizeA(double *Mode, int N_DOF, int N_S)
 {
 
@@ -3799,7 +3796,6 @@ void reorthonormalizeC(double *Mode, int N_DOF, int N_S)
     return;
 }
 
-
 std::string generateFileName(std::string baseName, int m, int N_R)
 {
     std::string fileName;
@@ -3816,3 +3812,7 @@ std::string generateFileName(std::string baseName, int m, int N_R)
 
     return fileName;
 }
+
+
+
+

@@ -254,7 +254,7 @@ int main(int argc, char *argv[])
 					double sig_r1 = (exp(-1.0 * pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E))) * (exp(-1.0 * pow((2 * actual_y - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E)));
 					double sig_r2 = (exp(-1.0 * pow((2 * local_x - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E))) * (exp(-1.0 * pow((2 * local_y - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E)));
 					// Co Variance
-					C[i * N_U + j] *= 2 *sig_r1 * sig_r2;
+					C[i * N_U + j] *= 0.5*sig_r1 * sig_r2;
 				}
 
 				else if (TDatabase::ParamDB->stddev_switch == 2)
@@ -913,6 +913,7 @@ int main(int argc, char *argv[])
 			memcpy(old_solMean, solMean, N_Total_MeanDOF * SizeOfDouble);
 
 			DO_Mean_RHS(VelocityMean_FeSpace, Velocity_Mode, subDim, rhsMean, N_U);
+			
 
 			// assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
 			SystemMatrix_Mean->Assemble(solMean, rhsMean);
