@@ -254,14 +254,14 @@ int main(int argc, char *argv[])
 					double sig_r1 = (exp(-1.0 * pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E))) * (exp(-1.0 * pow((2 * actual_y - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E)));
 					double sig_r2 = (exp(-1.0 * pow((2 * local_x - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E))) * (exp(-1.0 * pow((2 * local_y - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E)));
 					// Co Variance
-					C[i * N_U + j] *= 0.5*sig_r1 * sig_r2;
+					C[i * N_U + j] *= 0.5 * sig_r1 * sig_r2;
 				}
 
 				else if (TDatabase::ParamDB->stddev_switch == 2)
 				{
 					double amplitude = TDatabase::ParamDB->stddev_power;
-					double sig_r1 = (amplitude) * sin(-1.0 * Pi * (2 * actual_x - 2)) * sin(-1.0 * Pi * (2 * actual_y - 2));
-					double sig_r2 = (amplitude) * sin(-1.0 * Pi * (2 * local_x - 2)) * sin(-1.0 * Pi * (2 * local_y - 2));
+					double sig_r1 = (amplitude)*sin(-1.0 * Pi * (2 * actual_x - 2)) * sin(-1.0 * Pi * (2 * actual_y - 2));
+					double sig_r2 = (amplitude)*sin(-1.0 * Pi * (2 * local_x - 2)) * sin(-1.0 * Pi * (2 * local_y - 2));
 					C[i * N_U + j] *= sig_r1 * sig_r2;
 				}
 
@@ -538,7 +538,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	memcpy(ModeVector,tempModeVector,N_U*subDim*SizeOfDouble);
+	memcpy(ModeVector, tempModeVector, N_U * subDim * SizeOfDouble);
 	printToTxt("Init/Coeff.txt", CoeffVector, N_Realisations, subDim, 'C');
 	printToTxt("Init/Mode.txt", ModeVector, N_U, subDim, 'C');
 	const char ip[] = "IPMatrices";
@@ -913,7 +913,6 @@ int main(int argc, char *argv[])
 			memcpy(old_solMean, solMean, N_Total_MeanDOF * SizeOfDouble);
 
 			DO_Mean_RHS(VelocityMean_FeSpace, Velocity_Mode, subDim, rhsMean, N_U);
-			
 
 			// assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
 			SystemMatrix_Mean->Assemble(solMean, rhsMean);
@@ -1269,8 +1268,11 @@ int main(int argc, char *argv[])
 	OutputMC->AddFEVectFunct(VelocityMC);
 
 	int N_Composite = 7;
-	int *imgm = new int[N_Composite]();
-	for (int RealNo = 0; RealNo < 7; RealNo++)
+	int imgm[N_Composite];
+	for (int i = 0; i < N_Composite; i++)
+		imgm[i] = 0;
+
+	for (int RealNo = 0; RealNo < N_Composite; RealNo++)
 	{
 		std::string filename;
 		cout << " ============================================================================================================= " << endl;
@@ -1310,7 +1312,7 @@ int main(int argc, char *argv[])
 		VtkBaseName = const_cast<char *>(filename.c_str());
 
 		for (int i = 0; i < N_U; i++)
-			solMC[i] = CompositeVectorMC[i + RealNo * N_U];
+			solMC[i] = CompositeVectorMC[i + RealNo * 2*N_U];
 
 		os.seekp(std::ios::beg);
 		if (imgm[RealNo] < 10)
@@ -1479,9 +1481,11 @@ int main(int argc, char *argv[])
 					fileoutMC = generateFileName("MonteCarlo/" + filename, imgm[RealNo], N_Realisations);
 					printToTxt(fileoutMC, solMC, N_U, 1, 'C');
 					imgm[RealNo]++;
+					cout << imgm[RealNo] << endl;
 				}
 
 		} // while(TDatabase::TimeDB->CURRENTTIME< e
+
 		if (TDatabase::ParamDB->WRITE_VTK)
 		{
 			os.seekp(std::ios::beg);
@@ -1506,6 +1510,7 @@ int main(int argc, char *argv[])
 			printToTxt(fileoutMC, solMC, N_U, 1, 'C');
 			imgm[RealNo]++;
 		}
+		TDatabase::TimeDB->CURRENTTIME = 0;
 	} // Realization Loop
 	TDatabase::TimeDB->CURRENTTIME = 0;
 
