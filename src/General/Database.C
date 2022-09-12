@@ -665,7 +665,7 @@ void TDatabase::SetDefaultParameters()
 
   ParamDB->toggleRealznSource = 0; // if 0, generate MC realizations. if 1, read realizations from text file
   ParamDB->writeRealznToText = 0;  // if 0, don't write MC realizations to text. if 1, write realizations to text file
-  ParamDB->toggleDivFreeAdj = 0; // if 0, don't do div free adjustment. if 1, do.
+  ParamDB->toggleDivFreeAdj = 1; // if 0, don't do div free adjustment. if 1, do.
   /////************Default DO Parameters******///// (Added by Divij)
   ParamDB->stddev_power = 5;
   ParamDB->Max_Subspace_Dim = 5;

@@ -448,6 +448,8 @@ int main(int argc, char *argv[])
 	/////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
 	if (TDatabase::ParamDB->toggleDivFreeAdj == 1)
 	{
+		for (int RealNo = 0; RealNo < N_Realisations ; RealNo++)
+		{
 
 		///////////////////----Divergence Free Adjustment - New Routine ------------/////////
 		//======================================================================
@@ -536,17 +538,22 @@ int main(int argc, char *argv[])
 		// initilize the system matrix with the functions defined in Example file
 		// last argument is aux that is used to pass additional fe functions (eg. mesh velocity)
 		SystemMatrix->Init(LinCoeffs, BoundCondition, U1BoundValue, U2BoundValue, aux, NSEaux_error);
-		/////////////////////////////////////////Monte Carlo//////////////////////////////////////
+		SystemMatrix->Assemble(sol, rhs);
 
-		for (int RealNo = 0; RealNo < N_Realisations; RealNo++)
-		{ /// Realization Loop Begin
+		/////////////////////////////////////////Monte Carlo//////////////////////////////////////
+		VtkBaseName = TDatabase::ParamDB->VTKBASENAME;
+		Output = new TOutput2D(2, 2, 1, 1, Domain);
+
+		Output->AddFEVectFunct(Velocity);
+		Output->AddFEFunction(Pressure);
+
+		 /// Realization Loop Begin
 			cout << " Divergence-free adjustment Real no " << RealNo << endl;
 			////////////////////////Divergence Free Adjustment - Run for one time step//////////////////////
 			// assemble M, A matrices and rhs
 
 			for (int i = 0; i < N_U; i++)
 				sol[i] = RealizationVector[RealNo + N_Realisations * i];
-			SystemMatrix->Assemble(sol, rhs);
 
 			//======================================================================
 			// time disc loop
@@ -559,7 +566,10 @@ int main(int argc, char *argv[])
 			limit = TDatabase::ParamDB->SC_NONLIN_RES_NORM_MIN_SADDLE;
 			Max_It = TDatabase::ParamDB->SC_NONLIN_MAXIT_SADDLE;
 			memset(AllErrors, 0, 7. * SizeOfDouble);
-
+			const char initdir[] = "Init";
+			mkdir(initdir, 0777);
+			const char dfadir[] = "Init/Divergence_Free_Adjusted";
+			mkdir(dfadir, 0777);
 			// time loop starts
 			while (TDatabase::TimeDB->CURRENTTIME < end_time)
 			{ // time cycle
@@ -627,8 +637,6 @@ int main(int argc, char *argv[])
 					{
 						// Solve the NSE system
 						SystemMatrix->Solve(sol);
-						for (int i = 0; i < N_U; i++)
-							RealizationVector[RealNo + N_Realisations * i] = sol[i];
 
 						if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
 							IntoL20FEFunction(sol + 2 * N_U, N_P, Pressure_FeSpace, velocity_space_code, pressure_space_code);
@@ -677,13 +685,31 @@ int main(int argc, char *argv[])
 			//======================================================================
 			// produce final outout
 			//======================================================================
-
+			if (TDatabase::ParamDB->WRITE_VTK)
+			{
+				os.seekp(std::ios::beg);
+				if (img < 10)
+					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_" << std::to_string(RealNo) << ".vtk" << ends;
+				else if (img < 100)
+					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_" << std::to_string(RealNo) << ".vtk" << ends;
+				else if (img < 1000)
+					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_" << std::to_string(RealNo) << ".vtk" << ends;
+				else if (img < 10000)
+					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_" << std::to_string(RealNo) << ".vtk" << ends;
+				else
+					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_" << std::to_string(RealNo) << ".vtk" << ends;
+				Output->WriteVtk(os.str().c_str());
+				;
+			}
 			TDatabase::TimeDB->CURRENTTIME = 0.0;
+			// for (int i = 0; i < N_U; i++)
+			// 	RealizationVector[RealNo + N_Realisations * i] = sol[i];
 			//////////////////Divergence Adjustment Ends/////////////////////////////////////////////////
 		} /// Realization Loop End
 		  ////------------Divergence Free Adjustment - New Routine Ends -----//////////////
 	}
 	//
+	cout << "Divergence free adjustment done" << endl;
 
 	////////////////////////////////////// -------- START OF DO INITIALIZATION ------------ ////////////////////////////////////////////////////////////////
 
@@ -946,8 +972,6 @@ int main(int argc, char *argv[])
 			// solMode[(j * (2 * N_M + N_P)) + N_M + i] = 0;				  // second component velocity
 		}
 	}
-
-
 
 	// for (int j = 0; j < subDim; j++)
 	// {
