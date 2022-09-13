@@ -129,7 +129,7 @@ void U1BoundValue(int BdComp, double Param, double &value)
 		if (abs(Param - 0) < 1e-6 || abs(Param - 1.0) < 1e-6)
 			value = 0; // top moving side velocity
 		else
-			value = 1.0;
+			value = 0.01;
 		break;
 	case 3:
 		value = 0;
@@ -166,7 +166,7 @@ void U1BoundValueMean(int BdComp, double Param, double &value)
 		if (abs(Param - 0) < 1e-6 || abs(Param - 1.0) < 1e-6)
 			value = 0; // top moving side velocity
 		else
-			value = 1.0;
+			value = 0.01;
 		break;
 	case 3:
 		value = 0;
@@ -203,7 +203,7 @@ void U1BoundValueMode(int BdComp, double Param, double &value)
 		if (abs(Param - 0) < 1e-6 || abs(Param - 1.0) < 1e-6)
 			value = 0; // top moving side velocity
 		else
-			value = 1.0;
+			value = 0.01;
 		break;
 	case 3:
 		value = 0;

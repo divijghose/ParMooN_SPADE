@@ -293,7 +293,7 @@ int main(int argc, char *argv[])
 					double sig_r1 = (exp(-1.0 * pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E))) * (exp(-1.0 * pow((2 * actual_y - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E)));
 					double sig_r2 = (exp(-1.0 * pow((2 * local_x - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E))) * (exp(-1.0 * pow((2 * local_y - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E)));
 					// Co Variance
-					C[i * N_U + j] *= 2 * sig_r1 * sig_r2;
+					C[i * N_U + j] *= 0.5 * sig_r1 * sig_r2;
 				}
 
 				else if (TDatabase::ParamDB->stddev_switch == 2)
@@ -448,8 +448,6 @@ int main(int argc, char *argv[])
 	/////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
 	if (TDatabase::ParamDB->toggleDivFreeAdj == 1)
 	{
-		for (int RealNo = 0; RealNo < N_Realisations ; RealNo++)
-		{
 
 		///////////////////----Divergence Free Adjustment - New Routine ------------/////////
 		//======================================================================
@@ -538,7 +536,6 @@ int main(int argc, char *argv[])
 		// initilize the system matrix with the functions defined in Example file
 		// last argument is aux that is used to pass additional fe functions (eg. mesh velocity)
 		SystemMatrix->Init(LinCoeffs, BoundCondition, U1BoundValue, U2BoundValue, aux, NSEaux_error);
-		SystemMatrix->Assemble(sol, rhs);
 
 		/////////////////////////////////////////Monte Carlo//////////////////////////////////////
 		VtkBaseName = TDatabase::ParamDB->VTKBASENAME;
@@ -546,8 +543,10 @@ int main(int argc, char *argv[])
 
 		Output->AddFEVectFunct(Velocity);
 		Output->AddFEFunction(Pressure);
+		for (int RealNo = 0; RealNo < N_Realisations; RealNo++)
+		{
 
-		 /// Realization Loop Begin
+			/// Realization Loop Begin
 			cout << " Divergence-free adjustment Real no " << RealNo << endl;
 			////////////////////////Divergence Free Adjustment - Run for one time step//////////////////////
 			// assemble M, A matrices and rhs
@@ -555,6 +554,24 @@ int main(int argc, char *argv[])
 			for (int i = 0; i < N_U; i++)
 				sol[i] = RealizationVector[RealNo + N_Realisations * i];
 
+			SystemMatrix->Assemble(sol, rhs);
+
+			if (TDatabase::ParamDB->WRITE_VTK)
+			{
+				os.seekp(std::ios::beg);
+				if (img < 10)
+					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_MC" << std::to_string(RealNo) << ".vtk" << ends;
+				else if (img < 100)
+					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_MC" << std::to_string(RealNo) << ".vtk" << ends;
+				else if (img < 1000)
+					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_MC" << std::to_string(RealNo) << ".vtk" << ends;
+				else if (img < 10000)
+					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_MC" << std::to_string(RealNo) << ".vtk" << ends;
+				else
+					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_MC" << std::to_string(RealNo) << ".vtk" << ends;
+				Output->WriteVtk(os.str().c_str());
+				;
+			}
 			//======================================================================
 			// time disc loop
 			//======================================================================
@@ -562,7 +579,7 @@ int main(int argc, char *argv[])
 			m = 0;
 			N_SubSteps = 2;
 			oldtau = 1.;
-			end_time = TDatabase::TimeDB->DF_ENDTIME;
+			end_time = 0.01;
 			limit = TDatabase::ParamDB->SC_NONLIN_RES_NORM_MIN_SADDLE;
 			Max_It = TDatabase::ParamDB->SC_NONLIN_MAXIT_SADDLE;
 			memset(AllErrors, 0, 7. * SizeOfDouble);
@@ -587,7 +604,7 @@ int main(int argc, char *argv[])
 						// OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
 					}
 
-					tau = TDatabase::TimeDB->DF_TIMESTEPLENGTH;
+					tau = 0.005;
 					TDatabase::TimeDB->CURRENTTIME += tau;
 
 					// OutPut(endl
@@ -679,28 +696,29 @@ int main(int argc, char *argv[])
 					SystemMatrix->RestoreMassMat();
 
 				} // for(l=0;l<N_SubSteps;
+				if (TDatabase::ParamDB->WRITE_VTK)
+				{
+					os.seekp(std::ios::beg);
+					if (img < 10)
+						os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_DF" << std::to_string(RealNo) << ".vtk" << ends;
+					else if (img < 100)
+						os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_DF" << std::to_string(RealNo) << ".vtk" << ends;
+					else if (img < 1000)
+						os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_DF" << std::to_string(RealNo) << ".vtk" << ends;
+					else if (img < 10000)
+						os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_DF" << std::to_string(RealNo) << ".vtk" << ends;
+					else
+						os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_DF" << std::to_string(RealNo) << ".vtk" << ends;
+					Output->WriteVtk(os.str().c_str());
+					;
+				}
 
 			} // while(TDatabase::TimeDB->CURRENTTIME< e
 
 			//======================================================================
 			// produce final outout
 			//======================================================================
-			if (TDatabase::ParamDB->WRITE_VTK)
-			{
-				os.seekp(std::ios::beg);
-				if (img < 10)
-					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_" << std::to_string(RealNo) << ".vtk" << ends;
-				else if (img < 100)
-					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_" << std::to_string(RealNo) << ".vtk" << ends;
-				else if (img < 1000)
-					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_" << std::to_string(RealNo) << ".vtk" << ends;
-				else if (img < 10000)
-					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_" << std::to_string(RealNo) << ".vtk" << ends;
-				else
-					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_" << std::to_string(RealNo) << ".vtk" << ends;
-				Output->WriteVtk(os.str().c_str());
-				;
-			}
+
 			TDatabase::TimeDB->CURRENTTIME = 0.0;
 			// for (int i = 0; i < N_U; i++)
 			// 	RealizationVector[RealNo + N_Realisations * i] = sol[i];
@@ -710,7 +728,6 @@ int main(int argc, char *argv[])
 	}
 	//
 	cout << "Divergence free adjustment done" << endl;
-
 	////////////////////////////////////// -------- START OF DO INITIALIZATION ------------ ////////////////////////////////////////////////////////////////
 
 	double *MeanVector = new double[N_U * 1](); // overline{C}_{dof} = \sum_{i=1}^{N_Realisations}(C^{i}_{dof})/N_Realisations
@@ -1260,7 +1277,8 @@ int main(int argc, char *argv[])
 			modeimg[sd]++;
 		}
 	}
-
+cout << "Before First Time Step" << endl;
+exit(0);
 	//======================================================================
 	// time disc loop
 	//======================================================================
