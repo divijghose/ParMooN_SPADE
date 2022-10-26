@@ -1,5 +1,5 @@
 /**
- * @file TLA2D_ParMooN_IVUQ_DO_Test.C
+ * @file TLA2D_ParMooN_IVUQ_DO_Validation.C
  * @brief Purpose:     Main program for scalar equations with new
  *                     kernels of ParMooN, for solution of
  *                     time-dependent linear advection equation
@@ -14,7 +14,8 @@
  * @author Divij Ghose
  * @author Thivin Anandh
 
- *
+ *@bug Stochastic Normalization of Modes for inner product -
+       The inner product in the finite element calculation doesn't produce the same inner product matrix as the vector sense, the modes have to be normalized for this *Divij - 01/08/22*
  */
 
 // =======================================================================
@@ -65,7 +66,7 @@
 // =======================================================================
 // include current example
 // =======================================================================
-#include "../Examples/DO_UQ/linear_advection_do_test.h"
+#include "../../Examples/DO_UQ/convection_diffusion_do_validation.h"
 
 int main(int argc, char *argv[])
 {
@@ -75,15 +76,11 @@ int main(int argc, char *argv[])
     double *sol, *rhs, *oldrhs, t1, t2, errors[5], Linfty;
     double tau, end_time, *defect, olderror, olderror1, hmin, hmax;
 
-    double *solMean, *rhsMean, *old_rhsMean;
-
     bool UpdateStiffnessMat, UpdateRhs, ConvectionFirstTime;
 
     char *VtkBaseName;
     char *VtkBaseNameMean;
     char *VtkBaseNameMode;
-
-    const char vtkdir[] = "VTK";
 
     TDomain *Domain;
     TDatabase *Database = new TDatabase();
@@ -153,18 +150,36 @@ int main(int argc, char *argv[])
         Domain->PS("Domain.ps", It_Finest, 0);
 
     // create output directory, if not already existing
-    mkdir(vtkdir, 0777);
+
+    const char vtkdir[] = "VTK";
     const char modedir[] = "Modes";
     const char meandir[] = "Mean";
     const char coeffdir[] = "Coefficients";
     const char mcdir[] = "MonteCarlo";
     const char endir[] = "Energy_Data";
 
+    mkdir(vtkdir, 0777);
     mkdir(meandir, 0777);
     mkdir(modedir, 0777);
     mkdir(coeffdir, 0777);
     mkdir(mcdir, 0777);
     mkdir(endir, 0777);
+
+    const char dir1[] = "MonteCarlo/Mean";
+    const char dir2[] = "MonteCarlo/MeanPlusSigma";
+    const char dir3[] = "MonteCarlo/MeanMinusSigma";
+    const char dir4[] = "MonteCarlo/MeanPlus2Sigma";
+    const char dir5[] = "MonteCarlo/MeanMinus2Sigma";
+    const char dir6[] = "MonteCarlo/MeanPlus3Sigma";
+    const char dir7[] = "MonteCarlo/MeanMinus3Sigma";
+
+    mkdir(dir1, 0777);
+    mkdir(dir2, 0777);
+    mkdir(dir3, 0777);
+    mkdir(dir4, 0777);
+    mkdir(dir5, 0777);
+    mkdir(dir6, 0777);
+    mkdir(dir7, 0777);
 
     //=========================================================================
     // construct all finite element spaces
@@ -283,10 +298,18 @@ int main(int argc, char *argv[])
                     double disp = TDatabase::ParamDB->stddev_disp;
                     double power = TDatabase::ParamDB->stddev_power;
                     double pi = M_PI;
-                    double sig_r1 = ((exp(-1.0 * pow((2 * actual_x - 1 - disp), power) / (E))) / (2 * pi * sqrt(E))) * ((exp(-1.0 * pow((2 * actual_y - 1 - disp), power) / (E))) / (2 * pi * sqrt(E)));
-                    double sig_r2 = ((exp(-1.0 * pow((2 * local_x - 1 - disp), power) / (E))) / (2 * pi * sqrt(E))) * ((exp(-1.0 * pow((2 * local_y - 1 - disp), power)) / (E)) / (2 * pi * sqrt(E)));
+                    double sig_r1 = (exp(-1.0 * pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * pi * sqrt(E))) * (exp(-1.0 * pow((2 * actual_y - 1 - disp), power) / (E)) / (2 * pi * sqrt(E)));
+                    double sig_r2 = (exp(-1.0 * pow((2 * local_x - 1 - disp), power) / (E)) / (2 * pi * sqrt(E))) * (exp(-1.0 * pow((2 * local_y - 1 - disp), power) / (E)) / (2 * pi * sqrt(E)));
                     // Co Variance
                     C[i * N_DOF + j] *= sig_r1 * sig_r2;
+                }
+
+                else if (TDatabase::ParamDB->stddev_switch == 2)
+                {
+
+                    double sig_r1 = sin(-1.0 * Pi * (2 * actual_x - 2)) * sin(-1.0 * Pi * (2 * actual_y - 2));
+                    double sig_r2 = sin(-1.0 * Pi * (2 * local_x - 2)) * sin(-1.0 * Pi * (2 * local_y - 2));
+                    C[j * N_DOF + i] *= sig_r1 * sig_r2;
                 }
 
                 else
@@ -435,9 +458,6 @@ int main(int argc, char *argv[])
     /////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////// -------- START OF DO INITIALIZATION ------------ ////////////////////////////////////////////////////////////////
-    const char do_init_dir[] = "DO_Initialization";
-
-    mkdir(do_init_dir, 0777);
 
     double *MeanVector = new double[N_DOF * 1](); // overline{C}_{dof} = \sum_{i=1}^{N_Realisations}(C^{i}_{dof})/N_Realisations
     for (int i = 0; i < N_DOF; ++i)
@@ -448,11 +468,7 @@ int main(int argc, char *argv[])
         }
     }
 
-<<<<<<< HEAD
     printToTxt("Mean.txt", MeanVector, N_DOF, 1, 'C');
-=======
-    printToTxt("DO_Initialization/Mean.txt", MeanVector, N_DOF, 1, 'C');
->>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
     double *PerturbationVector = new double[N_DOF * N_Realisations](); // \hat{C}^{i}_{dof} = C^{i}_{dof} - \overline{C}_{dof}
     for (int i = 0; i < N_DOF; ++i)
@@ -463,12 +479,7 @@ int main(int argc, char *argv[])
         }
     }
 
-<<<<<<< HEAD
-    std::string fileoutPert = "PerturbationVector.txt";
-=======
-    std::string fileoutPert = "DO_Initialization/PerturbationVector.txt";
->>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
-    printToTxt(fileoutPert, PerturbationVector, N_DOF, N_Realisations, 'R');
+    printToTxt("PerturbationVector.txt", PerturbationVector, N_DOF, N_Realisations, 'R');
 
     //================================================================================================
     /////////////////////////////DO - Initialization SVD//////////////////////////////////////////////
@@ -551,17 +562,9 @@ int main(int argc, char *argv[])
             CoeffVector[j * N_Realisations + i] = ProjectionVector[i * minDim + j]; // CoeffVector in Col Major form
         }
     }
-<<<<<<< HEAD
     printToTxt("Coeff.txt", CoeffVector, N_Realisations, subDim, 'C');
-=======
-    printToTxt("DO_Initialization/Coeff.txt", CoeffVector, N_Realisations, subDim, 'C');
->>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
     ////////////Initialize Mode Vector - First subDim columns of Left Singular Vector//////////////////
-    std::string fileoutCoeff;
-    std::string fileoutMean;
-    std::string fileoutMode;
-    std::string fileoutMC;
 
     double *ModeVector = new double[N_DOF * subDim]();
 
@@ -572,11 +575,14 @@ int main(int argc, char *argv[])
             ModeVector[j * N_DOF + i] = L[i * minDim + j]; // ModeVector in Col Major form
         }
     }
-<<<<<<< HEAD
     printToTxt("Mode.txt", ModeVector, N_DOF, subDim, 'C');
 
-    const char ip[] = "IPMatrices";
-    mkdir(ip, 0777);
+    const char ipdir[] = "IPMatrices";
+    mkdir(ipdir, 0777);
+    const char ipmean[] = "IPMatrices/Mean";
+    mkdir(ipmean, 0777);
+    const char ipmode[] = "IPMatrices/Mode";
+    mkdir(ipmode, 0777);
 
     double *IPMatxMode = new double[subDim * subDim]();
     double *IPMatxMean = new double[1 * 1]();
@@ -592,13 +598,6 @@ int main(int argc, char *argv[])
 
     m = 0;
 
-=======
-    printToTxt("DO_Initialization/Mode.txt", ModeVector, N_DOF, subDim, 'C');
-
-    ////////////////////////////////////////////DO - Initialization Ends//////////////////////////////////////
-    ///////================================================================================//////////////////
-
->>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
     // double *ModeVector = new double[N_DOF * subDim]();
 
     delete[] PerturbationVector;
@@ -607,33 +606,18 @@ int main(int argc, char *argv[])
     delete[] L;
     delete[] Rt;
     delete[] ProjectionVector;
-<<<<<<< HEAD
-=======
-    exit(0);
->>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
     //======================================================================
     // construct all finite element functions
     //======================================================================
-    sol = new double[N_DOF];
-    rhs = new double[N_DOF];
-    oldrhs = new double[N_DOF];
+    sol = new double[N_DOF]();
+    rhs = new double[N_DOF]();
+    oldrhs = new double[N_DOF]();
 
-    memset(sol, 0, N_DOF * SizeOfDouble);
-    memset(rhs, 0, N_DOF * SizeOfDouble);
-    memset(oldrhs, 0, N_DOF * SizeOfDouble);
-
+    double *solMean, *rhsMean, *old_rhsMean;
     solMean = new double[N_DOF]();
     rhsMean = new double[N_DOF]();
     old_rhsMean = new double[N_DOF]();
-    Scalar_FeFunction_Mean = new TFEFunction2D(Scalar_FeSpace, (char *)"C_Mean", (char *)"sol", solMean, N_DOF);
-    // Scalar_FeFunction_Mean->Interpolate(InitialCondition);
-    for (int i = 0; i < N_DOF; i++)
-    {
-        solMean[i] = MeanVector[i];
-    }
-
-    printToTxt("DO_Initialization/solMean.txt", solMean, N_DOF, 1, 'C');
 
     double *solModeAll, *rhsModeAll, *oldsolModeAll, *oldrhsModeAll;
     solModeAll = new double[N_DOF * subDim]();
@@ -641,20 +625,19 @@ int main(int argc, char *argv[])
     oldsolModeAll = new double[N_DOF]();
     oldrhsModeAll = new double[N_DOF]();
 
+    Scalar_FeFunction_Mean = new TFEFunction2D(Scalar_FeSpace, (char *)"C_Mean", (char *)"Mean Solution", solMean, N_DOF);
+
     TFEFunction2D **Scalar_FeFunction_ModeAll = new TFEFunction2D *[subDim];
     for (int s = 0; s < subDim; s++)
     {
         Scalar_FeFunction_ModeAll[s] = new TFEFunction2D(Scalar_FeSpace, (char *)"C_Mode", (char *)"Mode Solution", solModeAll + s * N_DOF, N_DOF);
         // Scalar_FeFunction_ModeAll[s]->Interpolate(InitialCondition);
-<<<<<<< HEAD
     }
 
     // Scalar_FeFunction_Mean->Interpolate(InitialCondition);
     for (int i = 0; i < N_DOF; i++)
     {
         solMean[i] = MeanVector[i];
-=======
->>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
     }
 
     for (int j = 0; j < subDim; j++)
@@ -664,7 +647,6 @@ int main(int argc, char *argv[])
             solModeAll[j * N_DOF + i] = ModeVector[j * N_DOF + i];
         }
     }
-    printToTxt("DO_Initialization/solModeAll.txt", solModeAll, N_DOF, subDim, 'C');
 
     //======================================================================
     // /DO - SystemMatrix construction and solution
@@ -703,7 +685,7 @@ int main(int argc, char *argv[])
     //------------------------------------------ CO EFFICIENT EQUATION SETUP -----------------------------------------------------//
     // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
 
-    TFEVectFunct2D *FeVector_Coefficient = new TFEVectFunct2D(Scalar_FeSpace, (char *)"sol", (char *)"sol", CoeffVector, N_Realisations, subDim);
+    TFEVectFunct2D *FeVector_Coefficient = new TFEVectFunct2D(Scalar_FeSpace, (char *)"Phi", (char *)"Coefficients", CoeffVector, N_Realisations, subDim);
 
     // -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0---0-0--0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0--00-0-0-0-0-0-0-0-0-0-0-0--0-0-0-0-//
     //------------------------------------------ CO EFFICIENT EQUATION SETUP END -------------------------------------------------------//
@@ -730,7 +712,10 @@ int main(int argc, char *argv[])
         }
     }
 
-    TFEVectFunct2D *FEFVector_Mode = new TFEVectFunct2D(Scalar_FeSpace, (char *)"C_Mode", (char *)"sol", solMode, N_DOF, subDim);
+    TFEVectFunct2D *FEFVector_Mode = new TFEVectFunct2D(Scalar_FeSpace, (char *)"C_Mode", (char *)"Mode Solution", solMode, N_DOF, subDim);
+
+    double *stochNormModes = new double[N_DOF * subDim]();
+    TFEVectFunct2D *FEFVector_StochNormMode = new TFEVectFunct2D(Scalar_FeSpace, (char *)"StochNormMode", (char *)"Stochastic Normalized Modes", stochNormModes, N_DOF, subDim);
 
     int TimeLinear_FESpaces_DO = 1;
     int TimeLinear_Fct_DO = 1; // \tilde(C)
@@ -803,6 +788,7 @@ int main(int argc, char *argv[])
         OutputMean->WriteVtk(os.str().c_str());
         meanimg++;
     }
+
     for (int s = 0; s < subDim; s++)
     {
         std::string filenameMode = "Mode_" + std::to_string(s) + "_NRealisations_" + std::to_string(N_Realisations);
@@ -846,90 +832,36 @@ int main(int argc, char *argv[])
     // time disc loop
     //======================================================================
     // parameters for time stepping scheme
+    m = 0;
+    std::string fileoutCoeff;
+    std::string fileoutMean;
+    std::string fileoutMode;
+    std::string fileoutMC;
+    std::string meanBaseName = "Mean/Mean_NRealisations_";
+    std::string modeBaseName = "Modes/Mode_NRealisations_";
+    std::string coeffBaseName = "Coefficients/Coeff_NRealisations_";
+    std::string IPModeBaseName = "IPMatrices/Mode/IPMode_NRealisations_";
+    std::string IPMeanBaseName = "IPMatrices/Mean/IPMean_NRealisations_";
 
-    if (m < 10)
-        fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-    else if (m < 100)
-        fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-    else if (m < 1000)
-        fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-    else if (m < 10000)
-        fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-    else
-        fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-
-<<<<<<< HEAD
-    printToTxt(fileoutMean, MeanVector, N_DOF, 1, 'C');
-=======
+    fileoutMean = generateFileName(meanBaseName, m, N_Realisations);
     printToTxt(fileoutMean, solMean, N_DOF, 1, 'C');
->>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
-    if (m < 10)
-        fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-    else if (m < 100)
-        fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-    else if (m < 1000)
-        fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-    else if (m < 10000)
-        fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-    else
-        fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-
-<<<<<<< HEAD
-    printToTxt(fileoutMode, ModeVector, N_DOF, subDim, 'C');
-=======
+    fileoutMode = generateFileName(modeBaseName, m, N_Realisations);
     printToTxt(fileoutMode, solModeAll, N_DOF, subDim, 'C');
->>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
-    if (m < 10)
-        fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-    else if (m < 100)
-        fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-    else if (m < 1000)
-        fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-    else if (m < 10000)
-        fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-    else
-        fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-
+    fileoutCoeff = generateFileName(coeffBaseName, m, N_Realisations);
     printToTxt(fileoutCoeff, CoeffVector, N_Realisations, subDim, 'C');
-<<<<<<< HEAD
 
     std::string fileoutIPMode;
     std::string fileoutIPMean;
-    if (m < 10)
-    {
-        fileoutIPMode = "IPMatrices/IPMode_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-        fileoutIPMean = "IPMatrices/IPMean_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-    }
-    else if (m < 100)
-    {
-        fileoutIPMode = "IPMatrices/IPMode_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-        fileoutIPMean = "IPMatrices/IPMean_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-    }
 
-    else if (m < 1000)
-    {
-        fileoutIPMode = "IPMatrices/IPMode_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-        fileoutIPMean = "IPMatrices/IPMean_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-    }
-    else if (m < 10000)
-    {
-        fileoutIPMode = "IPMatrices/IPMode_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-        fileoutIPMean = "IPMatrices/IPMean_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-    }
-    else
-    {
-        fileoutIPMode = "IPMatrices/IPMode_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-        fileoutIPMean = "IPMatrices/IPMean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-    }
+    fileoutIPMode = generateFileName(IPModeBaseName, m, N_Realisations);
     calcIPMatx(IPMatxMode, solModeAll, N_DOF, subDim, 'C');
     printToTxt(fileoutIPMode, IPMatxMode, subDim, subDim, 'R');
 
+    fileoutIPMean = generateFileName(IPMeanBaseName, m, N_Realisations);
     calcIPMatx(IPMatxMean, solMean, N_DOF, 1, 'C');
     printToTxt(fileoutIPMean, IPMatxMean, 1, 1, 'R');
-=======
->>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
     TDatabase::ParamDB->N_Subspace_Dim = subDim;
 
@@ -940,76 +872,42 @@ int main(int argc, char *argv[])
     std::string fileoutMFE;
     std::string fileoutOrtho;
     std::string fileoutprincVar;
-
     std::ofstream fileMFE;
     std::ofstream fileOrtho;
     std::ofstream fileprincVar;
-    double *mfe = new double[(subDim * subDim) + 1]();
-    double *princVariances = new double[subDim]();
 
-    memset(mfe, 0, ((subDim * subDim) + 1) * SizeOfDouble);
-    calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean, FEFVector_Mode, mfe, subDim);
+    const char mfedir[] = "Energy_Data/MFE";
+    mkdir(mfedir, 0777);
+
+    const char ipfedir[] = "Energy_Data/IPModeFE";
+    mkdir(ipfedir, 0777);
+
+    const char pvdir[] = "Energy_Data/PV";
+    mkdir(pvdir, 0777);
+
+    std::string orthoBaseName = "Energy_Data/IPModeFE/Ortho_NRealisations_";
+    std::string mfeBaseName = "Energy_Data/MFE/MFE_NRealisations_";
+    std::string princVarBaseName = "Energy_Data/PV/PrincVariances_NRealisations_";
+
+    double *modeOrtho = new double[subDim * subDim]();
+    double *princVariances = new double[subDim]();
+    double mfe = 0;
+
+    memset(modeOrtho, 0, (subDim * subDim) * SizeOfDouble);
+    mfe = calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean);
 
     calc_princVariance(princVariances, subDim);
 
-    if (m < 10)
-        fileoutMFE = "Energy_Data/MFE_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-    else if (m < 100)
-        fileoutMFE = "Energy_Data/MFE_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-    else if (m < 1000)
-        fileoutMFE = "Energy_Data/MFE_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-    else if (m < 10000)
-        fileoutMFE = "Energy_Data/MFE_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-    else
-        fileoutMFE = "Energy_Data/MFE_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
+    fileoutMFE = generateFileName(mfeBaseName, m, N_Realisations);
+    printToTxt(fileoutMFE, &mfe, 1, 1, 'R');
 
-    fileMFE.open(fileoutMFE);
+    fileoutOrtho = generateFileName(orthoBaseName, m, N_Realisations);
+    calc_ModeOrtho(Scalar_FeSpace, FEFVector_Mode, subDim, modeOrtho);
+    printToTxt(fileoutOrtho, modeOrtho, subDim, subDim, 'R');
 
-    fileMFE << mfe[0] << endl;
-    fileMFE.close();
+    fileoutprincVar = generateFileName(princVarBaseName, m, N_Realisations);
+    printToTxt(fileoutprincVar, princVariances, subDim, 1, 'R');
 
-    if (m < 10)
-        fileoutOrtho = "Energy_Data/Ortho_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-    else if (m < 100)
-        fileoutOrtho = "Energy_Data/Ortho_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-    else if (m < 1000)
-        fileoutOrtho = "Energy_Data/Ortho_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-    else if (m < 10000)
-        fileoutOrtho = "Energy_Data/Ortho_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-    else
-        fileoutOrtho = "Energy_Data/Ortho_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-
-    fileOrtho.open(fileoutOrtho);
-    for (int i = 0; i < subDim; i++)
-    {
-        for (int j = 0; j < subDim; j++)
-        {
-            fileOrtho << mfe[i + subDim * j + 1];
-            if (j != subDim - 1)
-                fileOrtho << ",";
-        }
-        fileOrtho << endl;
-    }
-
-    fileOrtho.close();
-
-    if (m < 10)
-        fileoutprincVar = "Energy_Data/PrincVariances_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-    else if (m < 100)
-        fileoutprincVar = "Energy_Data/PrincVariances_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-    else if (m < 1000)
-        fileoutprincVar = "Energy_Data/PrincVariances_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-    else if (m < 10000)
-        fileoutprincVar = "Energy_Data/PrincVariances_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-    else
-        fileoutprincVar = "Energy_Data/PrincVariances_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-
-    fileprincVar.open(fileoutprincVar);
-    for (int i = 0; i < subDim; i++)
-    {
-        fileprincVar << princVariances[i] << endl;
-    }
-    fileprincVar.close();
     // xxxxxx
     N_SubSteps = GetN_SubSteps();
     end_time = TDatabase::TimeDB->ENDTIME;
@@ -1021,6 +919,7 @@ int main(int argc, char *argv[])
     // time loop starts
     while (TDatabase::TimeDB->CURRENTTIME < end_time)
     {
+
         m++;
         TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
 
@@ -1049,184 +948,78 @@ int main(int argc, char *argv[])
             // unless the stiffness matrix or rhs change in time, it is enough to
             // assemble only once at the begning
             SystemMatrix_Mean->AssembleARhs(NULL, solMean, rhsMean);
-
-            for (int subSpaceNum = 0; subSpaceNum < subDim; subSpaceNum++)
-            {
-                // solve the system matrix
-                DO_CoEfficient(Scalar_FeSpace, FEFVector_Mode, FeVector_Coefficient, subDim, subSpaceNum, N_Realisations);
-
-                memcpy(old_rhsMode, rhsModeAll + subSpaceNum * N_DOF, N_DOF * SizeOfDouble);
-
-                SystemMatrix_ModeAll[subSpaceNum]->AssembleARhs(NULL, solModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF);
-
-                // get the UPDATED RHS VALUE FROM FUNCTION
-                DO_Mode_RHS(Scalar_FeSpace, FEFVector_Mode, subDim, rhsModeAll + subSpaceNum * N_DOF, subSpaceNum);
-
-                SystemMatrix_ModeAll[subSpaceNum]->AssembleSystMat(old_rhsMode, solModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF, solModeAll + subSpaceNum * N_DOF);
-                SystemMatrix_ModeAll[subSpaceNum]->Solve(solModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF);
-                SystemMatrix_ModeAll[subSpaceNum]->RestoreMassMat();
-
-            } // subSpaceNumLoop
-
             SystemMatrix_Mean->AssembleSystMat(old_rhsMean, solMean, rhsMean, solMean);
             ////  --
             SystemMatrix_Mean->Solve(solMean, rhsMean);
             SystemMatrix_Mean->RestoreMassMat();
 
+            for (int subSpaceNum = 0; subSpaceNum < subDim; subSpaceNum++)
+            {
+                // solve the system matrix
+
+                memcpy(old_rhsMode, rhsModeAll + subSpaceNum * N_DOF, N_DOF * SizeOfDouble);
+                memcpy(oldsolModeAll, solModeAll + subSpaceNum * N_DOF, N_DOF * SizeOfDouble);
+
+                SystemMatrix_ModeAll[subSpaceNum]->AssembleARhs(NULL, solModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF);
+                double *rhsNewAll = new double[N_DOF * subDim]();
+                // get the UPDATED RHS VALUE FROM FUNCTION
+
+                normalizeStochasticModes(Scalar_FeSpace, FEFVector_Mode, subDim, stochNormModes); // normalize modes for inner product
+                DO_Mode_RHS(Scalar_FeSpace, FEFVector_StochNormMode, subDim, rhsModeAll + subSpaceNum * N_DOF, subSpaceNum);
+
+                cout << "Norm of Rhs : " << Ddot(N_DOF, rhsModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF) << endl;
+
+                SystemMatrix_ModeAll[subSpaceNum]->AssembleSystMat(old_rhsMode, solModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF, solModeAll + subSpaceNum * N_DOF);
+
+                SystemMatrix_ModeAll[subSpaceNum]->Solve(solModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF);
+
+                SystemMatrix_ModeAll[subSpaceNum]->RestoreMassMat();
+
+                DO_CoEfficient(Scalar_FeSpace, FEFVector_StochNormMode, FeVector_Coefficient, subDim, subSpaceNum, N_Realisations);
+
+            } // subSpaceNumLoop
+
             // restore the mass matrix for the next time step
             // unless the stiffness matrix or rhs change in time, it is not necessary to assemble the system matrix in every time step
 
         } // for(l=0;l< N_SubSteps;l++)
+        // reorthonormalizeB(solModeAll, CoeffVector, N_DOF, subDim, N_Realisations);
+        reorthonormalizeC(solModeAll, N_DOF, subDim);
 
         //======================================================================
         // produce outout
         //======================================================================
 
-        if (m < 10)
-            fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-        else if (m < 100)
-            fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-        else if (m < 1000)
-            fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-        else if (m < 10000)
-            fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-        else
-            fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-
-<<<<<<< HEAD
-        printToTxt(fileoutMean, MeanVector, N_DOF, 1, 'C');
-=======
+        fileoutMean = generateFileName(meanBaseName, m, N_Realisations);
         printToTxt(fileoutMean, solMean, N_DOF, 1, 'C');
->>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
-        if (m < 10)
-            fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-        else if (m < 100)
-            fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-        else if (m < 1000)
-            fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-        else if (m < 10000)
-            fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-        else
-            fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-
-<<<<<<< HEAD
-        printToTxt(fileoutMode, ModeVector, N_DOF, subDim, 'C');
-=======
+        fileoutMode = generateFileName(modeBaseName, m, N_Realisations);
         printToTxt(fileoutMode, solModeAll, N_DOF, subDim, 'C');
->>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
-        if (m < 10)
-            fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-        else if (m < 100)
-            fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-        else if (m < 1000)
-            fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-        else if (m < 10000)
-            fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-        else
-            fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-<<<<<<< HEAD
-        //
-=======
->>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
-
+        fileoutCoeff = generateFileName(coeffBaseName, m, N_Realisations);
         printToTxt(fileoutCoeff, CoeffVector, N_Realisations, subDim, 'C');
 
-        memset(mfe, 0, ((subDim * subDim) + 1) * SizeOfDouble);
-        calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean, FEFVector_Mode, mfe, subDim);
+        memset(modeOrtho, 0, (subDim * subDim) * SizeOfDouble);
+        mfe = calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean);
         CalcCovarianceMatx(CoeffVector);
 
         calc_princVariance(princVariances, subDim);
 
-        if (m < 10)
-            fileoutMFE = "Energy_Data/MFE_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-        else if (m < 100)
-            fileoutMFE = "Energy_Data/MFE_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-        else if (m < 1000)
-            fileoutMFE = "Energy_Data/MFE_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-        else if (m < 10000)
-            fileoutMFE = "Energy_Data/MFE_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-        else
-            fileoutMFE = "Energy_Data/MFE_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
+        fileoutMFE = generateFileName(mfeBaseName, m, N_Realisations);
+        printToTxt(fileoutMFE, &mfe, 1, 1, 'R');
 
-        fileMFE.open(fileoutMFE);
+        fileoutOrtho = generateFileName(orthoBaseName, m, N_Realisations);
+        calc_ModeOrtho(Scalar_FeSpace, FEFVector_Mode, subDim, modeOrtho);
+        printToTxt(fileoutOrtho, modeOrtho, subDim, subDim, 'R');
 
-        fileMFE << mfe[0] << endl;
-        fileMFE.close();
+        fileoutprincVar = generateFileName(princVarBaseName, m, N_Realisations);
+        printToTxt(fileoutprincVar, princVariances, subDim, 1, 'R');
 
-        if (m < 10)
-            fileoutOrtho = "Energy_Data/Ortho_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-        else if (m < 100)
-            fileoutOrtho = "Energy_Data/Ortho_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-        else if (m < 1000)
-            fileoutOrtho = "Energy_Data/Ortho_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-        else if (m < 10000)
-            fileoutOrtho = "Energy_Data/Ortho_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-        else
-            fileoutOrtho = "Energy_Data/Ortho_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-
-        fileOrtho.open(fileoutOrtho);
-        for (int i = 0; i < subDim; i++)
-        {
-            for (int j = 0; j < subDim; j++)
-            {
-                fileOrtho << mfe[i + subDim * j + 1];
-                if (j != subDim - 1)
-                    fileOrtho << ",";
-            }
-            fileOrtho << endl;
-        }
-
-        fileOrtho.close();
-
-        if (m < 10)
-            fileoutprincVar = "Energy_Data/PrincVariances_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-        else if (m < 100)
-            fileoutprincVar = "Energy_Data/PrincVariances_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-        else if (m < 1000)
-            fileoutprincVar = "Energy_Data/PrincVariances_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-        else if (m < 10000)
-            fileoutprincVar = "Energy_Data/PrincVariances_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-        else
-            fileoutprincVar = "Energy_Data/PrincVariances_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-
-        fileprincVar.open(fileoutprincVar);
-        for (int i = 0; i < subDim; i++)
-        {
-            fileprincVar << princVariances[i] << endl;
-        }
-        fileprincVar.close();
-
-        if (m < 10)
-        {
-            fileoutIPMode = "IPMatrices/IPMode_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-            fileoutIPMean = "IPMatrices/IPMean_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-        }
-        else if (m < 100)
-        {
-            fileoutIPMode = "IPMatrices/IPMode_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-            fileoutIPMean = "IPMatrices/IPMean_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-        }
-
-        else if (m < 1000)
-        {
-            fileoutIPMode = "IPMatrices/IPMode_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-            fileoutIPMean = "IPMatrices/IPMean_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-        }
-        else if (m < 10000)
-        {
-            fileoutIPMode = "IPMatrices/IPMode_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-            fileoutIPMean = "IPMatrices/IPMean_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-        }
-        else
-        {
-            fileoutIPMode = "IPMatrices/IPMode_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-            fileoutIPMean = "IPMatrices/IPMean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-        }
+        fileoutIPMode = generateFileName(IPModeBaseName, m, N_Realisations);
         calcIPMatx(IPMatxMode, solModeAll, N_DOF, subDim, 'C');
         printToTxt(fileoutIPMode, IPMatxMode, subDim, subDim, 'R');
 
+        fileoutIPMean = generateFileName(IPMeanBaseName, m, N_Realisations);
         calcIPMatx(IPMatxMean, solMean, N_DOF, 1, 'C');
         printToTxt(fileoutIPMean, IPMatxMean, 1, 1, 'R');
 
@@ -1297,147 +1090,39 @@ int main(int argc, char *argv[])
             OutPut("Linfty " << Linfty << endl);
         } //  if(TDatabase::ParamDB->MEASURE_ERRORS)
 
+        memcpy(solMode, solModeAll, N_DOF * subDim * SizeOfDouble);
     } // while(TDatabase::TimeDB->CURRENTTIME< end_time)
 
     //======================================================================
     // produce final outout
     //======================================================================
-    if (m < 10)
-        fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-    else if (m < 100)
-        fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-    else if (m < 1000)
-        fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-    else if (m < 10000)
-        fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-    else
-        fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-
-<<<<<<< HEAD
-    printToTxt(fileoutMean, MeanVector, N_DOF, 1, 'C');
-=======
+    fileoutMean = generateFileName(meanBaseName, m, N_Realisations);
     printToTxt(fileoutMean, solMean, N_DOF, 1, 'C');
->>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
-    if (m < 10)
-        fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-    else if (m < 100)
-        fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-    else if (m < 1000)
-        fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-    else if (m < 10000)
-        fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-    else
-        fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-
-<<<<<<< HEAD
-    printToTxt(fileoutMode, ModeVector, N_DOF, subDim, 'C');
-=======
+    fileoutMode = generateFileName(modeBaseName, m, N_Realisations);
     printToTxt(fileoutMode, solModeAll, N_DOF, subDim, 'C');
->>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
 
-    if (m < 10)
-        fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-    else if (m < 100)
-        fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-    else if (m < 1000)
-        fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-    else if (m < 10000)
-        fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-    else
-        fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-
+    fileoutCoeff = generateFileName(coeffBaseName, m, N_Realisations);
     printToTxt(fileoutCoeff, CoeffVector, N_Realisations, subDim, 'C');
 
-    memset(mfe, 0, ((subDim * subDim) + 1) * SizeOfDouble);
-    calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean, FEFVector_Mode, mfe, subDim);
+    memset(modeOrtho, 0, (subDim * subDim) * SizeOfDouble);
+    mfe = calc_MeanFieldEnergy(Scalar_FeSpace, Scalar_FeFunction_Mean);
 
     CalcCovarianceMatx(CoeffVector);
 
     calc_princVariance(princVariances, subDim);
-    if (m < 10)
-        fileoutMFE = "Energy_Data/MFE_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-    else if (m < 100)
-        fileoutMFE = "Energy_Data/MFE_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-    else if (m < 1000)
-        fileoutMFE = "Energy_Data/MFE_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-    else if (m < 10000)
-        fileoutMFE = "Energy_Data/MFE_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-    else
-        fileoutMFE = "Energy_Data/MFE_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
 
-    fileMFE.open(fileoutMFE);
+    fileoutMFE = generateFileName(mfeBaseName, m, N_Realisations);
+    printToTxt(fileoutMFE, &mfe, 1, 1, 'R');
 
-    fileMFE << mfe[0] << endl;
-    fileMFE.close();
+    fileoutOrtho = generateFileName(orthoBaseName, m, N_Realisations);
+    calc_ModeOrtho(Scalar_FeSpace, FEFVector_Mode, subDim, modeOrtho);
+    printToTxt(fileoutOrtho, modeOrtho, subDim, subDim, 'R');
 
-    if (m < 10)
-        fileoutOrtho = "Energy_Data/Ortho_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-    else if (m < 100)
-        fileoutOrtho = "Energy_Data/Ortho_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-    else if (m < 1000)
-        fileoutOrtho = "Energy_Data/Ortho_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-    else if (m < 10000)
-        fileoutOrtho = "Energy_Data/Ortho_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-    else
-        fileoutOrtho = "Energy_Data/Ortho_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
+    fileoutprincVar = generateFileName(princVarBaseName, m, N_Realisations);
+    printToTxt(fileoutprincVar, princVariances, subDim, 1, 'R');
 
-    fileOrtho.open(fileoutOrtho);
-    for (int i = 0; i < subDim; i++)
-    {
-        for (int j = 0; j < subDim; j++)
-        {
-            fileOrtho << mfe[i + subDim * j + 1];
-            if (j != subDim - 1)
-                fileOrtho << ",";
-        }
-        fileOrtho << endl;
-    }
-
-    fileOrtho.close();
-    if (m < 10)
-        fileoutprincVar = "Energy_Data/PrincVariances_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-    else if (m < 100)
-        fileoutprincVar = "Energy_Data/PrincVariances_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-    else if (m < 1000)
-        fileoutprincVar = "Energy_Data/PrincVariances_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-    else if (m < 10000)
-        fileoutprincVar = "Energy_Data/PrincVariances_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-    else
-        fileoutprincVar = "Energy_Data/PrincVariances_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-
-    fileprincVar.open(fileoutprincVar);
-    for (int i = 0; i < subDim; i++)
-    {
-        fileprincVar << princVariances[i] << endl;
-    }
-    fileprincVar.close();
-    if (m < 10)
-    {
-        fileoutIPMode = "IPMatrices/IPMode_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-        fileoutIPMean = "IPMatrices/IPMean_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(m) + ".txt";
-    }
-    else if (m < 100)
-    {
-        fileoutIPMode = "IPMatrices/IPMode_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-        fileoutIPMean = "IPMatrices/IPMean_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(m) + ".txt";
-    }
-
-    else if (m < 1000)
-    {
-        fileoutIPMode = "IPMatrices/IPMode_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-        fileoutIPMean = "IPMatrices/IPMean_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(m) + ".txt";
-    }
-    else if (m < 10000)
-    {
-        fileoutIPMode = "IPMatrices/IPMode_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-        fileoutIPMean = "IPMatrices/IPMean_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(m) + ".txt";
-    }
-    else
-    {
-        fileoutIPMode = "IPMatrices/IPMode_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-        fileoutIPMean = "IPMatrices/IPMean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(m) + ".txt";
-    }
+    fileoutIPMode = generateFileName(IPModeBaseName, m, N_Realisations);
     calcIPMatx(IPMatxMode, solModeAll, N_DOF, subDim, 'C');
     printToTxt(fileoutIPMode, IPMatxMode, subDim, subDim, 'R');
 
@@ -1483,7 +1168,7 @@ int main(int argc, char *argv[])
     }
 
     cout << "Subspace Dimension = " << subDim << endl;
-<<<<<<< HEAD
+
     TDatabase::TimeDB->CURRENTTIME = 0;
     std::string PyInFile = "PyIn.txt";
 
@@ -1495,11 +1180,6 @@ int main(int argc, char *argv[])
 
     CloseFiles();
 
-=======
-    exit(0);
-
-    
->>>>>>> 1e7659ae0e50d9d6c134d3a081c89398c31ecfaf
     double *RealizationVectorCopy = new double[N_DOF * N_Realisations]();
     memcpy(RealizationVectorCopy, RealizationVector, N_DOF * N_Realisations * SizeOfDouble);
 
@@ -1509,20 +1189,384 @@ int main(int argc, char *argv[])
     double *stdDevVectorMC = new double[N_DOF * 1]();
     calcStdDevRealization(RealizationVectorCopy, stdDevVectorMC, N_Realisations, N_DOF);
 
-    double *CompositeVector = new double[N_DOF * 7]();
+    double *CompositeVectorMC = new double[N_DOF * 7]();
     for (int i = 0; i < N_DOF; i++)
     {
-        CompositeVector[i] = MeanVectorMC[i];
-        CompositeVector[N_DOF + i] = MeanVectorMC[i] + stdDevVectorMC[i];
-        CompositeVector[2 * N_DOF + i] = MeanVectorMC[i] - stdDevVectorMC[i];
-        CompositeVector[3 * N_DOF + i] = MeanVectorMC[i] + (2 * stdDevVectorMC[i]);
-        CompositeVector[4 * N_DOF + i] = MeanVectorMC[i] - (2 * stdDevVectorMC[i]);
-        CompositeVector[5 * N_DOF + i] = MeanVectorMC[i] + (3 * stdDevVectorMC[i]);
-        CompositeVector[6 * N_DOF + i] = MeanVectorMC[i] - (3 * stdDevVectorMC[i]);
+        CompositeVectorMC[i] = MeanVectorMC[i];
+        CompositeVectorMC[N_DOF + i] = MeanVectorMC[i] + stdDevVectorMC[i];
+        CompositeVectorMC[2 * N_DOF + i] = MeanVectorMC[i] - stdDevVectorMC[i];
+        CompositeVectorMC[3 * N_DOF + i] = MeanVectorMC[i] + (2 * stdDevVectorMC[i]);
+        CompositeVectorMC[4 * N_DOF + i] = MeanVectorMC[i] - (2 * stdDevVectorMC[i]);
+        CompositeVectorMC[5 * N_DOF + i] = MeanVectorMC[i] + (3 * stdDevVectorMC[i]);
+        CompositeVectorMC[6 * N_DOF + i] = MeanVectorMC[i] - (3 * stdDevVectorMC[i]);
     }
 
     delete[] MeanVectorMC;
     delete[] stdDevVectorMC;
+    Scalar_FeFunction = new TFEFunction2D(Scalar_FeSpace, (char *)"sol", (char *)"sol", sol, N_DOF);
+
+    Output = new TOutput2D(2, 2, 1, 1, Domain);
+    Output->AddFEFunction(Scalar_FeFunction);
+    SystemMatrix = new TSystemTCD2D(Scalar_FeSpace, GALERKIN, DIRECT);
+
+    // initilize the system matrix with the functions defined in Example file
+    SystemMatrix->Init(BilinearCoeffs, BoundCondition, BoundValue);
+    int N_Composite = 7;
+    int *imgm = new int[7]();
+
+    for (int RealNo = 0; RealNo < N_Composite; RealNo++)
+    {
+        std::string filename;
+        std::string subfoldername;
+        cout << " ============================================================================================================= " << endl;
+        switch (RealNo)
+        {
+        case 0:
+            cout << "Solving for Mean Solution" << endl;
+            filename = "MonteCarlo_Mean_NR_";
+            subfoldername = "Mean/";
+            break;
+        case 1:
+            cout << "Solving for Mean + sigma Solution" << endl;
+            filename = "MonteCarlo_MeanPlusSigma_NR_";
+            subfoldername = "MeanPlusSigma/";
+            break;
+        case 2:
+            cout << "Solving for Mean - sigma Solution" << endl;
+            filename = "MonteCarlo_MeanMinusSigma_NR_";
+            subfoldername = "MeanMinusSigma/";
+            break;
+        case 3:
+            cout << "Solving for Mean + 2*sigma Solution" << endl;
+            filename = "MonteCarlo_MeanPlus2Sigma_NR_";
+            subfoldername = "MeanPlus2Sigma/";
+            break;
+        case 4:
+            cout << "Solving for Mean - 2*sigma Solution" << endl;
+            filename = "MonteCarlo_MeanMinus2Sigma_NR_";
+            subfoldername = "MeanMinus2Sigma/";
+            break;
+        case 5:
+            cout << "Solving for Mean + 3*sigma Solution" << endl;
+            filename = "MonteCarlo_MeanPlus3Sigma_NR_";
+            subfoldername = "MeanPlus3Sigma/";
+            break;
+        case 6:
+            cout << "Solving for Mean - 3*sigma Solution" << endl;
+            filename = "MonteCarlo_MeanMinus3Sigma_NR_";
+            subfoldername = "MeanMinus3Sigma/";
+            break;
+        }
+        cout << " ============================================================================================================= " << endl;
+
+        // Scalar_FeFunction->Interpolate(InitialCondition);
+        std::string str = std::to_string(RealNo);
+
+        VtkBaseName = const_cast<char *>(filename.c_str());
+
+        for (int i = 0; i < N_DOF; i++)
+            sol[i] = CompositeVectorMC[i + RealNo * N_DOF];
+
+        os.seekp(std::ios::beg);
+        if (imgm[RealNo] < 10)
+            os << "VTK"
+               << "/" << VtkBaseName << ".0000" << imgm[RealNo] << ".vtk" << ends;
+        else if (imgm[RealNo] < 100)
+            os << "VTK"
+               << "/" << VtkBaseName << ".000" << imgm[RealNo] << ".vtk" << ends;
+        else if (imgm[RealNo] < 1000)
+            os << "VTK"
+               << "/" << VtkBaseName << ".00" << imgm[RealNo] << ".vtk" << ends;
+        else if (imgm[RealNo] < 10000)
+            os << "VTK"
+               << "/" << VtkBaseName << ".0" << imgm[RealNo] << ".vtk" << ends;
+        else
+            os << "VTK"
+               << "/" << VtkBaseName << "." << imgm[RealNo] << ".vtk" << ends;
+        Output->WriteVtk(os.str().c_str());
+
+        fileoutMC = generateFileName("MonteCarlo/" + subfoldername + filename, imgm[RealNo], N_Realisations);
+        printToTxt(fileoutMC, sol, N_DOF, 1, 'C');
+        imgm[RealNo]++;
+
+        // assemble the system matrix with given aux, sol and rhs
+        // aux is used to pass  addition fe functions (eg. mesh velocity) that is nedded for assembling,
+        // otherwise, just pass with NULL
+        SystemMatrix->AssembleMRhs(NULL, sol, rhs);
+
+        //======================================================================
+        // time disc loop
+        //======================================================================
+        // parameters for time stepping scheme
+        m = 0;
+        N_SubSteps = GetN_SubSteps();
+        end_time = TDatabase::TimeDB->ENDTIME;
+
+        UpdateStiffnessMat = TRUE; // check BilinearCoeffs in example file
+        UpdateRhs = TRUE;          // check BilinearCoeffs in example file
+        ConvectionFirstTime = TRUE;
+
+        // time loop starts
+        while (TDatabase::TimeDB->CURRENTTIME < end_time)
+        {
+            m++;
+            TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
+
+            for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
+            {
+                SetTimeDiscParameters(1);
+
+                if (m == 1)
+                {
+                    // OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
+                    // OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
+                    // OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
+                    // OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
+                }
+
+                tau = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
+                TDatabase::TimeDB->CURRENTTIME += tau;
+
+                // OutPut(endl<< "CURRENT TIME: ");
+                // OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
+
+                // copy rhs to oldrhs
+                memcpy(oldrhs, rhs, N_DOF * SizeOfDouble);
+
+                // unless the stiffness matrix or rhs change in time, it is enough to
+                // assemble only once at the begning
+                if (UpdateStiffnessMat || UpdateRhs || ConvectionFirstTime)
+                {
+                    SystemMatrix->AssembleARhs(NULL, sol, rhs);
+
+                    // M:= M + (tau*THETA1)*A
+                    // rhs: =(tau*THETA4)*rhs +(tau*THETA3)*oldrhs +[M-(tau*THETA2)A]*oldsol
+                    // note! sol contains only the previous time step value, so just pass
+                    // sol for oldsol
+                    SystemMatrix->AssembleSystMat(oldrhs, sol, rhs, sol);
+                    ConvectionFirstTime = FALSE;
+                }
+
+                // solve the system matrix
+                SystemMatrix->Solve(sol, rhs);
+
+                // restore the mass matrix for the next time step
+                // unless the stiffness matrix or rhs change in time, it is not necessary to assemble the system matrix in every time step
+                if (UpdateStiffnessMat || UpdateRhs)
+                {
+                    SystemMatrix->RestoreMassMat();
+                }
+
+                if (TDatabase::ParamDB->WRITE_VTK)
+                {
+                    os.seekp(std::ios::beg);
+                    if (imgm[RealNo] < 10)
+                        os << "VTK"
+                           << "/" << VtkBaseName << ".0000" << imgm[RealNo] << ".vtk" << ends;
+                    else if (imgm[RealNo] < 100)
+                        os << "VTK"
+                           << "/" << VtkBaseName << ".000" << imgm[RealNo] << ".vtk" << ends;
+                    else if (imgm[RealNo] < 1000)
+                        os << "VTK"
+                           << "/" << VtkBaseName << ".00" << imgm[RealNo] << ".vtk" << ends;
+                    else if (imgm[RealNo] < 10000)
+                        os << "VTK"
+                           << "/" << VtkBaseName << ".0" << imgm[RealNo] << ".vtk" << ends;
+                    else
+                        os << "VTK"
+                           << "/" << VtkBaseName << "." << imgm[RealNo] << ".vtk" << ends;
+                    Output->WriteVtk(os.str().c_str());
+                    fileoutMC = generateFileName("MonteCarlo/" + subfoldername + filename, imgm[RealNo], N_Realisations);
+                    printToTxt(fileoutMC, sol, N_DOF, 1, 'C');
+                    imgm[RealNo]++;
+                }
+
+            } // for(l=0;l< N_SubSteps;l++)
+
+        } // while(TDatabase::TimeDB->CURRENTTIME< end_time)
+
+        //======================================================================
+        // produce final outout
+        //======================================================================
+
+        os.seekp(std::ios::beg);
+        if (imgm[RealNo] < 10)
+            os << "VTK"
+               << "/" << VtkBaseName << ".0000" << imgm[RealNo] << ".vtk" << ends;
+        else if (imgm[RealNo] < 100)
+            os << "VTK"
+               << "/" << VtkBaseName << ".000" << imgm[RealNo] << ".vtk" << ends;
+        else if (imgm[RealNo] < 1000)
+            os << "VTK"
+               << "/" << VtkBaseName << ".00" << imgm[RealNo] << ".vtk" << ends;
+        else if (imgm[RealNo] < 10000)
+            os << "VTK"
+               << "/" << VtkBaseName << ".0" << imgm[RealNo] << ".vtk" << ends;
+        else
+            os << "VTK"
+               << "/" << VtkBaseName << "." << imgm[RealNo] << ".vtk" << ends;
+        Output->WriteVtk(os.str().c_str());
+
+        fileoutMC = generateFileName("MonteCarlo/" + subfoldername + filename, imgm[RealNo], N_Realisations);
+        printToTxt(fileoutMC, sol, N_DOF, 1, 'C');
+        imgm[RealNo]++;
+
+        // cout << " Solution Norm After: " << Ddot(N_DOF,sol,sol) <<endl;
+
+        // set Current Time as Zero
+        TDatabase::TimeDB->CURRENTTIME = 0;
+        // delete SystemMatrix;
+    }
+    delete[] CompositeVectorMC;
+    delete[] imgm;
+    // delete[] RealizationVector;
+
+    double *meanDO = new double[N_DOF * 1]();
+    double *coeffDO = new double[N_Realisations * subDim]();
+    double *modeDO = new double[N_DOF * subDim]();
+    double *reconDO = new double[N_DOF * N_Realisations]();
+
+    for (int t = 0; t < m; t++)
+    {
+
+        fileoutMean = generateFileName(meanBaseName, t, N_Realisations);
+        readFromText(fileoutMean, meanDO, N_DOF, 1, 'C');
+
+        fileoutMode = generateFileName(modeBaseName, m, N_Realisations);
+        readFromText(fileoutMode, modeDO, N_DOF, subDim, 'C');
+
+        fileoutCoeff = generateFileName(coeffBaseName, m, N_Realisations);
+        readFromText(fileoutCoeff, coeffDO, N_Realisations, subDim, 'C');
+
+        reconstructMCfromDO(reconDO, meanDO, coeffDO, modeDO, N_Realisations, N_DOF, subDim);
+
+        double *MeanVectorDO = new double[N_DOF * 1]();
+        calcMeanRealization(reconDO, MeanVectorDO, N_Realisations, N_DOF);
+
+        double *stdDevVectorDO = new double[N_DOF * 1]();
+        calcStdDevRealization(reconDO, stdDevVectorDO, N_Realisations, N_DOF);
+
+        double *CompositeVectorDO = new double[N_DOF * 7]();
+        for (int i = 0; i < N_DOF; i++)
+        {
+            CompositeVectorDO[i] = MeanVectorDO[i];
+            CompositeVectorDO[N_DOF + i] = MeanVectorDO[i] + stdDevVectorDO[i];
+            CompositeVectorDO[2 * N_DOF + i] = MeanVectorDO[i] - stdDevVectorDO[i];
+            CompositeVectorDO[3 * N_DOF + i] = MeanVectorDO[i] + (2 * stdDevVectorDO[i]);
+            CompositeVectorDO[4 * N_DOF + i] = MeanVectorDO[i] - (2 * stdDevVectorDO[i]);
+            CompositeVectorDO[5 * N_DOF + i] = MeanVectorDO[i] + (3 * stdDevVectorDO[i]);
+            CompositeVectorDO[6 * N_DOF + i] = MeanVectorDO[i] - (3 * stdDevVectorDO[i]);
+        }
+
+        delete[] MeanVectorDO;
+        delete[] stdDevVectorDO;
+        std::string fileDOname;
+        std::string fileMCname;
+        std::string subfoldername;
+        double *ErrorVector = new double[N_DOF * 1]();
+        for (int RealNo = 0; RealNo < N_Composite; RealNo++)
+        {
+            switch (RealNo)
+            {
+            case 0:
+                cout << "Reconstructing Mean Solution" << endl;
+                fileDOname = "DO_Mean_NR_" + std::to_string(N_Realisations);
+                fileMCname = "MonteCarlo_Mean_NR_";
+                subfoldername = "Mean/";
+                break;
+            case 1:
+                cout << "Reconstructing Mean + sigma Solution" << endl;
+                fileDOname = "DO_MeanPlusSigma_NR_" + std::to_string(N_Realisations);
+                fileMCname = "MonteCarlo_MeanPlusSigma_NR_";
+                subfoldername = "MeanPlusSigma/";
+                break;
+            case 2:
+                cout << "Reconstructing Mean - sigma Solution" << endl;
+                fileDOname = "DO_MeanMinusSigma_NR_" + std::to_string(N_Realisations);
+                fileMCname = "MonteCarlo_MeanMinusSigma_NR_";
+                subfoldername = "MeanMinusSigma/";
+                break;
+            case 3:
+                cout << "Reconstructing Mean + 2*sigma Solution" << endl;
+                fileDOname = "DO_MeanPlus2Sigma_NR_" + std::to_string(N_Realisations);
+                fileMCname = "MonteCarlo_MeanPlus2Sigma_NR_";
+                subfoldername = "MeanPlus2Sigma/";
+                break;
+            case 4:
+                cout << "Reconstructing Mean - 2*sigma Solution" << endl;
+                fileDOname = "DO_MeanMinus2Sigma_NR_" + std::to_string(N_Realisations);
+                fileMCname = "MonteCarlo_MeanMinus2Sigma_NR_";
+                subfoldername = "MeanMinus2Sigma/";
+                break;
+            case 5:
+                cout << "Reconstructing Mean + 3*sigma Solution" << endl;
+                fileDOname = "DO_MeanPlus3Sigma_NR_" + std::to_string(N_Realisations);
+                fileMCname = "MonteCarlo_MeanPlus3Sigma_NR_";
+                subfoldername = "MeanPlus3Sigma/";
+                break;
+            case 6:
+                cout << "Reconstructing Mean - 3*sigma Solution" << endl;
+                fileDOname = "DO_MeanMinus3Sigma_NR_" + std::to_string(N_Realisations);
+                fileMCname = "MonteCarlo_MeanMinus3Sigma_NR_";
+                subfoldername = "MeanMinus3Sigma/";
+                break;
+            }
+
+            VtkBaseName = const_cast<char *>(fileDOname.c_str());
+            for (int i = 0; i < N_DOF; i++)
+                sol[i] = CompositeVectorDO[i + RealNo * N_DOF];
+            os.seekp(std::ios::beg);
+
+            if (t < 10)
+                os << "VTK"
+                   << "/" << VtkBaseName << ".0000" << t << ".vtk" << ends;
+            else if (t < 100)
+                os << "VTK"
+                   << "/" << VtkBaseName << ".000" << t << ".vtk" << ends;
+            else if (t < 1000)
+                os << "VTK"
+                   << "/" << VtkBaseName << ".00" << t << ".vtk" << ends;
+            else if (t < 10000)
+                os << "VTK"
+                   << "/" << VtkBaseName << ".0" << t << ".vtk" << ends;
+            else
+                os << "VTK"
+                   << "/" << VtkBaseName << "." << t << ".vtk" << ends;
+            Output->WriteVtk(os.str().c_str());
+
+            fileoutMC = generateFileName("MonteCarlo/" + subfoldername + fileMCname, t, N_Realisations);
+            readFromText(fileoutMC, ErrorVector, N_DOF, 1, 'C');
+            double dnorm = Ddot(N_DOF, ErrorVector, ErrorVector);
+            for (int i = 0; i < N_DOF; i++)
+            {
+                ErrorVector[i] = (CompositeVectorDO[i + RealNo * N_DOF] - ErrorVector[i]) / dnorm;
+                ErrorVector[i] = abs(ErrorVector[i]);
+            }
+
+            fileMCname = fileMCname + "_Error";
+            VtkBaseName = const_cast<char *>(fileMCname.c_str());
+            for (int i = 0; i < N_DOF; i++)
+                sol[i] = ErrorVector[i];
+            os.seekp(std::ios::beg);
+
+            if (t < 10)
+                os << "VTK"
+                   << "/" << VtkBaseName << ".0000" << t << ".vtk" << ends;
+            else if (t < 100)
+                os << "VTK"
+                   << "/" << VtkBaseName << ".000" << t << ".vtk" << ends;
+            else if (t < 1000)
+                os << "VTK"
+                   << "/" << VtkBaseName << ".00" << t << ".vtk" << ends;
+            else if (t < 10000)
+                os << "VTK"
+                   << "/" << VtkBaseName << ".0" << t << ".vtk" << ends;
+            else
+                os << "VTK"
+                   << "/" << VtkBaseName << "." << t << ".vtk" << ends;
+            Output->WriteVtk(os.str().c_str());
+        }
+    }
 
     exit(0);
 
@@ -1829,13 +1873,6 @@ int main(int argc, char *argv[])
 
     } // while(TDatabase::TimeDB->CURRENTTIME< end_time)
     TDatabase::TimeDB->CURRENTTIME = 0;
-    std::string PyInFile = "PyIn.txt";
-
-    std::ofstream PyIn;
-    PyIn.open(PyInFile);
-    PyIn << N_Realisations << endl
-         << subDim << endl
-         << m << endl;
 
     CloseFiles();
     return 0;

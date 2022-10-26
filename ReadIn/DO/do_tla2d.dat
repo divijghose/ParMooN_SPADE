@@ -1,0 +1,102 @@
+======================================================================
+#       input file for ParMooN
+======================================================================
+VERSION:      1
+LOGFILE:      logfile
+OUTFILE:      tcd2d.out
+
+GEOFILE:       ../../../../ParMooN_CMG/data/UnitSquare.GEO
+BNDFILE:        ../../../../ParMooN_CMG/data/UnitSquare.PRM
+
+----------------------------------------------------------------------
+# number of uniform refinement steps at beginning
+----------------------------------------------------------------------
+UNIFORM_STEPS: 6
+
+----------------------------------------------------------------------
+# order of ansatz space (=k)
+#   i.e. P_k on triangles
+#        Q_k on quadrangles
+----------------------------------------------------------------------
+ANSATZ_ORDER: 1
+
+Axial3D: 0
+USE_ISOPARAMETRIC: 1
+
+----------------------------------------------------------------------
+# Peclet number eps=1/PE_NR
+----------------------------------------------------------------------
+PE_NR: 1
+
+----------------------------------------------------------------------
+# factors for SDFEM (delta_K=h_K*DELTAi)
+#   DELTA0 for high Peclet number
+#   DELTA1 for low Peclet number
+----------------------------------------------------------------------
+DELTA0: 0.01
+DELTA1:  0.01
+SDFEM_TYPE: 0
+ 
+----------------------------------------------------------------------
+# parameter for time discretization
+----------------------------------------------------------------------
+# time discretization
+# 0 - FORWARD_EULER
+# 1 - BACKWARD_EULER
+# 2 - CRANK_NICOLSON
+# 3 - FRACTIONAL_STEP
+----------------------------------------------------------------------
+TIME_DISC: 2
+STARTTIME: 0
+ENDTIME: 0.5
+TIMESTEPLENGTH: 0.005
+
+----------------------------------------------------------------------
+# Monte Carlo controls
+----------------------------------------------------------------------
+#Number of Realizations
+REALIZATIONS: 500 
+
+#Lengthscale of correlation kernel
+LENGTHSCALE: 0.1
+
+
+#Percentage of energy of singular values to be retained
+EIGENPERCENT: 0.99
+
+#Standard deviation function select 
+stddev_switch: 1
+
+#Standard deviation denominator coefficient
+stddev_denom: 0.03
+
+#Displacement from center of standard deviation function bump
+stddev_disp: 0.3
+
+#Power of standard deviation bump function
+stddev_power: 2
+
+#if 0, generate MC realizations. if 1, read realizations from text file
+Realization_Source: 1
+
+#if 0, don't write MC realizations to text. if 1, write realizations to text file
+Write_Realizations_To_Text: 0
+
+
+----------------------------------------------------------------------
+# output controls
+----------------------------------------------------------------------
+BASENAME: unitsquare
+OUTPUTDIR: VTK
+WRITE_PS: 1
+WRITE_VTK: 1
+
+STEPS_PER_IMAGE: 1
+
+MEASURE_ERRORS: 1  
+
+SC_VERBOSE: 0
+SC_VERBOSE_AMG: 0
+CC_VERBOSE: 0
+
+

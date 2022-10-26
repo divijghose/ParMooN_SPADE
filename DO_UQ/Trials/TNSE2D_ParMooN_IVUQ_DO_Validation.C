@@ -293,7 +293,7 @@ int main(int argc, char *argv[])
 					double sig_r1 = (exp(-1.0 * pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E))) * (exp(-1.0 * pow((2 * actual_y - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E)));
 					double sig_r2 = (exp(-1.0 * pow((2 * local_x - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E))) * (exp(-1.0 * pow((2 * local_y - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E)));
 					// Co Variance
-					C[i * N_U + j] *= 0.5 * sig_r1 * sig_r2;
+					C[i * N_U + j] *= 0.1 * sig_r1 * sig_r2;
 				}
 
 				else if (TDatabase::ParamDB->stddev_switch == 2)
@@ -446,287 +446,287 @@ int main(int argc, char *argv[])
 	}
 
 	/////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
-	if (TDatabase::ParamDB->toggleDivFreeAdj == 1)
-	{
+// 	if (TDatabase::ParamDB->toggleDivFreeAdj == 1)
+// 	{
 
-		///////////////////----Divergence Free Adjustment - New Routine ------------/////////
-		//======================================================================
-		// construct all finite element functions
-		//======================================================================
-		sol = new double[N_Total_DomainDOF]();
-		rhs = new double[N_Total_DomainDOF]();
-		oldrhs = new double[N_Total_DomainDOF]();
-		Velocity = new TFEVectFunct2D(Velocity_FeSpace, UString, UString, sol, N_U, 2);
-		u1 = Velocity->GetComponent(0);
-		u2 = Velocity->GetComponent(1);
-		Pressure = new TFEFunction2D(Pressure_FeSpace, PString, PString, sol + 2 * N_U, N_P);
-		//  interpolate the initial solution
-		u1->Interpolate(InitialU1);
-		u2->Interpolate(InitialU2);
-		Pressure->Interpolate(InitialP);
+// 		///////////////////----Divergence Free Adjustment - New Routine ------------/////////
+// 		//======================================================================
+// 		// construct all finite element functions
+// 		//======================================================================
+// 		sol = new double[N_Total_DomainDOF]();
+// 		rhs = new double[N_Total_DomainDOF]();
+// 		oldrhs = new double[N_Total_DomainDOF]();
+// 		Velocity = new TFEVectFunct2D(Velocity_FeSpace, UString, UString, sol, N_U, 2);
+// 		u1 = Velocity->GetComponent(0);
+// 		u2 = Velocity->GetComponent(1);
+// 		Pressure = new TFEFunction2D(Pressure_FeSpace, PString, PString, sol + 2 * N_U, N_P);
+// 		//  interpolate the initial solution
+// 		u1->Interpolate(InitialU1);
+// 		u2->Interpolate(InitialU2);
+// 		Pressure->Interpolate(InitialP);
 
-		//======================================================================
-		// SystemMatrix construction and solution
-		//======================================================================
-		// Disc type: GALERKIN
-		// Solver: AMG_SOLVE (or) GMG  (or) DIRECT
-		SystemMatrix = new TSystemTNSE2D(Velocity_FeSpace, Pressure_FeSpace, Velocity, Pressure, sol, rhs, Disctype, NSEType, DIRECT
-#ifdef __PRIVATE__
-										 ,
-										 Projection_space, NULL, NULL
-#endif
-		);
+// 		//======================================================================
+// 		// SystemMatrix construction and solution
+// 		//======================================================================
+// 		// Disc type: GALERKIN
+// 		// Solver: AMG_SOLVE (or) GMG  (or) DIRECT
+// 		SystemMatrix = new TSystemTNSE2D(Velocity_FeSpace, Pressure_FeSpace, Velocity, Pressure, sol, rhs, Disctype, NSEType, DIRECT
+// #ifdef __PRIVATE__
+// 										 ,
+// 										 Projection_space, NULL, NULL
+// #endif
+// 		);
 
-		// define the aux
-		fesp[0] = Velocity_FeSpace;
+// 		// define the aux
+// 		fesp[0] = Velocity_FeSpace;
 
-		fefct[0] = u1;
-		fefct[1] = u2;
+// 		fefct[0] = u1;
+// 		fefct[1] = u2;
 
-		switch (Disctype)
-		{
-		// turbulent viscosity must be computed
-		case SMAGORINSKY:
-		case VMS_PROJECTION:
-		case CLASSICAL_LES:
-		case GL00_CONVOLUTION:
-		case GL00_AUX_PROBLEM:
+// 		switch (Disctype)
+// 		{
+// 		// turbulent viscosity must be computed
+// 		case SMAGORINSKY:
+// 		case VMS_PROJECTION:
+// 		case CLASSICAL_LES:
+// 		case GL00_CONVOLUTION:
+// 		case GL00_AUX_PROBLEM:
 
-			aux = new TAuxParam2D(TimeNSN_FESpacesVelo_GradVelo, TimeNSN_FctVelo_GradVelo,
-								  TimeNSN_ParamFctVelo_GradVelo,
-								  TimeNSN_FEValuesVelo_GradVelo,
-								  fesp, fefct,
-								  TimeNSFctVelo_GradVelo,
-								  TimeNSFEFctIndexVelo_GradVelo,
-								  TimeNSFEMultiIndexVelo_GradVelo,
-								  TimeNSN_ParamsVelo_GradVelo,
-								  TimeNSBeginParamVelo_GradVelo);
+// 			aux = new TAuxParam2D(TimeNSN_FESpacesVelo_GradVelo, TimeNSN_FctVelo_GradVelo,
+// 								  TimeNSN_ParamFctVelo_GradVelo,
+// 								  TimeNSN_FEValuesVelo_GradVelo,
+// 								  fesp, fefct,
+// 								  TimeNSFctVelo_GradVelo,
+// 								  TimeNSFEFctIndexVelo_GradVelo,
+// 								  TimeNSFEMultiIndexVelo_GradVelo,
+// 								  TimeNSN_ParamsVelo_GradVelo,
+// 								  TimeNSBeginParamVelo_GradVelo);
 
-			break;
+// 			break;
 
-		default:
-			// 2 parameters are needed for assembling (u1_old, u2_old)
-			aux = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2, TimeNSN_ParamFct2,
-								  TimeNSN_FEValues2,
-								  fesp, fefct,
-								  TimeNSFct2,
-								  TimeNSFEFctIndex2, TimeNSFEMultiIndex2,
-								  TimeNSN_Params2, TimeNSBeginParam2);
-		}
+// 		default:
+// 			// 2 parameters are needed for assembling (u1_old, u2_old)
+// 			aux = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2, TimeNSN_ParamFct2,
+// 								  TimeNSN_FEValues2,
+// 								  fesp, fefct,
+// 								  TimeNSFct2,
+// 								  TimeNSFEFctIndex2, TimeNSFEMultiIndex2,
+// 								  TimeNSN_Params2, TimeNSBeginParam2);
+// 		}
 
-		// aux for calculating the error
-		if (TDatabase::ParamDB->MEASURE_ERRORS)
-		{
-			NSEaux_error = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2,
-										   TimeNSN_ParamFct2,
-										   TimeNSN_FEValues2,
-										   fesp, fefct,
-										   TimeNSFct2,
-										   TimeNSFEFctIndex2, TimeNSFEMultiIndex2,
-										   TimeNSN_Params2, TimeNSBeginParam2);
-		}
-		double hmin, hmax;
-		coll->GetHminHmax(&hmin, &hmax);
-		OutPut("h_min : " << hmin << " h_max : " << hmax << endl);
-		//      TDatabase::TimeDB->TIMESTEPLENGTH = hmin;
-		//       cout<<TDatabase::TimeDB->TIMESTEPLENGTH<<"\n";
+// 		// aux for calculating the error
+// 		if (TDatabase::ParamDB->MEASURE_ERRORS)
+// 		{
+// 			NSEaux_error = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2,
+// 										   TimeNSN_ParamFct2,
+// 										   TimeNSN_FEValues2,
+// 										   fesp, fefct,
+// 										   TimeNSFct2,
+// 										   TimeNSFEFctIndex2, TimeNSFEMultiIndex2,
+// 										   TimeNSN_Params2, TimeNSBeginParam2);
+// 		}
+// 		double hmin, hmax;
+// 		coll->GetHminHmax(&hmin, &hmax);
+// 		OutPut("h_min : " << hmin << " h_max : " << hmax << endl);
+// 		//      TDatabase::TimeDB->TIMESTEPLENGTH = hmin;
+// 		//       cout<<TDatabase::TimeDB->TIMESTEPLENGTH<<"\n";
 
-		//======================================================================
+// 		//======================================================================
 
-		// initilize the system matrix with the functions defined in Example file
-		// last argument is aux that is used to pass additional fe functions (eg. mesh velocity)
-		SystemMatrix->Init(LinCoeffs, BoundCondition, U1BoundValue, U2BoundValue, aux, NSEaux_error);
+// 		// initilize the system matrix with the functions defined in Example file
+// 		// last argument is aux that is used to pass additional fe functions (eg. mesh velocity)
+// 		SystemMatrix->Init(LinCoeffs, BoundCondition, U1BoundValue, U2BoundValue, aux, NSEaux_error);
 
-		/////////////////////////////////////////Monte Carlo//////////////////////////////////////
-		VtkBaseName = TDatabase::ParamDB->VTKBASENAME;
-		Output = new TOutput2D(2, 2, 1, 1, Domain);
+// 		/////////////////////////////////////////Monte Carlo//////////////////////////////////////
+// 		VtkBaseName = TDatabase::ParamDB->VTKBASENAME;
+// 		Output = new TOutput2D(2, 2, 1, 1, Domain);
 
-		Output->AddFEVectFunct(Velocity);
-		Output->AddFEFunction(Pressure);
-		for (int RealNo = 0; RealNo < N_Realisations; RealNo++)
-		{
+// 		Output->AddFEVectFunct(Velocity);
+// 		Output->AddFEFunction(Pressure);
+// 		for (int RealNo = 0; RealNo < N_Realisations; RealNo++)
+// 		{
 
-			/// Realization Loop Begin
-			cout << " Divergence-free adjustment Real no " << RealNo << endl;
-			////////////////////////Divergence Free Adjustment - Run for one time step//////////////////////
-			// assemble M, A matrices and rhs
+// 			/// Realization Loop Begin
+// 			cout << " Divergence-free adjustment Real no " << RealNo << endl;
+// 			////////////////////////Divergence Free Adjustment - Run for one time step//////////////////////
+// 			// assemble M, A matrices and rhs
 
-			for (int i = 0; i < N_U; i++)
-				sol[i] = RealizationVector[RealNo + N_Realisations * i];
+// 			for (int i = 0; i < N_U; i++)
+// 				sol[i] = RealizationVector[RealNo + N_Realisations * i];
 
-			SystemMatrix->Assemble(sol, rhs);
+// 			SystemMatrix->Assemble(sol, rhs);
 
-			if (TDatabase::ParamDB->WRITE_VTK)
-			{
-				os.seekp(std::ios::beg);
-				if (img < 10)
-					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_MC" << std::to_string(RealNo) << ".vtk" << ends;
-				else if (img < 100)
-					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_MC" << std::to_string(RealNo) << ".vtk" << ends;
-				else if (img < 1000)
-					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_MC" << std::to_string(RealNo) << ".vtk" << ends;
-				else if (img < 10000)
-					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_MC" << std::to_string(RealNo) << ".vtk" << ends;
-				else
-					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_MC" << std::to_string(RealNo) << ".vtk" << ends;
-				Output->WriteVtk(os.str().c_str());
-				;
-			}
-			//======================================================================
-			// time disc loop
-			//======================================================================
-			// parameters for time stepping scheme
-			m = 0;
-			N_SubSteps = 2;
-			oldtau = 1.;
-			end_time = 0.01;
-			limit = TDatabase::ParamDB->SC_NONLIN_RES_NORM_MIN_SADDLE;
-			Max_It = TDatabase::ParamDB->SC_NONLIN_MAXIT_SADDLE;
-			memset(AllErrors, 0, 7. * SizeOfDouble);
-			const char initdir[] = "Init";
-			mkdir(initdir, 0777);
-			const char dfadir[] = "Init/Divergence_Free_Adjusted";
-			mkdir(dfadir, 0777);
-			// time loop starts
-			while (TDatabase::TimeDB->CURRENTTIME < end_time)
-			{ // time cycle
-				m++;
-				TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
-				for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
-				{
-					SetTimeDiscParameters(1);
+// 			if (TDatabase::ParamDB->WRITE_VTK)
+// 			{
+// 				os.seekp(std::ios::beg);
+// 				if (img < 10)
+// 					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_MC" << std::to_string(RealNo) << ".vtk" << ends;
+// 				else if (img < 100)
+// 					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_MC" << std::to_string(RealNo) << ".vtk" << ends;
+// 				else if (img < 1000)
+// 					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_MC" << std::to_string(RealNo) << ".vtk" << ends;
+// 				else if (img < 10000)
+// 					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_MC" << std::to_string(RealNo) << ".vtk" << ends;
+// 				else
+// 					os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_MC" << std::to_string(RealNo) << ".vtk" << ends;
+// 				Output->WriteVtk(os.str().c_str());
+// 				;
+// 			}
+// 			//======================================================================
+// 			// time disc loop
+// 			//======================================================================
+// 			// parameters for time stepping scheme
+// 			m = 0;
+// 			N_SubSteps = 2;
+// 			oldtau = 1.;
+// 			end_time = 0.01;
+// 			limit = TDatabase::ParamDB->SC_NONLIN_RES_NORM_MIN_SADDLE;
+// 			Max_It = TDatabase::ParamDB->SC_NONLIN_MAXIT_SADDLE;
+// 			memset(AllErrors, 0, 7. * SizeOfDouble);
+// 			const char initdir[] = "Init";
+// 			mkdir(initdir, 0777);
+// 			const char dfadir[] = "Init/Divergence_Free_Adjusted";
+// 			mkdir(dfadir, 0777);
+// 			// time loop starts
+// 			while (TDatabase::TimeDB->CURRENTTIME < end_time)
+// 			{ // time cycle
+// 				m++;
+// 				TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
+// 				for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
+// 				{
+// 					SetTimeDiscParameters(1);
 
-					if (m == 1)
-					{
-						// OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
-						// OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
-						// OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
-						// OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
-					}
+// 					if (m == 1)
+// 					{
+// 						// OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
+// 						// OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
+// 						// OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
+// 						// OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
+// 					}
 
-					tau = 0.005;
-					TDatabase::TimeDB->CURRENTTIME += tau;
+// 					tau = 0.005;
+// 					TDatabase::TimeDB->CURRENTTIME += tau;
 
-					// OutPut(endl
-					// 	   << "DF ADJUSTMENT CURRENT TIME: ");
-					// OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
+// 					// OutPut(endl
+// 					// 	   << "DF ADJUSTMENT CURRENT TIME: ");
+// 					// OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
 
-					// copy sol, rhs to olssol, oldrhs
-					memcpy(oldrhs, rhs, N_Total_DomainDOF * SizeOfDouble);
+// 					// copy sol, rhs to olssol, oldrhs
+// 					memcpy(oldrhs, rhs, N_Total_DomainDOF * SizeOfDouble);
 
-					// assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
-					// not needed if rhs is not time-dependent
-					if (m != 1)
-					{
-						SystemMatrix->AssembleRhs(sol, rhs);
-					}
-					else
-					{
-						SystemMatrix->Assemble(sol, rhs);
-					}
+// 					// assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
+// 					// not needed if rhs is not time-dependent
+// 					if (m != 1)
+// 					{
+// 						SystemMatrix->AssembleRhs(sol, rhs);
+// 					}
+// 					else
+// 					{
+// 						SystemMatrix->Assemble(sol, rhs);
+// 					}
 
-					// scale B matices and assemble NSE-rhs based on the \theta time stepping scheme
-					SystemMatrix->AssembleSystMat(tau / oldtau, oldrhs, rhs, sol);
-					oldtau = tau;
+// 					// scale B matices and assemble NSE-rhs based on the \theta time stepping scheme
+// 					SystemMatrix->AssembleSystMat(tau / oldtau, oldrhs, rhs, sol);
+// 					oldtau = tau;
 
-					// calculate the residual
-					defect = new double[N_Total_DomainDOF];
-					memset(defect, 0, N_Total_DomainDOF * SizeOfDouble);
+// 					// calculate the residual
+// 					defect = new double[N_Total_DomainDOF];
+// 					memset(defect, 0, N_Total_DomainDOF * SizeOfDouble);
 
-					SystemMatrix->GetTNSEResidual(sol, defect);
+// 					SystemMatrix->GetTNSEResidual(sol, defect);
 
-					// correction due to L^2_O Pressure space
-					if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
-						IntoL20Vector2D(defect + 2 * N_U, N_P, pressure_space_code);
+// 					// correction due to L^2_O Pressure space
+// 					if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
+// 						IntoL20Vector2D(defect + 2 * N_U, N_P, pressure_space_code);
 
-					residual = Ddot(N_Total_DomainDOF, defect, defect);
-					impuls_residual = Ddot(2 * N_U, defect, defect);
-					// OutPut("Nonlinear iteration step   0");
-					// OutPut(setw(14) << impuls_residual);
-					// OutPut(setw(14) << residual - impuls_residual);
-					// OutPut(setw(14) << sqrt(residual) << endl);
+// 					residual = Ddot(N_Total_DomainDOF, defect, defect);
+// 					impuls_residual = Ddot(2 * N_U, defect, defect);
+// 					// OutPut("Nonlinear iteration step   0");
+// 					// OutPut(setw(14) << impuls_residual);
+// 					// OutPut(setw(14) << residual - impuls_residual);
+// 					// OutPut(setw(14) << sqrt(residual) << endl);
 
-					//======================================================================
-					// Solve the system
-					// Nonlinear iteration of fixed point type
-					//======================================================================
-					for (j = 1; j <= Max_It; j++)
-					{
-						// Solve the NSE system
-						SystemMatrix->Solve(sol);
+// 					//======================================================================
+// 					// Solve the system
+// 					// Nonlinear iteration of fixed point type
+// 					//======================================================================
+// 					for (j = 1; j <= Max_It; j++)
+// 					{
+// 						// Solve the NSE system
+// 						SystemMatrix->Solve(sol);
 
-						if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
-							IntoL20FEFunction(sol + 2 * N_U, N_P, Pressure_FeSpace, velocity_space_code, pressure_space_code);
+// 						if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
+// 							IntoL20FEFunction(sol + 2 * N_U, N_P, Pressure_FeSpace, velocity_space_code, pressure_space_code);
 
-						// no nonlinear iteration for Stokes problem
-						if (TDatabase::ParamDB->FLOW_PROBLEM_TYPE == STOKES)
-							break;
+// 						// no nonlinear iteration for Stokes problem
+// 						if (TDatabase::ParamDB->FLOW_PROBLEM_TYPE == STOKES)
+// 							break;
 
-						// restore the mass matrix for the next nonlinear iteration
-						SystemMatrix->RestoreMassMat();
+// 						// restore the mass matrix for the next nonlinear iteration
+// 						SystemMatrix->RestoreMassMat();
 
-						// assemble the system matrix with given aux, sol and rhs
-						SystemMatrix->AssembleANonLinear(sol, rhs);
+// 						// assemble the system matrix with given aux, sol and rhs
+// 						SystemMatrix->AssembleANonLinear(sol, rhs);
 
-						// assemble system mat, S = M + dt\theta_1*A
-						SystemMatrix->AssembleSystMatNonLinear();
+// 						// assemble system mat, S = M + dt\theta_1*A
+// 						SystemMatrix->AssembleSystMatNonLinear();
 
-						// get the residual
-						memset(defect, 0, N_Total_DomainDOF * SizeOfDouble);
-						SystemMatrix->GetTNSEResidual(sol, defect);
+// 						// get the residual
+// 						memset(defect, 0, N_Total_DomainDOF * SizeOfDouble);
+// 						SystemMatrix->GetTNSEResidual(sol, defect);
 
-						// correction due to L^2_O Pressure space
-						if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
-							IntoL20Vector2D(defect + 2 * N_U, N_P, pressure_space_code);
+// 						// correction due to L^2_O Pressure space
+// 						if (TDatabase::ParamDB->INTERNAL_PROJECT_PRESSURE)
+// 							IntoL20Vector2D(defect + 2 * N_U, N_P, pressure_space_code);
 
-						residual = Ddot(N_Total_DomainDOF, defect, defect);
-						impuls_residual = Ddot(2 * N_U, defect, defect);
-						// OutPut("nonlinear iteration step " << setw(3) << j);
-						// OutPut(setw(14) << impuls_residual);
-						// OutPut(setw(14) << residual - impuls_residual);
-						// OutPut(setw(14) << sqrt(residual) << endl);
+// 						residual = Ddot(N_Total_DomainDOF, defect, defect);
+// 						impuls_residual = Ddot(2 * N_U, defect, defect);
+// 						// OutPut("nonlinear iteration step " << setw(3) << j);
+// 						// OutPut(setw(14) << impuls_residual);
+// 						// OutPut(setw(14) << residual - impuls_residual);
+// 						// OutPut(setw(14) << sqrt(residual) << endl);
 
-						if (sqrt(residual) <= limit)
-							break;
+// 						if (sqrt(residual) <= limit)
+// 							break;
 
-					} // for(j=1;j<=Max_It;j++)
-					  /*           cout << " test VHM main " << endl;
-	exit(0);      */
-					// restore the mass matrix for the next time step
-					SystemMatrix->RestoreMassMat();
+// 					} // for(j=1;j<=Max_It;j++)
+// 					  /*           cout << " test VHM main " << endl;
+// 	exit(0);      */
+// 					// restore the mass matrix for the next time step
+// 					SystemMatrix->RestoreMassMat();
 
-				} // for(l=0;l<N_SubSteps;
-				if (TDatabase::ParamDB->WRITE_VTK)
-				{
-					os.seekp(std::ios::beg);
-					if (img < 10)
-						os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_DF" << std::to_string(RealNo) << ".vtk" << ends;
-					else if (img < 100)
-						os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_DF" << std::to_string(RealNo) << ".vtk" << ends;
-					else if (img < 1000)
-						os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_DF" << std::to_string(RealNo) << ".vtk" << ends;
-					else if (img < 10000)
-						os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_DF" << std::to_string(RealNo) << ".vtk" << ends;
-					else
-						os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_DF" << std::to_string(RealNo) << ".vtk" << ends;
-					Output->WriteVtk(os.str().c_str());
-					;
-				}
+// 				} // for(l=0;l<N_SubSteps;
+// 				if (TDatabase::ParamDB->WRITE_VTK)
+// 				{
+// 					os.seekp(std::ios::beg);
+// 					if (img < 10)
+// 						os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_DF" << std::to_string(RealNo) << ".vtk" << ends;
+// 					else if (img < 100)
+// 						os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_DF" << std::to_string(RealNo) << ".vtk" << ends;
+// 					else if (img < 1000)
+// 						os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_DF" << std::to_string(RealNo) << ".vtk" << ends;
+// 					else if (img < 10000)
+// 						os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_DF" << std::to_string(RealNo) << ".vtk" << ends;
+// 					else
+// 						os << "Init/Divergence_Free_Adjusted/" << VtkBaseName << "_RealznNo_DF" << std::to_string(RealNo) << ".vtk" << ends;
+// 					Output->WriteVtk(os.str().c_str());
+// 					;
+// 				}
 
-			} // while(TDatabase::TimeDB->CURRENTTIME< e
+// 			} // while(TDatabase::TimeDB->CURRENTTIME< e
 
-			//======================================================================
-			// produce final outout
-			//======================================================================
+// 			//======================================================================
+// 			// produce final outout
+// 			//======================================================================
 
-			TDatabase::TimeDB->CURRENTTIME = 0.0;
-			// for (int i = 0; i < N_U; i++)
-			// 	RealizationVector[RealNo + N_Realisations * i] = sol[i];
-			//////////////////Divergence Adjustment Ends/////////////////////////////////////////////////
-		} /// Realization Loop End
-		  ////------------Divergence Free Adjustment - New Routine Ends -----//////////////
-	}
-	//
+// 			TDatabase::TimeDB->CURRENTTIME = 0.0;
+// 			// for (int i = 0; i < N_U; i++)
+// 			// 	RealizationVector[RealNo + N_Realisations * i] = sol[i];
+// 			//////////////////Divergence Adjustment Ends/////////////////////////////////////////////////
+// 		} /// Realization Loop End
+// 		  ////------------Divergence Free Adjustment - New Routine Ends -----//////////////
+// 	}
+// 	//
 	cout << "Divergence free adjustment done" << endl;
 	////////////////////////////////////// -------- START OF DO INITIALIZATION ------------ ////////////////////////////////////////////////////////////////
 
@@ -947,14 +947,14 @@ int main(int argc, char *argv[])
 
 		solMean[i] = MeanVector[i];
 		// solMean[N_U + i] = MeanVector[i];
-		// solMean[N_U + i] = 0;
+		solMean[N_U + i] = 0;
 	}
 
-	// for (i = 0; i < N_P; i++)
-	// {
+	for (i = 0; i < N_P; i++)
+	{
 
-	// 	solMean[2 * N_U + i] = 0;
-	// }
+		solMean[2 * N_U + i] = 0;
+	}
 
 	TFEVectFunct2D *Velocity_Mean;
 	TFEFunction2D *Pressure_Mean;
@@ -1225,7 +1225,7 @@ int main(int argc, char *argv[])
 	TOutput2D *OutputMean;
 	OutputMean = new TOutput2D(2, 2, 1, 1, Domain);
 	OutputMean->AddFEVectFunct(Velocity_Mean);
-	// OutputMean->AddFEFunction(Pressure_Mean);
+	OutputMean->AddFEFunction(Pressure_Mean);
 
 	TOutput2D **OutputModeAll = new TOutput2D *[subDim];
 	for (int subD = 0; subD < subDim; subD++)
@@ -1278,7 +1278,7 @@ int main(int argc, char *argv[])
 		}
 	}
 cout << "Before First Time Step" << endl;
-exit(0);
+
 	//======================================================================
 	// time disc loop
 	//======================================================================
@@ -1322,7 +1322,7 @@ exit(0);
 
 			// assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
 			// not needed if rhs is not time-dependent
-			DO_Mean_RHS(VelocityMean_FeSpace, Velocity_Mode, subDim, rhsMean, N_U);
+			// DO_Mean_RHS(VelocityMean_FeSpace, Velocity_Mode, subDim, rhsMean, N_U);
 
 			SystemMatrix_Mean->Assemble(solMean, rhsMean);
 
@@ -1418,7 +1418,7 @@ exit(0);      */
 				// memcpy(old_solMode, modeSolution_i, N_Total_MeanDOF * SizeOfDouble);
 
 				// Assemble RHS
-				DO_Mode_RHS(VelocityMode_FeSpace, Velocity_Mean, Velocity_Mode, Pressure_Mode, subDim, modeSolution_rhs, subSpaceNum);
+				// DO_Mode_RHS(VelocityMode_FeSpace, Velocity_Mean, Velocity_Mode, Pressure_Mode, subDim, modeSolution_rhs, subSpaceNum);
 
 				SystemMatrixModeAll[subSpaceNum]->Assemble(modeSolution_i, modeSolution_rhs);
 				// scale B matices and assemble NSE-rhs based on the \theta time stepping scheme
@@ -1554,31 +1554,31 @@ exit(0);      */
 		//======================================================================
 		// produce outout
 		//======================================================================
-		if (m == 1 || m % TDatabase::TimeDB->STEPS_PER_IMAGE == 0)
-		{
-			for (int sd = 0; sd < subDim; sd++)
-			{
+		// if (m == 1 || m % TDatabase::TimeDB->STEPS_PER_IMAGE == 0)
+		// {
+		// 	for (int sd = 0; sd < subDim; sd++)
+		// 	{
 
-				std::string filenameMode = "Mode_NRealisations_" + std::to_string(N_Realisations) + "ModeN0_" + std::to_string(sd);
-				VtkBaseNameMode = const_cast<char *>(filenameMode.c_str());
-				if (TDatabase::ParamDB->WRITE_VTK)
-				{
-					os.seekp(std::ios::beg);
-					if (modeimg[sd] < 10)
-						os << "VTK/" << VtkBaseNameMode << ".0000" << modeimg[sd] << ".vtk" << ends;
-					else if (modeimg[sd] < 100)
-						os << "VTK/" << VtkBaseNameMode << ".000" << modeimg[sd] << ".vtk" << ends;
-					else if (modeimg[sd] < 1000)
-						os << "VTK/" << VtkBaseNameMode << ".00" << modeimg[sd] << ".vtk" << ends;
-					else if (modeimg[sd] < 10000)
-						os << "VTK/" << VtkBaseNameMode << ".0" << modeimg[sd] << ".vtk" << ends;
-					else
-						os << "VTK/" << VtkBaseNameMode << "." << modeimg[sd] << ".vtk" << ends;
-					OutputModeAll[sd]->WriteVtk(os.str().c_str());
-					modeimg[sd]++;
-				}
-			}
-		}
+		// 		std::string filenameMode = "Mode_NRealisations_" + std::to_string(N_Realisations) + "ModeN0_" + std::to_string(sd);
+		// 		VtkBaseNameMode = const_cast<char *>(filenameMode.c_str());
+		// 		if (TDatabase::ParamDB->WRITE_VTK)
+		// 		{
+		// 			os.seekp(std::ios::beg);
+		// 			if (modeimg[sd] < 10)
+		// 				os << "VTK/" << VtkBaseNameMode << ".0000" << modeimg[sd] << ".vtk" << ends;
+		// 			else if (modeimg[sd] < 100)
+		// 				os << "VTK/" << VtkBaseNameMode << ".000" << modeimg[sd] << ".vtk" << ends;
+		// 			else if (modeimg[sd] < 1000)
+		// 				os << "VTK/" << VtkBaseNameMode << ".00" << modeimg[sd] << ".vtk" << ends;
+		// 			else if (modeimg[sd] < 10000)
+		// 				os << "VTK/" << VtkBaseNameMode << ".0" << modeimg[sd] << ".vtk" << ends;
+		// 			else
+		// 				os << "VTK/" << VtkBaseNameMode << "." << modeimg[sd] << ".vtk" << ends;
+		// 			OutputModeAll[sd]->WriteVtk(os.str().c_str());
+		// 			modeimg[sd]++;
+		// 		}
+		// 	}
+		// }
 
 	} // while(TDatabase::TimeDB->CURRENTTIME< e)
 
@@ -1602,28 +1602,29 @@ exit(0);      */
 		meanimg++;
 	}
 
-	for (int sd = 0; sd < subDim; sd++)
-	{
+	// for (int sd = 0; sd < subDim; sd++)
+	// {
 
-		std::string filenameMode = "Mode_NRealisations_" + std::to_string(N_Realisations) + "_ModeN0_" + std::to_string(sd);
-		VtkBaseNameMode = const_cast<char *>(filenameMode.c_str());
-		if (TDatabase::ParamDB->WRITE_VTK)
-		{
-			os.seekp(std::ios::beg);
-			if (modeimg[sd] < 10)
-				os << "VTK/" << VtkBaseNameMode << ".0000" << modeimg[sd] << ".vtk" << ends;
-			else if (modeimg[sd] < 100)
-				os << "VTK/" << VtkBaseNameMode << ".000" << modeimg[sd] << ".vtk" << ends;
-			else if (modeimg[sd] < 1000)
-				os << "VTK/" << VtkBaseNameMode << ".00" << modeimg[sd] << ".vtk" << ends;
-			else if (modeimg[sd] < 10000)
-				os << "VTK/" << VtkBaseNameMode << ".0" << modeimg[sd] << ".vtk" << ends;
-			else
-				os << "VTK/" << VtkBaseNameMode << "." << modeimg[sd] << ".vtk" << ends;
-			OutputModeAll[sd]->WriteVtk(os.str().c_str());
-			modeimg[sd]++;
-		}
-	}
+	// 	std::string filenameMode = "Mode_NRealisations_" + std::to_string(N_Realisations) + "_ModeN0_" + std::to_string(sd);
+	// 	VtkBaseNameMode = const_cast<char *>(filenameMode.c_str());
+	// 	if (TDatabase::ParamDB->WRITE_VTK)
+	// 	{
+	// 		os.seekp(std::ios::beg);
+	// 		if (modeimg[sd] < 10)
+	// 			os << "VTK/" << VtkBaseNameMode << ".0000" << modeimg[sd] << ".vtk" << ends;
+	// 		else if (modeimg[sd] < 100)
+	// 			os << "VTK/" << VtkBaseNameMode << ".000" << modeimg[sd] << ".vtk" << ends;
+	// 		else if (modeimg[sd] < 1000)
+	// 			os << "VTK/" << VtkBaseNameMode << ".00" << modeimg[sd] << ".vtk" << ends;
+	// 		else if (modeimg[sd] < 10000)
+	// 			os << "VTK/" << VtkBaseNameMode << ".0" << modeimg[sd] << ".vtk" << ends;
+	// 		else
+	// 			os << "VTK/" << VtkBaseNameMode << "." << modeimg[sd] << ".vtk" << ends;
+	// 		OutputModeAll[sd]->WriteVtk(os.str().c_str());
+	// 		modeimg[sd]++;
+	// 	}
+	// }
+	
 	TDatabase::TimeDB->CURRENTTIME = 0;
 
 	CloseFiles();

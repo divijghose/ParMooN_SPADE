@@ -6,7 +6,7 @@
         "fvSolution": "OpenFOAM",
         "**/constant/g": "OpenFOAM",
         "**/0/*": "OpenFOAM",
-        "*.cmake": "c",
+        "*.cmake": "cmake",
         "DirectSolver.C": "cpp",
         "FE3D.C": "cpp",
         "FE3D_ALE.C": "cpp",
@@ -170,7 +170,10 @@
         "TLA2D_ParMooN_IVUQ_DO_Validation.C": "cpp",
         "TCD2D_ParMooN_IVUQ_DO_Validation.C": "cpp",
         "TBE2D_ParMooN_IVUQ_DO_Validation.C": "cpp",
-        "LinAlg.C": "cpp"
+        "LinAlg.C": "cpp",
+        "TNSE2D_ParMooN_IVUQ_DO_Validation.C": "cpp",
+        "TLA2D_ParMooN_IVUQ_DO_Paper.C": "cpp",
+        "TCD2D_ParMooN_IVUQ_DO_Paper.C": "cpp"
     },
     "cmake.configureOnOpen": false,
     "C_Cpp.dimInactiveRegions": false

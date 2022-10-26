@@ -700,7 +700,7 @@ int TDomain::ReadParam(char *ParamFile)
       N_Param++;
     }
 
-     if (!strcmp(line, "Reorthonormalization Strategy:"))
+     if (!strcmp(line, "Reortho_Strategy:"))
     {
       dat >> TDatabase::ParamDB->REORTHO_STRATEGY;
       N_Param++;
