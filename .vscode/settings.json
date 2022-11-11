@@ -173,7 +173,8 @@
         "LinAlg.C": "cpp",
         "TNSE2D_ParMooN_IVUQ_DO_Validation.C": "cpp",
         "TLA2D_ParMooN_IVUQ_DO_Paper.C": "cpp",
-        "TCD2D_ParMooN_IVUQ_DO_Paper.C": "cpp"
+        "TCD2D_ParMooN_IVUQ_DO_Paper.C": "cpp",
+        "ranges": "cpp"
     },
     "cmake.configureOnOpen": false,
     "C_Cpp.dimInactiveRegions": false

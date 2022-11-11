@@ -66,10 +66,12 @@
 // =======================================================================
 // include current example
 // =======================================================================
-#include "../HelperFunctions/IO.h"             // Input-Output functions for DO
-#include "../HelperFunctions/DO_UQ/CoeffOps.h" //Operations on Coefficient Vector for DO
-#include "../HelperFunctions/DO_UQ/ModeOps.h"  //Operations on Mode Vector for DO
-#include "../HelperFunctions/DO_UQ/Stats.h"    //Operations on Mode Vector for DO
+#include "../HelperFunctions/IO.h"                    // Input-Output functions for DO
+#include "../HelperFunctions/Monte_Carlo/RealznGen.h" // Monte Carlo Routines
+#include "../HelperFunctions/DO_UQ/CoeffOps.h"        //Operations on Coefficient Vector for DO
+#include "../HelperFunctions/DO_UQ/ModeOps.h"         //Operations on Mode Vector for DO
+#include "../HelperFunctions/DO_UQ/Stats.h"           //Operations on Mode Vector for DO
+#include "../HelperFunctions/DO_UQ/DOInit.h"          //Operations on Mode Vector for DO
 
 #include "../../Examples/DO_UQ/linear_advection_do_validation.h"
 
@@ -86,7 +88,6 @@ int main(int argc, char *argv[])
     char *VtkBaseName;
     char *VtkBaseNameMean;
     char *VtkBaseNameMode;
-    const char vtkdir[] = "VTK";
 
     TDomain *Domain;
     TDatabase *Database = new TDatabase();
@@ -155,39 +156,9 @@ int main(int argc, char *argv[])
     if (TDatabase::ParamDB->WRITE_PS)
         Domain->PS("Domain.ps", It_Finest, 0);
 
-    // create output directory, if not already existing
+    // create output directories, if not already existing
+    createOutputFolders();
 
-    const char modedir[] = "Modes";
-    const char meandir[] = "Mean";
-    const char coeffdir[] = "Coefficients";
-    const char mcdir[] = "MonteCarlo";
-    const char endir[] = "Energy_Data";
-
-    mkdir(vtkdir, 0777);
-    mkdir(meandir, 0777);
-    mkdir(modedir, 0777);
-    mkdir(coeffdir, 0777);
-    mkdir(mcdir, 0777);
-    mkdir(endir, 0777);
-
-    const char dir1[] = "MonteCarlo/Mean";
-    const char dir2[] = "MonteCarlo/MeanPlusSigma";
-    const char dir3[] = "MonteCarlo/MeanMinusSigma";
-    const char dir4[] = "MonteCarlo/MeanPlus2Sigma";
-    const char dir5[] = "MonteCarlo/MeanMinus2Sigma";
-    const char dir6[] = "MonteCarlo/MeanPlus3Sigma";
-    const char dir7[] = "MonteCarlo/MeanMinus3Sigma";
-
-    mkdir(dir1, 0777);
-    mkdir(dir2, 0777);
-    mkdir(dir3, 0777);
-    mkdir(dir4, 0777);
-    mkdir(dir5, 0777);
-    mkdir(dir6, 0777);
-    mkdir(dir7, 0777);
-
-    const char initdir[] = "Init";
-    mkdir(initdir, 0777);
     //=========================================================================
     // construct all finite element spaces
     //=========================================================================
@@ -206,419 +177,22 @@ int main(int argc, char *argv[])
     OutPut("dof all      : " << setw(10) << N_DOF << endl);
     OutPut("dof active   : " << setw(10) << N_Active << endl);
 
-    // ///////////////////////////////////////////////////////////////////////////////////////////////
-    // ////////// -------- REALISATION DATA GENERATION ----------------------------------------- //////
-    // ///////////////////////////////////////////////////////////////////////////////////////////////
-
     int N_Realisations = TDatabase::ParamDB->REALIZATIONS;
     double *RealizationVector = new double[N_DOF * N_Realisations]();
 
-    if (TDatabase::ParamDB->toggleRealznSource == 0)
-    {
-        double LengthScale = TDatabase::ParamDB->LENGTHSCALE;
-        double EigenPercent = TDatabase::ParamDB->EIGENPERCENT;
-
-        double *org_x_coord = new double[N_DOF]();
-        double *org_y_coord = new double[N_DOF]();
-        double *x_coord = new double[N_DOF]();
-        double *y_coord = new double[N_DOF]();
-        int *mappingArray = new int[N_DOF]();
-
-        i = 0;
-        int N = pow(2, TDatabase::ParamDB->UNIFORM_STEPS) + 1;
-        for (int i = 0; i < N_DOF; i++)
-        {
-            int local_i = i / N;
-            int local_j = i % N;
-
-            x_coord[i] = double(1.0 / (N - 1)) * local_i;
-            y_coord[i] = double(1.0 / (N - 1)) * local_j;
-        }
-        Scalar_FeSpace->GetDOFPosition(org_x_coord, org_y_coord);
-
-        for (int i = 0; i < N_DOF; i++) // Generated Values
-        {
-            // get the generated Value
-            double xx = x_coord[i];
-            double yy = y_coord[i];
-            bool foundFlag = false;
-
-            for (int j = 0; j < N_DOF; j++) // Actual parmooN Co-ordinates
-            {
-                if (abs(xx - org_x_coord[j]) < 1e-10 && abs(yy - org_y_coord[j]) < 1e-10)
-                {
-                    mappingArray[i] = j;
-                    foundFlag = true;
-                }
-            }
-
-            if (!foundFlag)
-                cerr << " DOF NOT FOUND FOR " << i << " position : " << setw(8) << org_x_coord[i] << setw(8) << org_y_coord[i] << endl;
-        }
-        // int N_DOF =  N * N;
-        double *x = new double[N_DOF]();
-        double *y = new double[N_DOF]();
-
-        for (int i = 0; i < N_DOF; i++)
-        {
-            int local_i = i / N;
-            int local_j = i % N;
-
-            x[i] = double(1.0 / (N - 1)) * local_j;
-            y[i] = double(1.0 / (N - 1)) * local_i;
-        }
-
-        double *C = new double[N_DOF * N_DOF]();  // MATRIX
-        double *C1 = new double[N_DOF * N_DOF](); // MATRIX  - Corelation Matrix
-
-        double norm = 0;
-        for (int i = 0; i < N_DOF; i++)
-        {
-            double actual_x = x[i];
-            double actual_y = y[i];
-
-            for (int j = 0; j < N_DOF; j++)
-            {
-                double local_x = x[j];
-                double local_y = y[j];
-
-                double r = sqrt(pow((actual_x - local_x), 2) + pow((actual_y - local_y), 2));
-
-                // CO -Relation
-                C[i * N_DOF + j] = exp((-1.0 * r) / (LengthScale)) * (1 + (r / LengthScale) + pow(r / LengthScale, 2));
-                C1[i * N_DOF + j] = exp((-1.0 * r) / (LengthScale)) * (1 + (r / LengthScale) + pow(r / LengthScale, 2));
-
-                if (TDatabase::ParamDB->stddev_switch == 0)
-                {
-                    double sig_r1 = exp(-1.0 / (1.0 - pow((2 * actual_x - 1), 4))) * exp(-1.0 / (1 - pow((2 * actual_y - 1), 4)));
-                    double sig_r2 = exp(-1.0 / (1.0 - pow((2 * local_x - 1), 4))) * exp(-1.0 / (1 - pow((2 * local_y - 1), 4)));
-                    // Co Variance
-                    C[i * N_DOF + j] *= sig_r1 * sig_r2 * 5.0;
-                }
-
-                else if (TDatabase::ParamDB->stddev_switch == 1)
-                {
-                    double E = TDatabase::ParamDB->stddev_denom;
-                    double disp = TDatabase::ParamDB->stddev_disp;
-                    double power = TDatabase::ParamDB->stddev_power;
-                    double sig_r1 = (exp(-1.0 * pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E))) * (exp(-1.0 * pow((2 * actual_y - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E)));
-                    double sig_r2 = (exp(-1.0 * pow((2 * local_x - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E))) * (exp(-1.0 * pow((2 * local_y - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E)));
-                    // Co Variance
-                    C[i * N_DOF + j] *= 0.5 * sig_r1 * sig_r2;
-                }
-
-                else if (TDatabase::ParamDB->stddev_switch == 2)
-                {
-                    double amplitude = TDatabase::ParamDB->stddev_power;
-                    double sig_r1 = (amplitude)*sin(-1.0 * Pi * (2 * actual_x - 2)) * sin(-1.0 * Pi * (2 * actual_y - 2));
-                    double sig_r2 = (amplitude)*sin(-1.0 * Pi * (2 * local_x - 2)) * sin(-1.0 * Pi * (2 * local_y - 2));
-                    C[i * N_DOF + j] *= sig_r1 * sig_r2;
-                }
-
-                else
-                {
-                    cout << "Error - No standard deviation function is defined for stddev_switch: " << TDatabase::ParamDB->stddev_switch << endl;
-                    exit(0);
-                }
-
-                // norm += C[j * N + i] * C[j * N + i];
-            }
-        }
-
-        std::string fileOutCorrelation = "Init/Correlation_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
-        printToTxt(fileOutCorrelation, C, N_DOF, N_DOF, 'R');
-
-        ////////////////////////////////////////////////////// SVD ////////////////////////////////////////////
-        // Declare SVD parameters
-        MKL_INT m1 = N_DOF, n = N_DOF, lda = N_DOF, ldu = N_DOF, ldvt = N_DOF, info;
-        double superb[std::min(N_DOF, N_DOF) - 1];
-
-        double *S = new double[N_DOF]();
-        double *U = new double[N_DOF * N_DOF]();
-        double *Vt = new double[N_DOF * N_DOF]();
-        info = LAPACKE_dgesvd(LAPACK_ROW_MAJOR, 'A', 'A', m1, n, C, lda,
-                              S, U, ldu, Vt, ldvt, superb);
-
-        if (info > 0)
-        {
-            printf("The algorithm computing SVD of Covariance Matrix failed to converge.\n");
-            exit(1);
-        }
-
-        std::string fileOutCorrS = "Init/Corr_S_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
-        printToTxt(fileOutCorrS, S, N_DOF, 1, 'C');
-
-        std::string fileOutCorrU = "Init/Corr_U_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
-        printToTxt(fileOutCorrU, U, N_DOF, N_DOF, 'R');
-
-        std::string fileOutCorrVt = "Init/Corr_Vt_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
-        printToTxt(fileOutCorrVt, Vt, N_DOF, N_DOF, 'R');
-
-        int energyVal = 0;
-        int temp = 0;
-
-        double sumSingularVal = 0;
-        for (int i = 0; i < N_DOF; i++)
-            sumSingularVal += S[i];
-
-        double val = 0;
-        for (energyVal = 0; energyVal < N_DOF; energyVal++)
-        {
-            val += S[energyVal];
-            temp++;
-            if (val / sumSingularVal > 0.99)
-                break;
-        }
-
-        cout << " MODES : " << temp + 1 << endl;
-
-        int modDim = temp + 1;
-
-        double *Ut = new double[N_DOF * modDim]();
-        double *Z = new double[N_Realisations * modDim]();
-
-        double *RealizationVectorTemp = new double[N_DOF * N_Realisations]();
-
-        // -------------- Generate Random Number Based on Normal Distribution -------------------------//
-        int k = 0;
-        int skip = N_DOF - modDim;
-        int count = 0;
-        for (int i = 0; i < N_DOF * N_DOF; i++)
-        {
-            if (count < modDim)
-            {
-                Ut[k] = U[i];
-
-                count++;
-                k++;
-            }
-            else
-            {
-                i += skip;
-                count = 0;
-                i--;
-            }
-        }
-
-        for (int k = 0; k < modDim; k++)
-        {
-            std::random_device rd{};
-            std::mt19937 gen{rd()};
-            std::normal_distribution<> d{0, 1};
-
-            double *norm1 = new double[N_Realisations]();
-
-            for (int n = 0; n < N_Realisations; ++n)
-            {
-                Z[k * N_Realisations + n] = S[k] * d(gen);
-            }
-        }
-
-        cout << " N_Realisations : " << N_Realisations << endl;
-        cout << " MULT START " << endl;
-        cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_DOF, N_Realisations, modDim, 1.0, Ut, modDim, Z, N_Realisations, 0.0, RealizationVector, N_Realisations);
-        cout << " MULT DONE " << endl;
-
-        for (int i = 0; i < N_DOF; i++)
-        {
-            for (int j = 0; j < N_Realisations; j++)
-            {
-                RealizationVectorTemp[mappingArray[i] * N_Realisations + j] = RealizationVector[j + N_Realisations * i];
-            }
-        }
-
-        memcpy(RealizationVector, RealizationVectorTemp, N_DOF * N_Realisations * SizeOfDouble);
-
-        cout << N_Realisations << " REALISATIONS COMPUTED " << endl;
-
-        delete[] Ut;
-        delete[] Z;
-        delete[] RealizationVectorTemp;
-        delete[] S;
-        delete[] U;
-        delete[] Vt;
-        delete[] org_x_coord;
-        delete[] org_y_coord;
-        delete[] x_coord;
-        delete[] y_coord;
-        delete[] C;
-        delete[] C1;
-
-        if (TDatabase::ParamDB->writeRealznToText == 1)
-            writeRealizationToText(RealizationVector, N_Realisations, N_DOF);
-    }
-    else if (TDatabase::ParamDB->toggleRealznSource == 1)
-        readRealizationFromText(RealizationVector, N_Realisations, N_DOF);
-    else
-    {
-        cout << "Please select correct value of Realization_Source" << endl
-             << TDatabase::ParamDB->toggleRealznSource << " is not an acceptable value" << endl;
-        exit(0);
-    }
-
-    /////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
+    GenerateRealizations(Scalar_FeSpace, RealizationVector);
 
     ////////////////////////////////////// -------- START OF DO INITIALIZATION ------------ ////////////////////////////////////////////////////////////////
+    double *MeanVector = new double[N_DOF * 1]();
 
-    double *MeanVector = new double[N_DOF * 1](); // overline{C}_{dof} = \sum_{i=1}^{N_Realisations}(C^{i}_{dof})/N_Realisations
-    for (int i = 0; i < N_DOF; ++i)
-    {
-        for (int j = 0; j < N_Realisations; ++j)
-        {
-            MeanVector[i] += (RealizationVector[i * N_Realisations + j] / N_Realisations);
-        }
-    }
-    printToTxt("Init/Mean.txt", MeanVector, N_DOF, 1, 'C');
-
-    double *PerturbationVector = new double[N_DOF * N_Realisations](); // \hat{C}^{i}_{dof} = C^{i}_{dof} - \overline{C}_{dof}
-    for (int i = 0; i < N_DOF; ++i)
-    {
-        for (int j = 0; j < N_Realisations; ++j)
-        {
-            PerturbationVector[i * N_Realisations + j] = RealizationVector[i * N_Realisations + j] - MeanVector[i];
-        }
-    }
-    printToTxt("Init/PerturbationVector.txt", PerturbationVector, N_DOF, N_Realisations, 'R');
-
-    //================================================================================================
-    /////////////////////////////DO - Initialization SVD//////////////////////////////////////////////
-    //================================================================================================
-    // Declare SVD parameters
-    int minDim = std::min(N_DOF, N_Realisations);
-    MKL_INT mDO = N_DOF, nDO = N_Realisations, ldaDO = N_Realisations, lduDO = minDim, ldvtDO = N_Realisations, infoDO;
-    double superbDO[minDim - 1];
-
-    double *PerturbationVectorCopy = new double[N_DOF * N_Realisations]();
-    memcpy(PerturbationVectorCopy, PerturbationVector, N_DOF * N_Realisations * SizeOfDouble);
-
-    double *Sg = new double[minDim];
-    double *L = new double[N_DOF * minDim];
-    double *Rt = new double[minDim * N_Realisations];
-
-    infoDO = LAPACKE_dgesvd(LAPACK_ROW_MAJOR, 'S', 'N', mDO, nDO, PerturbationVectorCopy, ldaDO,
-                            Sg, L, lduDO, Rt, ldvtDO, superbDO);
-
-    if (infoDO > 0)
-    {
-        printf("The algorithm computing SVD for DO failed to converge.\n");
-        exit(1);
-    }
-    cout << " DO SVD COMPUTED " << endl;
-
-    //////////////////////////////////////////// DO - SVD End///////////////////////////////
-
-    ///////DO - Subspace dimension calculation /////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////
-    cout << "Starting DO Subspace Calculation" << endl;
-    cout << "Subspace Manual " << TDatabase::ParamDB->Subspace_Manual << endl;
-    cout << "Max subspace dim" << TDatabase::ParamDB->Max_Subspace_Dim << endl;
-    int s1 = 0;
-    int subDim = 0;
-    if (TDatabase::ParamDB->Subspace_Manual == 1)
-        subDim = TDatabase::ParamDB->Max_Subspace_Dim;
-    else if (TDatabase::ParamDB->Subspace_Manual == 0)
-    {
-        double SVPercent = TDatabase::ParamDB->SVPERCENT;
-        double valDO = 0.0;
-        double sumSingularValDO = 0.0;
-        for (int i = 0; i < minDim; i++)
-        {
-            sumSingularValDO += Sg[i];
-        }
-        while (valDO / sumSingularValDO < SVPercent)
-        {
-            valDO += Sg[s1];
-            s1++;
-        }
-
-        subDim = s1 + 1;
-        if (subDim > TDatabase::ParamDB->Max_Subspace_Dim)
-            subDim = TDatabase::ParamDB->Max_Subspace_Dim;
-    }
-    else
-    {
-        cout << "Please enter correct value of Subspace_Manual (0 or 1)" << endl;
-        exit(0);
-    }
-
-    cout << " SUBSPACE DIMENSION : " << subDim << endl;
-    ////////Subspace dimension calculated//////////////////
-    TDatabase::ParamDB->N_Subspace_Dim = subDim;
-
-    /////Projection Matrix///////////
-    ////////////////////////////////
-
-    /// Initialize Coefficient Matrix - First subDim columns of Projection Matrix ////////////////////
+    subDim = calculateStochSubspaceDim(Scalar_FeSpace, RealizationVector);
     double *CoeffVector = new double[N_Realisations * subDim]();
-
-    ////////////Initialize Mode Vector - First subDim columns of Left Singular Vector//////////////////
-
     double *ModeVector = new double[N_DOF * subDim]();
+    InitializeDO(Scalar_FeSpace, RealizationVector, MeanVector, ModeVector, CoeffVector);
 
-    for (int i = 0; i < N_DOF; i++)
-    {
-        for (int j = 0; j < subDim; j++)
-        {
-            ModeVector[j * N_DOF + i] = L[i * minDim + j]; // ModeVector in Col Major form
-        }
-    }
-
-    TFEVectFunct2D *FEFVector_ModeInit = new TFEVectFunct2D(Scalar_FeSpace, (char *)"C_Mode_Init", (char *)"Mode Component", ModeVector, N_DOF, subDim); // check length ??
-
-    double *normzdModeVector = new double[N_DOF * subDim]();
-    double *tempModeVector = new double[N_DOF * subDim]();
-    normalizeStochasticModes(Scalar_FeSpace, FEFVector_ModeInit, subDim, tempModeVector);
-    for (int i = 0; i < N_DOF; i++)
-    {
-        for (int j = 0; j < subDim; j++)
-        {
-            normzdModeVector[i * subDim + j] = tempModeVector[j * N_DOF + i];
-        }
-    }
-    double *ProjectionVector = new double[N_Realisations * subDim]();
-
-    cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, N_Realisations, subDim, N_DOF, 1.0, PerturbationVector, N_Realisations, normzdModeVector, subDim, 0.0, ProjectionVector, subDim);
-    for (int i = 0; i < N_Realisations; i++)
-    {
-        for (int j = 0; j < subDim; j++)
-        {
-            CoeffVector[j * N_Realisations + i] = ProjectionVector[i * subDim + j]; // CoeffVector in Col Major form
-        }
-    }
-
-    memcpy(ModeVector, tempModeVector, N_DOF * subDim * SizeOfDouble);
-    printToTxt("Init/Coeff.txt", CoeffVector, N_Realisations, subDim, 'C');
-    printToTxt("Init/Mode.txt", ModeVector, N_DOF, subDim, 'C');
-    const char ip[] = "IPMatrices";
-    mkdir(ip, 0777);
-    const char ipmeandir[] = "IPMatrices/IPMean";
-    mkdir(ipmeandir, 0777);
-    const char ipmodedir[] = "IPMatrices/IPMode";
-    mkdir(ipmodedir, 0777);
-
+    int subDim = TDatabase::ParamDB->N_Subspace_Dim;
     double *IPMatxMode = new double[subDim * subDim]();
     double *IPMatxMean = new double[1 * 1]();
-
-    calcIPMatx(IPMatxMode, ModeVector, N_DOF, subDim, 'C');
-    printToTxt("Init/IPMatxMode_Init.txt", IPMatxMode, subDim, subDim, 'R');
-
-    calcIPMatx(IPMatxMean, MeanVector, N_DOF, 1, 'C');
-    printToTxt("Init/IPMatxMean_Init.txt", IPMatxMean, 1, 1, 'R');
-
-    m = 0;
-
-    // double *ModeVector = new double[N_DOF * subDim]();
-
-    delete[] PerturbationVector;
-    delete[] PerturbationVectorCopy;
-    delete[] Sg;
-    delete[] L;
-    delete[] Rt;
-    delete[] ProjectionVector;
-
-    ////////////////////////////////////////////DO - Initialization Ends//////////////////////////////////////
-    ///////================================================================================//////////////////
-
     m = 0;
 
     // double *ModeVector = new double[N_DOF * subDim]();
@@ -663,7 +237,8 @@ int main(int argc, char *argv[])
             solModeAll[j * N_DOF + i] = ModeVector[j * N_DOF + i];
         }
     }
-
+    cout << "Here al" << endl;
+    exit(0);
     //======================================================================
     // /DO - SystemMatrix construction and solution
     //======================================================================
@@ -788,22 +363,26 @@ int main(int argc, char *argv[])
     int modeimg = 0;
     int *imgMode = new int[subDim]();
 
-    if (TDatabase::ParamDB->WRITE_VTK)
-    {
-        os.seekp(std::ios::beg);
-        if (meanimg < 10)
-            os << "VTK/" << VtkBaseNameMean << ".0000" << meanimg << ".vtk" << ends;
-        else if (meanimg < 100)
-            os << "VTK/" << VtkBaseNameMean << ".000" << meanimg << ".vtk" << ends;
-        else if (meanimg < 1000)
-            os << "VTK/" << VtkBaseNameMean << ".00" << meanimg << ".vtk" << ends;
-        else if (meanimg < 10000)
-            os << "VTK/" << VtkBaseNameMean << ".0" << meanimg << ".vtk" << ends;
-        else
-            os << "VTK/" << VtkBaseNameMean << "." << meanimg << ".vtk" << ends;
-        OutputMean->WriteVtk(os.str().c_str());
-        meanimg++;
-    }
+    int *imgMean = new int(0);
+
+    printVTKOutput(VtkBaseNameMean, imgMean, OutputMean);
+
+    // if (TDatabase::ParamDB->WRITE_VTK)
+    // {
+    //     os.seekp(std::ios::beg);
+    //     if (meanimg < 10)
+    //         os << "VTK/" << VtkBaseNameMean << ".0000" << meanimg << ".vtk" << ends;
+    //     else if (meanimg < 100)
+    //         os << "VTK/" << VtkBaseNameMean << ".000" << meanimg << ".vtk" << ends;
+    //     else if (meanimg < 1000)
+    //         os << "VTK/" << VtkBaseNameMean << ".00" << meanimg << ".vtk" << ends;
+    //     else if (meanimg < 10000)
+    //         os << "VTK/" << VtkBaseNameMean << ".0" << meanimg << ".vtk" << ends;
+    //     else
+    //         os << "VTK/" << VtkBaseNameMean << "." << meanimg << ".vtk" << ends;
+    //     OutputMean->WriteVtk(os.str().c_str());
+    //     meanimg++;
+    // }
 
     for (int s = 0; s < subDim; s++)
     {
@@ -980,8 +559,9 @@ int main(int argc, char *argv[])
                 double *rhsNewAll = new double[N_DOF * subDim]();
                 // get the UPDATED RHS VALUE FROM FUNCTION
 
-                normalizeStochasticModes(Scalar_FeSpace, FEFVector_Mode, subDim, stochNormModes); // normalize modes for inner product
-                DO_Mode_RHS(Scalar_FeSpace, FEFVector_StochNormMode, subDim, rhsModeAll + subSpaceNum * N_DOF, subSpaceNum);
+                // normalizeStochasticModes(Scalar_FeSpace, FEFVector_Mode, subDim, stochNormModes); // normalize modes for inner product
+                DO_Mode_RHS(Scalar_FeSpace, FEFVector_Mode, subDim, rhsModeAll + subSpaceNum * N_DOF, subSpaceNum);
+                // DO_Mode_RHS(Scalar_FeSpace, FEFVector_StochNormMode, subDim, rhsModeAll + subSpaceNum * N_DOF, subSpaceNum);
 
                 cout << "Norm of Rhs : " << Ddot(N_DOF, rhsModeAll + subSpaceNum * N_DOF, rhsModeAll + subSpaceNum * N_DOF) << endl;
 
@@ -991,7 +571,8 @@ int main(int argc, char *argv[])
 
                 SystemMatrix_ModeAll[subSpaceNum]->RestoreMassMat();
 
-                DO_CoEfficient(Scalar_FeSpace, FEFVector_StochNormMode, FeVector_Coefficient, subDim, subSpaceNum, N_Realisations);
+                DO_CoEfficient(Scalar_FeSpace, FEFVector_Mode, FeVector_Coefficient, subDim, subSpaceNum, N_Realisations);
+                // DO_CoEfficient(Scalar_FeSpace, FEFVector_StochNormMode, FeVector_Coefficient, subDim, subSpaceNum, N_Realisations);
 
             } // subSpaceNumLoop
 
@@ -1112,6 +693,7 @@ int main(int argc, char *argv[])
     //======================================================================
     // produce final outout
     //======================================================================
+    m++;
     fileoutMean = generateFileName(meanBaseName, m, N_Realisations);
     printToTxt(fileoutMean, solMean, N_DOF, 1, 'C');
 
@@ -1195,8 +777,10 @@ int main(int argc, char *argv[])
          << m << endl;
 
     CloseFiles();
+    TDatabase::TimeDB->CURRENTTIME = 0;
+
     cout << "Compute finish" << endl;
-    exit(0);
+
     double *RealizationVectorCopy = new double[N_DOF * N_Realisations]();
     memcpy(RealizationVectorCopy, RealizationVector, N_DOF * N_Realisations * SizeOfDouble);
 
@@ -1230,48 +814,39 @@ int main(int argc, char *argv[])
     SystemMatrix->Init(BilinearCoeffs, BoundCondition, BoundValue);
     int N_Composite = 7;
     int *imgm = new int[7]();
-
     for (int RealNo = 0; RealNo < N_Composite; RealNo++)
     {
         std::string filename;
-        std::string subfoldername;
         cout << " ============================================================================================================= " << endl;
         switch (RealNo)
         {
         case 0:
             cout << "Solving for Mean Solution" << endl;
-            filename = "MonteCarlo_Mean_NR_";
-            subfoldername = "Mean/";
+            filename = "MonteCarlo_Mean_NR_" + std::to_string(N_Realisations);
             break;
         case 1:
             cout << "Solving for Mean + sigma Solution" << endl;
-            filename = "MonteCarlo_MeanPlusSigma_NR_";
-            subfoldername = "MeanPlusSigma/";
+            filename = "MonteCarlo_MeanPlusSigma_NR_" + std::to_string(N_Realisations);
             break;
         case 2:
             cout << "Solving for Mean - sigma Solution" << endl;
-            filename = "MonteCarlo_MeanMinusSigma_NR_";
-            subfoldername = "MeanMinusSigma/";
+            filename = "MonteCarlo_MeanMinusSigma_NR_" + std::to_string(N_Realisations);
             break;
         case 3:
             cout << "Solving for Mean + 2*sigma Solution" << endl;
-            filename = "MonteCarlo_MeanPlus2Sigma_NR_";
-            subfoldername = "MeanPlus2Sigma/";
+            filename = "MonteCarlo_MeanPlus2Sigma_NR_" + std::to_string(N_Realisations);
             break;
         case 4:
             cout << "Solving for Mean - 2*sigma Solution" << endl;
-            filename = "MonteCarlo_MeanMinus2Sigma_NR_";
-            subfoldername = "MeanMinus2Sigma/";
+            filename = "MonteCarlo_MeanMinus2Sigma_NR_" + std::to_string(N_Realisations);
             break;
         case 5:
             cout << "Solving for Mean + 3*sigma Solution" << endl;
-            filename = "MonteCarlo_MeanPlus3Sigma_NR_";
-            subfoldername = "MeanPlus3Sigma/";
+            filename = "MonteCarlo_MeanPlus3Sigma_NR_" + std::to_string(N_Realisations);
             break;
         case 6:
             cout << "Solving for Mean - 3*sigma Solution" << endl;
-            filename = "MonteCarlo_MeanMinus3Sigma_NR_";
-            subfoldername = "MeanMinus3Sigma/";
+            filename = "MonteCarlo_MeanMinus3Sigma_NR_" + std::to_string(N_Realisations);
             break;
         }
         cout << " ============================================================================================================= " << endl;
@@ -1302,10 +877,18 @@ int main(int argc, char *argv[])
                << "/" << VtkBaseName << "." << imgm[RealNo] << ".vtk" << ends;
         Output->WriteVtk(os.str().c_str());
 
-        fileoutMC = generateFileName("MonteCarlo/" + subfoldername + filename, imgm[RealNo], N_Realisations);
-        printToTxt(fileoutMC, sol, N_DOF, 1, 'C');
+        if (imgm[RealNo] < 10)
+            fileoutMC = "MonteCarlo/" + filename + "_t0000" + std::to_string(imgm[RealNo]) + ".txt";
+        else if (imgm[RealNo] < 100)
+            fileoutMC = "MonteCarlo/" + filename + "_t000" + std::to_string(imgm[RealNo]) + ".txt";
+        else if (imgm[RealNo] < 1000)
+            fileoutMC = "MonteCarlo/" + filename + "_t00" + std::to_string(imgm[RealNo]) + ".txt";
+        else if (imgm[RealNo] < 10000)
+            fileoutMC = "MonteCarlo/" + filename + "_t0" + std::to_string(imgm[RealNo]) + ".txt";
+        else
+            fileoutMC = "MonteCarlo/" + filename + "_t" + std::to_string(imgm[RealNo]) + ".txt";
         imgm[RealNo]++;
-
+        printToTxt(fileoutMC, sol, N_DOF, 1, 'C');
         // assemble the system matrix with given aux, sol and rhs
         // aux is used to pass  addition fe functions (eg. mesh velocity) that is nedded for assembling,
         // otherwise, just pass with NULL
@@ -1393,9 +976,18 @@ int main(int argc, char *argv[])
                         os << "VTK"
                            << "/" << VtkBaseName << "." << imgm[RealNo] << ".vtk" << ends;
                     Output->WriteVtk(os.str().c_str());
-                    fileoutMC = generateFileName("MonteCarlo/" + subfoldername + filename, imgm[RealNo], N_Realisations);
-                    printToTxt(fileoutMC, sol, N_DOF, 1, 'C');
+                    if (imgm[RealNo] < 10)
+                        fileoutMC = "MonteCarlo/" + filename + "_t0000" + std::to_string(imgm[RealNo]) + ".txt";
+                    else if (imgm[RealNo] < 100)
+                        fileoutMC = "MonteCarlo/" + filename + "_t000" + std::to_string(imgm[RealNo]) + ".txt";
+                    else if (imgm[RealNo] < 1000)
+                        fileoutMC = "MonteCarlo/" + filename + "_t00" + std::to_string(imgm[RealNo]) + ".txt";
+                    else if (imgm[RealNo] < 10000)
+                        fileoutMC = "MonteCarlo/" + filename + "_t0" + std::to_string(imgm[RealNo]) + ".txt";
+                    else
+                        fileoutMC = "MonteCarlo/" + filename + "_t" + std::to_string(imgm[RealNo]) + ".txt";
                     imgm[RealNo]++;
+                    printToTxt(fileoutMC, sol, N_DOF, 1, 'C');
                 }
 
             } // for(l=0;l< N_SubSteps;l++)
@@ -1423,10 +1015,18 @@ int main(int argc, char *argv[])
             os << "VTK"
                << "/" << VtkBaseName << "." << imgm[RealNo] << ".vtk" << ends;
         Output->WriteVtk(os.str().c_str());
-
-        fileoutMC = generateFileName("MonteCarlo/" + subfoldername + filename, imgm[RealNo], N_Realisations);
-        printToTxt(fileoutMC, sol, N_DOF, 1, 'C');
+        if (imgm[RealNo] < 10)
+            fileoutMC = "MonteCarlo/" + filename + "_t0000" + std::to_string(imgm[RealNo]) + ".txt";
+        else if (imgm[RealNo] < 100)
+            fileoutMC = "MonteCarlo/" + filename + "_t000" + std::to_string(imgm[RealNo]) + ".txt";
+        else if (imgm[RealNo] < 1000)
+            fileoutMC = "MonteCarlo/" + filename + "_t00" + std::to_string(imgm[RealNo]) + ".txt";
+        else if (imgm[RealNo] < 10000)
+            fileoutMC = "MonteCarlo/" + filename + "_t0" + std::to_string(imgm[RealNo]) + ".txt";
+        else
+            fileoutMC = "MonteCarlo/" + filename + "_t" + std::to_string(imgm[RealNo]) + ".txt";
         imgm[RealNo]++;
+        printToTxt(fileoutMC, sol, N_DOF, 1, 'C');
 
         // cout << " Solution Norm After: " << Ddot(N_DOF,sol,sol) <<endl;
 
@@ -1443,16 +1043,45 @@ int main(int argc, char *argv[])
     double *modeDO = new double[N_DOF * subDim]();
     double *reconDO = new double[N_DOF * N_Realisations]();
 
-    for (int t = 0; t < m; t++)
+    for (int t = 0; t <= m + 1; t++)
     {
 
-        fileoutMean = generateFileName(meanBaseName, t, N_Realisations);
+        if (t < 10)
+            fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(t) + ".txt";
+        else if (t < 100)
+            fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(t) + ".txt";
+        else if (t < 1000)
+            fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(t) + ".txt";
+        else if (t < 10000)
+            fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(t) + ".txt";
+        else
+            fileoutMean = "Mean/Mean_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(t) + ".txt";
+
         readFromText(fileoutMean, meanDO, N_DOF, 1, 'C');
 
-        fileoutMode = generateFileName(modeBaseName, m, N_Realisations);
+        if (t < 10)
+            fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(t) + ".txt";
+        else if (t < 100)
+            fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(t) + ".txt";
+        else if (t < 1000)
+            fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(t) + ".txt";
+        else if (t < 10000)
+            fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(t) + ".txt";
+        else
+            fileoutMode = "Modes/Mode_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(t) + ".txt";
+
         readFromText(fileoutMode, modeDO, N_DOF, subDim, 'C');
 
-        fileoutCoeff = generateFileName(coeffBaseName, m, N_Realisations);
+        if (t < 10)
+            fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t0000" + std::to_string(t) + ".txt";
+        else if (t < 100)
+            fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t000" + std::to_string(t) + ".txt";
+        else if (t < 1000)
+            fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t00" + std::to_string(t) + ".txt";
+        else if (t < 10000)
+            fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t0" + std::to_string(t) + ".txt";
+        else
+            fileoutCoeff = "Coefficients/Coeff_NRealisations_" + std::to_string(N_Realisations) + "_t" + std::to_string(t) + ".txt";
         readFromText(fileoutCoeff, coeffDO, N_Realisations, subDim, 'C');
 
         reconstructMCfromDO(reconDO, meanDO, coeffDO, modeDO, N_Realisations, N_DOF, subDim);
@@ -1479,7 +1108,6 @@ int main(int argc, char *argv[])
         delete[] stdDevVectorDO;
         std::string fileDOname;
         std::string fileMCname;
-        std::string subfoldername;
         double *ErrorVector = new double[N_DOF * 1]();
         for (int RealNo = 0; RealNo < N_Composite; RealNo++)
         {
@@ -1488,47 +1116,39 @@ int main(int argc, char *argv[])
             case 0:
                 cout << "Reconstructing Mean Solution" << endl;
                 fileDOname = "DO_Mean_NR_" + std::to_string(N_Realisations);
-                fileMCname = "MonteCarlo_Mean_NR_";
-                subfoldername = "Mean/";
+                fileMCname = "MonteCarlo_Mean_NR_" + std::to_string(N_Realisations);
                 break;
             case 1:
                 cout << "Reconstructing Mean + sigma Solution" << endl;
                 fileDOname = "DO_MeanPlusSigma_NR_" + std::to_string(N_Realisations);
-                fileMCname = "MonteCarlo_MeanPlusSigma_NR_";
-                subfoldername = "MeanPlusSigma/";
+                fileMCname = "MonteCarlo_MeanPlusSigma_NR_" + std::to_string(N_Realisations);
                 break;
             case 2:
                 cout << "Reconstructing Mean - sigma Solution" << endl;
                 fileDOname = "DO_MeanMinusSigma_NR_" + std::to_string(N_Realisations);
-                fileMCname = "MonteCarlo_MeanMinusSigma_NR_";
-                subfoldername = "MeanMinusSigma/";
+                fileMCname = "MonteCarlo_MeanMinusSigma_NR_" + std::to_string(N_Realisations);
                 break;
             case 3:
                 cout << "Reconstructing Mean + 2*sigma Solution" << endl;
                 fileDOname = "DO_MeanPlus2Sigma_NR_" + std::to_string(N_Realisations);
-                fileMCname = "MonteCarlo_MeanPlus2Sigma_NR_";
-                subfoldername = "MeanPlus2Sigma/";
+                fileMCname = "MonteCarlo_MeanPlus2Sigma_NR_" + std::to_string(N_Realisations);
                 break;
             case 4:
                 cout << "Reconstructing Mean - 2*sigma Solution" << endl;
                 fileDOname = "DO_MeanMinus2Sigma_NR_" + std::to_string(N_Realisations);
-                fileMCname = "MonteCarlo_MeanMinus2Sigma_NR_";
-                subfoldername = "MeanMinus2Sigma/";
+                fileMCname = "MonteCarlo_MeanMinus2Sigma_NR_" + std::to_string(N_Realisations);
                 break;
             case 5:
                 cout << "Reconstructing Mean + 3*sigma Solution" << endl;
                 fileDOname = "DO_MeanPlus3Sigma_NR_" + std::to_string(N_Realisations);
-                fileMCname = "MonteCarlo_MeanPlus3Sigma_NR_";
-                subfoldername = "MeanPlus3Sigma/";
+                fileMCname = "MonteCarlo_MeanPlus3Sigma_NR_" + std::to_string(N_Realisations);
                 break;
             case 6:
                 cout << "Reconstructing Mean - 3*sigma Solution" << endl;
                 fileDOname = "DO_MeanMinus3Sigma_NR_" + std::to_string(N_Realisations);
-                fileMCname = "MonteCarlo_MeanMinus3Sigma_NR_";
-                subfoldername = "MeanMinus3Sigma/";
+                fileMCname = "MonteCarlo_MeanMinus3Sigma_NR_" + std::to_string(N_Realisations);
                 break;
             }
-
             VtkBaseName = const_cast<char *>(fileDOname.c_str());
             for (int i = 0; i < N_DOF; i++)
                 sol[i] = CompositeVectorDO[i + RealNo * N_DOF];
@@ -1551,7 +1171,17 @@ int main(int argc, char *argv[])
                    << "/" << VtkBaseName << "." << t << ".vtk" << ends;
             Output->WriteVtk(os.str().c_str());
 
-            fileoutMC = generateFileName("MonteCarlo/" + subfoldername + fileMCname, t, N_Realisations);
+            if (t < 10)
+                fileoutMC = "MonteCarlo/" + fileMCname + "_t0000" + std::to_string(t) + ".txt";
+            else if (t < 100)
+                fileoutMC = "MonteCarlo/" + fileMCname + "_t000" + std::to_string(t) + ".txt";
+            else if (t < 1000)
+                fileoutMC = "MonteCarlo/" + fileMCname + "_t00" + std::to_string(t) + ".txt";
+            else if (t < 10000)
+                fileoutMC = "MonteCarlo/" + fileMCname + "_t0" + std::to_string(t) + ".txt";
+            else
+                fileoutMC = "MonteCarlo/" + fileMCname + "_t" + std::to_string(t) + ".txt";
+
             readFromText(fileoutMC, ErrorVector, N_DOF, 1, 'C');
             double dnorm = Ddot(N_DOF, ErrorVector, ErrorVector);
             for (int i = 0; i < N_DOF; i++)
@@ -1559,7 +1189,6 @@ int main(int argc, char *argv[])
                 ErrorVector[i] = (CompositeVectorDO[i + RealNo * N_DOF] - ErrorVector[i]) / dnorm;
                 ErrorVector[i] = abs(ErrorVector[i]);
             }
-
             fileMCname = fileMCname + "_Error";
             VtkBaseName = const_cast<char *>(fileMCname.c_str());
             for (int i = 0; i < N_DOF; i++)
@@ -1584,6 +1213,7 @@ int main(int argc, char *argv[])
             Output->WriteVtk(os.str().c_str());
         }
     }
+    TDatabase::TimeDB->CURRENTTIME = 0;
 
     exit(0);
 

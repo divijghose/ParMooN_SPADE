@@ -141,7 +141,7 @@ std::string generateFileName(std::string baseName, int m, int N_R)
 
 /**
  * @brief Routine to read data from a text file
- * 
+ *
  * @param fileName Name of the text file
  * @param Vector Pointer to store matrix
  * @param height Number of rows in the matrix
@@ -199,3 +199,59 @@ void readFromText(std::string fileName, double *Vector, int height, int width, c
     return;
 }
 
+void createOutputFolders()
+{
+    const char modedir[] = "Modes";
+    const char meandir[] = "Mean";
+    const char coeffdir[] = "Coefficients";
+    const char mcdir[] = "MonteCarlo";
+    const char endir[] = "Energy_Data";
+    const char dir1[] = "MonteCarlo/Mean";
+    const char dir2[] = "MonteCarlo/MeanPlusSigma";
+    const char dir3[] = "MonteCarlo/MeanMinusSigma";
+    const char dir4[] = "MonteCarlo/MeanPlus2Sigma";
+    const char dir5[] = "MonteCarlo/MeanMinus2Sigma";
+    const char dir6[] = "MonteCarlo/MeanPlus3Sigma";
+    const char dir7[] = "MonteCarlo/MeanMinus3Sigma";
+    const char initdir[] = "Init";
+    const char vtkdir[] = "VTK";
+
+    mkdir(vtkdir, 0777);
+    mkdir(meandir, 0777);
+    mkdir(modedir, 0777);
+    mkdir(coeffdir, 0777);
+    mkdir(mcdir, 0777);
+    mkdir(endir, 0777);
+    mkdir(dir1, 0777);
+    mkdir(dir2, 0777);
+    mkdir(dir3, 0777);
+    mkdir(dir4, 0777);
+    mkdir(dir5, 0777);
+    mkdir(dir6, 0777);
+    mkdir(dir7, 0777);
+    mkdir(initdir, 0777);
+    return;
+}
+
+void printVTKOutput(char *Basename, int *timestamp, TOutput2D *Output)
+{
+    std::ostringstream os;
+    os << " ";
+    if (TDatabase::ParamDB->WRITE_VTK)
+    {
+        os.seekp(std::ios::beg);
+        if (*timestamp < 10)
+            os << "VTK/" << Basename << ".0000" << *timestamp << ".vtk" << ends;
+        else if (*timestamp < 100)
+            os << "VTK/" << Basename << ".000" << *timestamp << ".vtk" << ends;
+        else if (*timestamp < 1000)
+            os << "VTK/" << Basename << ".00" << *timestamp << ".vtk" << ends;
+        else if (*timestamp < 10000)
+            os << "VTK/" << Basename << ".0" << *timestamp << ".vtk" << ends;
+        else
+            os << "VTK/" << Basename << "." << *timestamp << ".vtk" << ends;
+        Output->WriteVtk(os.str().c_str());
+        *timestamp++;
+    }
+    return;
+}
