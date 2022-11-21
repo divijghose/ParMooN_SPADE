@@ -700,11 +700,17 @@ int TDomain::ReadParam(char *ParamFile)
       N_Param++;
     }
 
-     if (!strcmp(line, "Reortho_Strategy:"))
+    if (!strcmp(line, "Reortho_Strategy:"))
     {
       dat >> TDatabase::ParamDB->REORTHO_STRATEGY;
       N_Param++;
     }
+    if (!strcmp(line, "DO_Verbose_Printing:"))
+    {
+      dat >> TDatabase::ParamDB->DOVerbose;
+      N_Param++;
+    }
+    
     ////////////////////////////////////////////////////////////////
     if (!strcmp(line, "FILTER_WIDTH_CONSTANT:"))
     {

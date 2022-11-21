@@ -676,6 +676,8 @@ void TDatabase::SetDefaultParameters()
   ParamDB->REORTHO_STRATEGY = 1; //if 0, orthonormalize just the basis
                                  //if 1, orthornormalize basis and retain realization energy and direction
 
+  ParamDB->DOVerbose = 1;
+
 
   // ******** parameters for saddle point system *********//
 

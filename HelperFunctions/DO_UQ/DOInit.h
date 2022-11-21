@@ -118,7 +118,32 @@ void InitializeDO(TFESpace2D *Scalar_FeSpace, double *RealizationVector, double 
     }
     printToTxt("Init/PerturbationVector.txt", PerturbationVector, N_DOF, N_Realisations, 'R');
 
-   
+     //================================================================================================
+    /////////////////////////////DO - Initialization SVD//////////////////////////////////////////////
+    //================================================================================================
+    // Declare SVD parameters
+    int minDim = std::min(N_DOF, N_Realisations);
+    MKL_INT mDO = N_DOF, nDO = N_Realisations, ldaDO = N_Realisations, lduDO = minDim, ldvtDO = N_Realisations, infoDO;
+    double superbDO[minDim - 1];
+
+    double *PerturbationVectorCopy = new double[N_DOF * N_Realisations]();
+    memcpy(PerturbationVectorCopy, PerturbationVector, N_DOF * N_Realisations * SizeOfDouble);
+
+    double *Sg = new double[minDim];
+    double *L = new double[N_DOF * minDim];
+    double *Rt = new double[minDim * N_Realisations];
+
+    infoDO = LAPACKE_dgesvd(LAPACK_ROW_MAJOR, 'S', 'N', mDO, nDO, PerturbationVectorCopy, ldaDO,
+                            Sg, L, lduDO, Rt, ldvtDO, superbDO);
+
+    if (infoDO > 0)
+    {
+        printf("The algorithm computing SVD for DO failed to converge.\n");
+        exit(1);
+    }
+    cout << " DO SVD COMPUTED " << endl;
+
+    //////////////////////////////////////////// DO - SVD End///////////////////////////////
 
     /////Projection Matrix///////////
     ////////////////////////////////

@@ -174,7 +174,17 @@
         "TNSE2D_ParMooN_IVUQ_DO_Validation.C": "cpp",
         "TLA2D_ParMooN_IVUQ_DO_Paper.C": "cpp",
         "TCD2D_ParMooN_IVUQ_DO_Paper.C": "cpp",
-        "ranges": "cpp"
+        "ranges": "cpp",
+        "barrier": "c",
+        "compare": "c",
+        "concepts": "c",
+        "coroutine": "c",
+        "latch": "c",
+        "numbers": "c",
+        "semaphore": "c",
+        "span": "c",
+        "stop_token": "c",
+        "syncstream": "c"
     },
     "cmake.configureOnOpen": false,
     "C_Cpp.dimInactiveRegions": false

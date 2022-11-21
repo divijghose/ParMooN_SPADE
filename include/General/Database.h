@@ -262,6 +262,7 @@ struct TParaDB
   int REORTHO_STRATEGY; //if 0, orthonormalize just the basis
                         //if 1, orthornormalize basis and retain realization energy and direction
 
+  int DOVerbose;
   //======================================================================
   /** parameters for vectorial FE (Raviart-Thomas, Brezzi-Douglas-Marini) */
   //======================================================================
