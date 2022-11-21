@@ -683,6 +683,34 @@ int TDomain::ReadParam(char *ParamFile)
       dat >> TDatabase::ParamDB->Subspace_Manual;
       N_Param++;
     }
+
+    if (!strcmp(line, "Realization_Source:"))
+    {
+      dat >> TDatabase::ParamDB->toggleRealznSource;
+      N_Param++;
+    }
+    if (!strcmp(line, "Divergence_Free_Adjustment:"))
+    {
+      dat >> TDatabase::ParamDB->toggleDivFreeAdj;
+      N_Param++;
+    }
+    if (!strcmp(line, "Write_Realizations_To_Text:"))
+    {
+      dat >> TDatabase::ParamDB->writeRealznToText;
+      N_Param++;
+    }
+
+    if (!strcmp(line, "Reortho_Strategy:"))
+    {
+      dat >> TDatabase::ParamDB->REORTHO_STRATEGY;
+      N_Param++;
+    }
+    if (!strcmp(line, "DO_Verbose_Printing:"))
+    {
+      dat >> TDatabase::ParamDB->DOVerbose;
+      N_Param++;
+    }
+    
     ////////////////////////////////////////////////////////////////
     if (!strcmp(line, "FILTER_WIDTH_CONSTANT:"))
     {

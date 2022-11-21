@@ -1,21 +1,31 @@
 // =======================================================================
-// Purpose:     main program for solving a time-dependent Burger's equation in ParMooN
+//
+// Purpose:     main program for scalar equations with new kernels of ParMooN
+//
 // Author:      Sashikumaar Ganesan
-// History:     Implementation started on 28.11.2020
+//
+// History:     Implementation started on 08.08.2014
+
 // =======================================================================
+
 #include <Domain.h>
 #include <Database.h>
+#include <SystemTCD2D.h>
+#include <SystemTCD2D_ALE.h>
 #include <FEDatabase2D.h>
-#include <LinAlg.h>
 #include <FESpace2D.h>
-#include <SystemTBE2D.h>
-#include <SystemTBE_Mode2D.h>
 #include <SquareStructure2D.h>
+#include <Structure2D.h>
+#include <QuadAffin.h>
+#include <DirectSolver.h>
+#include <Assemble2D.h>
 #include <Output2D.h>
+#include <LinAlg.h>
+#include <CD2DErrorEstimator.h>
 #include <MainUtilities.h>
 #include <TimeDiscRout.h>
-#include <TNSE2D_ParamRout.h>
-
+#include <fstream>
+#include <string>
 #include <string.h>
 #include <sstream>
 #include <MooNMD_Io.h>
@@ -30,640 +40,488 @@
 // =======================================================================
 // include current example
 // =======================================================================
-#include "../Examples/Monte_Carlo/linear_advection_mc_test.h" // smooth sol in unit square
+// #include "../Examples/TCD_2D/exp.h"
+#include "../Examples/Monte_Carlo/linear_advection_mc_test.h"
+// #include "../Examples/TCD_2D/SinCos1.h"
+// #include "../Examples_All/TCD_2D/Time3.h"
+// #include "../Examples/TCD_2D/exp_0.h"
+//    #include "../Examples/TCD_2D/exp_2.h"
+// #include "../Examples_All/TCD_2D/exp_1.h"
+// #include "../Main_Users/Sashi/TCD_2D/Hemker.h"
 
-// =======================================================================
-// main program
-// =======================================================================
 int main(int argc, char *argv[])
 {
-  // ======================================================================
-  //  declaration of variables
-  // ======================================================================
-  int i, j, l, m, N_Cells, ORDER, N_U, N_M, N_L, N_TotalDOF, img = 1, N_Modes, N_Realiz;
-  int N_Total_MeanDOF, Max_It, NSEType, N_SubSteps, Disctype;
+  int i, j, l, m, N_SubSteps, ORDER, N_Cells, N_DOF, img = 1, N_G;
+  int N_Active;
 
-  double *sol, *sol_mode, *rhs, *oldrhs, *defect, t1, t2, residual, impuls_residual;
-  double limit, AllErrors[7], end_time, oldtau, tau;
+  double *sol, *rhs, *oldrhs, t1, t2, errors[5], Linfty;
+  double tau, end_time, *defect, olderror, olderror1, hmin, hmax;
+
+  bool UpdateStiffnessMat, UpdateRhs, ConvectionFirstTime;
+  char *VtkBaseName;
+  const char vtkdir[] = "VTK";
 
   TDomain *Domain;
   TDatabase *Database = new TDatabase();
   TFEDatabase2D *FEDatabase = new TFEDatabase2D();
-  TCollection *coll, *mortarcoll = NULL;
-
-  // TFESpace2D *Velocity_FeSpace, *VelocityMode_FeSpace, *fesp[2], *fesp_mode[2];
-  TFESpace2D *Velocity_FeSpace, *fesp[2];
-  TFESpace2D *Velocity_FeSpace_Mean, *fespMean[2];
-  // TFEVectFunct2D *Velocity_Mean, *Velocity_Mode;
-  TFEVectFunct2D *Velocity;
-  TFEVectFunct2D *VelocityMean;
-  TFEFunction2D *u1_mean, *u2_mean, *fefct[2];
-  // TFEFunction2D *u1, *u2, *fefct[2];
+  TCollection *coll;
+  TFESpace2D *Scalar_FeSpace, *fesp[1];
+  TFEFunction2D *Scalar_FeFunction;
   TOutput2D *Output;
-  TOutput2D *OutputMean;
-
-  TSystemTBE2D *SystemMatrix_Mean;
-  TSystemTBE2D *SystemMatrix;
-  // TSystemTBE_Mode2D *SystemMatrix_Mode;
-  // TFEFunction2D *FeFct[2], *FeFct_Mode[4];
-  TFEFunction2D *FeFct[2];
-  TAuxParam2D *BEaux, *BE_Modeaux, *BEaux_error;
-
-  const char vtkdir[] = "VTK";
-  char *PsBaseName, *VtkBaseName, *GEO;
-  // char UString[] = "u_mean";
-  char UString[] = "usol";
-  char UMString[] = "u_mode";
-  char NameString[] = "UQ";
+  TSystemTCD2D *SystemMatrix;
+  TAuxParam2D *aux;
+  MultiIndex2D AllDerivatives[3] = {D00, D10, D01};
 
   std::ostringstream os;
   os << " ";
 
-  mkdir(vtkdir, 0777);
-
   // ======================================================================
   // set the database values and generate mesh
   // ======================================================================
-  /** set variables' value in TDatabase using argv[1] (*.dat file), and generate the MESH based */
+  // set variables' value in TDatabase using argv[1] (*.dat file), and generate the MESH based
   Domain = new TDomain(argv[1]);
 
+  if (TDatabase::ParamDB->PROBLEM_TYPE == 0)
+    TDatabase::ParamDB->PROBLEM_TYPE = 2;
   OpenFiles();
-  OutFile.setf(std::ios::scientific);
 
   Database->WriteParamDB(argv[0]);
   Database->WriteTimeDB();
   ExampleFile();
 
-  /* include the mesh from a meshgenerator, for a standard mesh use the build-in function */
-  // standard mesh
-  GEO = TDatabase::ParamDB->GEOFILE;
-  Domain->Init(NULL, GEO);
+  /* include the mesh from a mesh generator, for a standard mesh use the
+   * build-in function. The GEOFILE describes the boundary of the domain. */
+  if (TDatabase::ParamDB->MESH_TYPE == 0)
+  {
+    Domain->ReadGeo(TDatabase::ParamDB->GEOFILE);
+    OutPut("PRM-GEO used for meshing !!!" << endl);
+  } // ParMooN  build-in Geo mesh
+  else if (TDatabase::ParamDB->MESH_TYPE == 1)
+  {
+    Domain->GmshGen(TDatabase::ParamDB->GEOFILE);
+    OutPut("GMSH used for meshing !!!" << endl);
+  }                                            // gmsh mesh
+  else if (TDatabase::ParamDB->MESH_TYPE == 2) // triangle mesh
+  {
+    OutPut("Triangle.h used for meshing !!!" << endl);
+    // TriaReMeshGen(Domain);
+  }
+  else
+  {
+    OutPut("Mesh Type not known, set MESH_TYPE correctly!!!" << endl);
+    exit(0);
+  }
+
+#if defined(__HEMKER__) || defined(__BEAM__)
+  // TriaReMeshGen(Domain);
+  TDatabase::ParamDB->UNIFORM_STEPS = 0;
+#endif
 
   // refine grid up to the coarsest level
   for (i = 0; i < TDatabase::ParamDB->UNIFORM_STEPS; i++)
     Domain->RegRefineAll();
 
+  // write grid into an Postscript file
   if (TDatabase::ParamDB->WRITE_PS)
-  {
-    // write grid into an Postscript file
-    os.seekp(std::ios::beg);
-    os << "Domain"
-       << ".ps" << ends;
-    Domain->PS(os.str().c_str(), It_Finest, 0);
-  }
+    Domain->PS("Domain.ps", It_Finest, 0);
+
+  // create output directory, if not already existing
+  mkdir(vtkdir, 0777);
 
   //=========================================================================
   // construct all finite element spaces
   //=========================================================================
   ORDER = TDatabase::ParamDB->ANSATZ_ORDER;
-  Disctype = TDatabase::ParamDB->DISCTYPE;
-
-  // N_Modes = TDatabase::ParamDB->P10;
-  // N_Realiz = TDatabase::ParamDB->P11;
-
-  // VelocityMode = new TFEVectFunct2D*[N_Modes];
 
   coll = Domain->GetCollection(It_Finest, 0);
   N_Cells = coll->GetN_Cells();
-  OutPut("N_Cells : " << N_Cells << endl);
+  OutPut("N_Cells (space) : " << N_Cells << endl);
 
-  Velocity_FeSpace_Mean = new TFESpace2D(coll, (char *)"sol", (char *)"sol", BoundCondition, ORDER, NULL);
+  // fespaces for scalar equation
+  Scalar_FeSpace = new TFESpace2D(coll, (char *)"fe space", (char *)"solution space",
+                                  BoundCondition, 1, NULL);
 
-  // VelocityMode_FeSpace = new TFESpace2D(coll, (char*)"Mode", (char*)"Mode", BoundCondition, 1, NULL);
+  N_DOF = Scalar_FeSpace->GetN_DegreesOfFreedom();
+  N_Active = Scalar_FeSpace->GetActiveBound();
+  OutPut("dof all      : " << setw(10) << N_DOF << endl);
+  OutPut("dof active   : " << setw(10) << N_Active << endl);
 
-  N_U = Velocity_FeSpace_Mean->GetN_DegreesOfFreedom();
-  // N_M = VelocityMode_FeSpace->GetN_DegreesOfFreedom();
-  // N_Total_MeanDOF = 2*N_U;
-  // N_TotalDOF = 2*(N_U + N_Modes*N_M);
-  N_TotalDOF = 2 * N_U;
-  // OutPut("Dof Mean Velocity : "<< setw(10) << 2* N_U << endl);
-  // OutPut("Dof Mode Velocity : "<< setw(10) << 2* N_M << endl);
-  // OutPut("Total Dof all: "<< setw(10) << N_TotalDOF  << endl);
-  OutPut("DOF : " << setw(10) << 2 * N_U << endl);
   //======================================================================
   // construct all finite element functions
   //======================================================================
-  sol = new double[N_TotalDOF];
-  rhs = new double[N_TotalDOF];
-  oldrhs = new double[N_TotalDOF];
-  defect = new double[N_TotalDOF];
-  memset(sol, 0, N_TotalDOF * SizeOfDouble);
-  memset(rhs, 0, N_TotalDOF * SizeOfDouble);
+  sol = new double[N_DOF];
+  rhs = new double[N_DOF];
+  oldrhs = new double[N_DOF];
 
-  double *solMean = new double[N_TotalDOF];
-  double *rhsMean = new double[N_TotalDOF];
-  double *oldrhsMean = new double[N_TotalDOF];
-  double *defectMean = new double[N_TotalDOF];
+  memset(sol, 0, N_DOF * SizeOfDouble);
+  memset(rhs, 0, N_DOF * SizeOfDouble);
 
-  memset(solMean, 0, N_TotalDOF * SizeOfDouble);
-  memset(rhsMean, 0, N_TotalDOF * SizeOfDouble);
+  Scalar_FeFunction = new TFEFunction2D(Scalar_FeSpace, (char *)"sol", (char *)"sol", sol, N_DOF);
 
-  memset(oldrhsMean, 0, N_TotalDOF * SizeOfDouble);
-
-  VelocityMean = new TFEVectFunct2D(Velocity_FeSpace_Mean, UString, UString, solMean, N_U, 2);
-
-  // u1_mean = VelocityMean->GetComponent(0);
-  // u2_mean = VelocityMean->GetComponent(1);
-
-  // u1_mean->Interpolate(InitialU1);
-  // u2_mean->Interpolate(InitialU2);
-
-  /** mean velo */
-  // Velocity_Mean = new TFEVectFunct2D(Velocity_FeSpace, UString,  UString,  sol, N_U, 2);
-  // u1_mean = Velocity_Mean->GetComponent(0);
-  // u2_mean = Velocity_Mean->GetComponent(1);
-
-  // interpolate the initial solution
-  //  u1_mean->Interpolate(InitialU1Mean);
-  //  u2_mean->Interpolate(InitialU2Mean);
-
-  /** mode velo */
-  // sol_mode = sol+2*N_U;
-  // Velocity_Mode = new TFEVectFunct2D(VelocityMode_FeSpace, UString,  UString,  sol_mode, N_M, 2*N_Modes);
-
-  // Sol_DO_Coeff = new double[N_Realiz*N_modes]
-
-  //
   ///////////////////////////////////////////////////////////////////////////////////////////////
   ////////// -------- REALISATION DATA GENERATION ----------------------------------------- //////
   ///////////////////////////////////////////////////////////////////////////////////////////////
   int N_Realisations = TDatabase::ParamDB->REALIZATIONS;
-  double LengthScale = TDatabase::ParamDB->LENGTHSCALE;
-  double EigenPercent = TDatabase::ParamDB->EIGENPERCENT;
 
-  double *org_x_coord = new double[N_U];
-  double *org_y_coord = new double[N_U];
-  double *x_coord = new double[N_U];
-  double *y_coord = new double[N_U];
-  int *mappingArray = new int[N_U];
+  double *RealizationVector = new double[N_DOF * N_Realisations]();
 
-  i = 0;
-  int N = (2 * pow(2, TDatabase::ParamDB->UNIFORM_STEPS)) + 1;
-  for (int i = 0; i < N_U; i++)
+  if (TDatabase::ParamDB->toggleRealznSource == 0)
   {
-    int local_i = i / N;
-    int local_j = i % N;
+    double LengthScale = TDatabase::ParamDB->LENGTHSCALE;
+    double EigenPercent = TDatabase::ParamDB->EIGENPERCENT;
 
-    x_coord[i] = double(1.0 / (N - 1)) * local_i;
-    y_coord[i] = double(1.0 / (N - 1)) * local_j;
-  }
-  cout << " End File Read" << endl;
-  Velocity_FeSpace_Mean->GetDOFPosition(org_x_coord, org_y_coord);
+    double *org_x_coord = new double[N_DOF];
+    double *org_y_coord = new double[N_DOF];
+    double *x_coord = new double[N_DOF];
+    double *y_coord = new double[N_DOF];
+    int *mappingArray = new int[N_DOF];
 
-  for (int i = 0; i < N_U; i++) // Generated Values
-  {
-    // get the generated Value
-    double xx = x_coord[i];
-    double yy = y_coord[i];
-    bool foundFlag = false;
-
-    for (int j = 0; j < N_U; j++) // Actual parmooN Co-ordinates
+    i = 0;
+    int N = pow(2, TDatabase::ParamDB->UNIFORM_STEPS) + 1;
+    for (int i = 0; i < N_DOF; i++)
     {
-      if (abs(xx - org_x_coord[j]) < 1e-10 && abs(yy - org_y_coord[j]) < 1e-10)
+      int local_i = i / N;
+      int local_j = i % N;
+
+      x_coord[i] = double(1.0 / (N - 1)) * local_i;
+      y_coord[i] = double(1.0 / (N - 1)) * local_j;
+    }
+
+    cout << " End File Read" << endl;
+
+    Scalar_FeSpace->GetDOFPosition(org_x_coord, org_y_coord);
+
+    for (int i = 0; i < N_DOF; i++) // Generated Values
+    {
+      // get the generated Value
+      double xx = x_coord[i];
+      double yy = y_coord[i];
+      bool foundFlag = false;
+
+      for (int j = 0; j < N_DOF; j++) // Actual parmooN Co-ordinates
       {
-        mappingArray[i] = j;
-        foundFlag = true;
+        if (abs(xx - org_x_coord[j]) < 1e-10 && abs(yy - org_y_coord[j]) < 1e-10)
+        {
+          mappingArray[i] = j;
+          foundFlag = true;
+        }
+      }
+
+      if (!foundFlag)
+        cerr << " DOF NOT FOUND FOR " << i << " position : " << setw(8) << org_x_coord[i] << setw(8) << org_y_coord[i] << endl;
+    }
+
+    // int N_DOF =  N * N;
+    double *x = new double[N_DOF];
+    double *y = new double[N_DOF];
+
+    for (int i = 0; i < N_DOF; i++)
+    {
+      int local_i = i / N;
+      int local_j = i % N;
+
+      x[i] = double(1.0 / (N - 1)) * local_j;
+      y[i] = double(1.0 / (N - 1)) * local_i;
+    }
+
+    double *C = new double[N_DOF * N_DOF];  // MATRIX
+    double *C1 = new double[N_DOF * N_DOF]; // MATRIX  - Corelation Matrix
+
+    double norm = 0;
+    for (int i = 0; i < N_DOF; i++)
+    {
+      double actual_x = x[i];
+      double actual_y = y[i];
+
+      for (int j = 0; j < N_DOF; j++)
+      {
+        double local_x = x[j];
+        double local_y = y[j];
+
+        double r = sqrt(pow((actual_x - local_x), 2) + pow((actual_y - local_y), 2));
+
+        // CO -Relation
+        C[j * N_DOF + i] = exp((-1.0 * r) / (LengthScale));
+        C1[j * N_DOF + i] = exp((-1.0 * r) / (LengthScale));
+
+        if (TDatabase::ParamDB->stddev_switch == 0)
+        {
+          double sig_r1 = exp(-1.0 / (1.0 - pow((2 * actual_x - 1), 4))) * exp(-1.0 / (1 - pow((2 * actual_y - 1), 4)));
+          double sig_r2 = exp(-1.0 / (1.0 - pow((2 * local_x - 1), 4))) * exp(-1.0 / (1 - pow((2 * local_y - 1), 4)));
+
+          // Co Variance
+          C[j * N_DOF + i] *= sig_r1 * sig_r2 * 5.0;
+        }
+
+        else if (TDatabase::ParamDB->stddev_switch == 1)
+        {
+          double E = TDatabase::ParamDB->stddev_denom;
+          double disp = TDatabase::ParamDB->stddev_disp;
+          double power = TDatabase::ParamDB->stddev_power;
+          double sig_r1 = exp(-pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E)) * exp(-pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E));
+          double sig_r2 = exp(-pow((2 * local_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E)) * exp(-pow((2 * local_y - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E));
+          // Co Variance
+          C[j * N_DOF + i] *= sig_r1 * sig_r2;
+        }
+
+        else
+        {
+          cout << "Error - No standard deviation function is defined for stddev_switch: " << TDatabase::ParamDB->stddev_switch << endl;
+          exit(0);
+        }
+
+        norm += C[j * N + i] * C[j * N + i];
       }
     }
 
-    if (!foundFlag)
-      cerr << " DOF NOT FOUND FOR " << i << " position : " << setw(8) << org_x_coord[i] << setw(8) << org_y_coord[i] << endl;
-  }
+    std::ofstream fileo;
+    fileo.open("Corelation.txt");
 
-  double *x = new double[N_U];
-  double *y = new double[N_U];
-
-  for (int i = 0; i < N_U; i++)
-  {
-    int local_i = i / N;
-    int local_j = i % N;
-
-    x[i] = double(1.0 / (N - 1)) * local_j;
-    y[i] = double(1.0 / (N - 1)) * local_i;
-  }
-
-  double *C = new double[N_U * N_U];  // MATRIX
-  double *C1 = new double[N_U * N_U]; // MATRIX  - Corelation Matrix
-  double norm = 0;
-  for (int i = 0; i < N_U; i++)
-  {
-    double actual_x = x[i];
-    double actual_y = y[i];
-
-    for (int j = 0; j < N_U; j++)
+    for (int i = 0; i < N_DOF; i++)
     {
-      double local_x = x[j];
-      double local_y = y[j];
-
-      double r = sqrt(pow((actual_x - local_x), 2) + pow((actual_y - local_y), 2));
-
-      // CO -Relation
-      C[j * N_U + i] = exp((-1.0 * r) / (LengthScale));
-      C1[j * N_U + i] = exp((-1.0 * r) / (LengthScale));
-
-      if (TDatabase::ParamDB->stddev_switch == 0)
+      for (int j = 0; j < N_DOF; j++)
       {
-        double sig_r1 = exp(-1.0 / (1.0 - pow((2 * actual_x - 1), 4))) * exp(-1.0 / (1 - pow((2 * actual_y - 1), 4)));
-        double sig_r2 = exp(-1.0 / (1.0 - pow((2 * local_x - 1), 4))) * exp(-1.0 / (1 - pow((2 * local_y - 1), 4)));
-
-        // Co Variance
-        C[j * N_U + i] *= sig_r1 * sig_r2 * 5.0;
+        fileo << C1[i * N_DOF + j];
+        if (j != N_DOF - 1)
+          fileo << ",";
       }
+      fileo << endl;
+    }
 
-      else if (TDatabase::ParamDB->stddev_switch == 1)
+    fileo.close();
+
+    std::ofstream fileo_r;
+    fileo.open("Covarriance.txt");
+
+    for (int i = 0; i < N_DOF; i++)
+    {
+      for (int j = 0; j < N_DOF; j++)
       {
-        double E = TDatabase::ParamDB->stddev_denom;
-        double disp = TDatabase::ParamDB->stddev_disp;
-        double power = TDatabase::ParamDB->stddev_power;
-        double sig_r1 = exp(-pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E)) * exp(-pow((2 * actual_y - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E));
-        double sig_r2 = exp(-pow((2 * local_x - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E)) * exp(-pow((2 * local_y - 1 - disp), power) / (E)) / (2 * 3.14159265359 * sqrt(E));
-        // Co Variance
-        C[j * N_U + i] *= sig_r1 * sig_r2;
+        fileo_r << C[i * N_DOF + j];
+        if (j != N_DOF - 1)
+          fileo_r << ",";
       }
+      fileo_r << endl;
+    }
 
+    fileo_r.close();
+
+    // exit(0);
+    // Declare SVD parameters
+    MKL_INT m1 = N_DOF, n = N_DOF, lda = N_DOF, ldu = N_DOF, ldvt = N_DOF, info;
+    double superb[std::min(N_DOF, N_DOF) - 1];
+
+    double *S = new double[N_DOF];
+    double *U = new double[N_DOF * N_DOF];
+    double *Vt = new double[N_DOF * N_DOF];
+    cout << " REALISATIONS COMPUTED " << endl;
+    info = LAPACKE_dgesvd(LAPACK_ROW_MAJOR, 'A', 'A', m1, n, C, lda,
+                          S, U, ldu, Vt, ldvt, superb);
+
+    cout << endl
+         << endl;
+
+    if (info > 0)
+    {
+      printf("The algorithm computing SVD failed to converge.\n");
+      exit(1);
+    }
+    cout << " REALISATIONS COMPUTED " << endl;
+    int energyVal = 0;
+
+    double sumSingularVal = 0;
+    for (int i = 0; i < N_DOF; i++)
+      sumSingularVal += S[i];
+
+    double val = 0;
+    for (energyVal = 0; energyVal < N_DOF; energyVal++)
+    {
+      val += S[energyVal];
+      if (val / sumSingularVal > 0.8)
+        break;
+    }
+
+    cout << " MODES : " << energyVal + 1 << endl;
+
+    int modDim = energyVal + 1;
+
+    double *Ut = new double[N_DOF * modDim]();
+    double *Z = new double[N_Realisations * modDim]();
+
+    double *RealizationVectorTemp = new double[N_DOF * N_Realisations]();
+
+    // -------------- Generate Random Number Based on Normal Distribution -------------------------//
+    int k = 0;
+    int skip = N_DOF - modDim;
+    int count = 0;
+    for (int i = 0; i < N_DOF * N_DOF; i++)
+    {
+      // cout << "i val " << i <<endl;
+      if (count < modDim)
+      {
+        Ut[k] = U[i];
+
+        count++;
+        k++;
+      }
       else
       {
-        cout << "Error " << endl;
-        exit(0);
+        i += skip;
+        count = 0;
+        i--;
       }
-
-      norm += C[j * N + i] * C[j * N + i];
     }
-  }
 
-  std::ofstream fileo;
-  fileo.open("Corelation.txt");
-
-  for (int i = 0; i < N_U; i++)
-  {
-    for (int j = 0; j < N_U; j++)
+    for (int k = 0; k < modDim; k++)
     {
-      fileo << C1[i * N_U + j];
-      if (j != N_U - 1)
-        fileo << ",";
+      std::random_device rd{};
+      std::mt19937 gen{rd()};
+      std::normal_distribution<> d{0, 1};
+
+      double *norm1 = new double[N_Realisations];
+
+      for (int n = 0; n < N_Realisations; ++n)
+      {
+        Z[k * N_Realisations + n] = S[k] * d(gen);
+      }
     }
-    fileo << endl;
-  }
 
-  fileo.close();
+    cout << " N_Realisations : " << N_Realisations << endl;
+    cout << " MULT START " << endl;
+    cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_DOF, N_Realisations, modDim, 1.0, Ut, modDim, Z, N_Realisations, 0.0, RealizationVector, N_Realisations);
+    // cout << " MULT DONE " << endl;
+    // printMatrix(RealizationVector, N_DOF,N_Realisations);
 
-  std::ofstream fileo_r;
-  fileo.open("Covarriance.txt");
+    // mkl_dimatcopy('R','T', N_DOF,N_Realisations,1.0,RealizationVector,N_DOF,N_Realisations);
+    // cout << " COPY DONE " << endl;
 
-  for (int i = 0; i < N_U; i++)
-  {
-    for (int j = 0; j < N_U; j++)
+    for (int i = 0; i < N_DOF; i++)
     {
-      fileo_r << C[i * N_U + j];
-      if (j != N_U - 1)
-        fileo_r << ",";
+      for (int j = 0; j < N_Realisations; j++)
+      {
+        RealizationVectorTemp[mappingArray[i] * N_Realisations + j] = RealizationVector[j + N_Realisations * i];
+      }
     }
-    fileo_r << endl;
-  }
 
-  fileo_r.close();
+    memcpy(RealizationVector, RealizationVectorTemp, N_DOF * N_Realisations * SizeOfDouble);
+    /////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
+    cout << " REALISATIONS COMPUTED " << endl;
+    delete[] Ut;
+    delete[] Z;
+    delete[] RealizationVectorTemp;
+    delete[] S;
+    delete[] U;
+    delete[] Vt;
+    delete[] org_x_coord;
+    delete[] org_y_coord;
+    delete[] x_coord;
+    delete[] y_coord;
+    delete[] C;
+    delete[] C1;
 
-  /////////////////////////////SVD//////////////////////////////////////////////
-  // Declare SVD parameters
-  MKL_INT m1 = N_U, n = N_U, lda = N_U, ldu = N_U, ldvt = N_U, info;
-  double superb[std::min(N_U, N_U) - 1];
+    if (TDatabase::ParamDB->writeRealznToText == 1)
+      writeRealizationToText(RealizationVector, N_Realisations, N_DOF);
 
-  double *S = new double[N_U];
-  double *U = new double[N_U * N_U];
-  double *Vt = new double[N_U * N_U];
+  } // toggle Realization Source
 
-  info = LAPACKE_dgesvd(LAPACK_ROW_MAJOR, 'A', 'A', m1, n, C, lda,
-                        S, U, ldu, Vt, ldvt, superb);
-
-  cout << endl
-       << endl;
-
-  if (info > 0)
+  else if (TDatabase::ParamDB->toggleRealznSource == 1)
+    readRealizationFromText(RealizationVector, N_Realisations, N_DOF);
+  else
   {
-    printf("The algorithm computing SVD failed to converge.\n");
-    exit(1);
+    cout << "Please select correct value of Realization_Source" << endl
+         << TDatabase::ParamDB->toggleRealznSource << " is not an acceptable value" << endl;
+    exit(0);
   }
-  cout << " SVD COMPUTED " << endl;
-  int energyVal = 0;
 
-  double sumSingularVal = 0;
-  for (int i = 0; i < N_U; i++)
-    sumSingularVal += S[i];
-  double val = 0;
-  for (energyVal = 0; energyVal < N_U; energyVal++)
+  double *MeanVector = new double[N_DOF * 1]();
+  calcMeanRealization(RealizationVector, MeanVector, N_Realisations, N_DOF);
+
+  double *stdDevVector = new double[N_DOF * 1]();
+  calcStdDevRealization(RealizationVector, stdDevVector, N_Realisations, N_DOF);
+
+
+  double *CompositeVector = new double[N_DOF * 7]();
+  for (int i = 0; i < N_DOF; i++)
   {
-    val += S[energyVal];
-    if (val / sumSingularVal > EigenPercent)
-      break;
+    CompositeVector[i] = MeanVector[i];
+    CompositeVector[N_DOF + i] = MeanVector[i] + stdDevVector[i];
+    CompositeVector[2 * N_DOF + i] = MeanVector[i] - stdDevVector[i];
+    CompositeVector[3 * N_DOF + i] = MeanVector[i] + (2 * stdDevVector[i]);
+    CompositeVector[4 * N_DOF + i] = MeanVector[i] - (2 * stdDevVector[i]);
+    CompositeVector[5 * N_DOF + i] = MeanVector[i] + (3 * stdDevVector[i]);
+    CompositeVector[6 * N_DOF + i] = MeanVector[i] - (3 * stdDevVector[i]);
   }
 
-  cout << " MODES : " << energyVal + 1 << endl;
+  delete[] MeanVector;
+  delete[] stdDevVector;
 
-  int modDim = energyVal + 1;
+  // -------- Output parameters------------//
+  VtkBaseName = TDatabase::ParamDB->VTKBASENAME;
 
-  double *Ut = new double[N_U * modDim]();
-  double *Z = new double[N_Realisations * modDim]();
+  Output = new TOutput2D(2, 2, 1, 1, Domain);
+  Output->AddFEFunction(Scalar_FeFunction);
 
-  double *RealizationVector = new double[N_U * N_Realisations]();
-  // -------------- Generate Random Number Based on Normal Distribution -------------------------//
-  int k = 0;
-  int skip = N_U - modDim;
-  int count = 0;
+ 
 
-  for (int i = 0; i < N_U * N_U; i++)
-  {
-    // cout << "i val " << i <<endl;
-    if (count < modDim)
-    {
-      Ut[k] = U[i];
+  //======================================================================
+  // SystemMatrix construction and solution
+  //======================================================================
+  // Disc type: GALERKIN (or) SDFEM  (or) UPWIND (or) SUPG (or) LOCAL_PROJECTION
+  // Solver: AMG_SOLVE (or) GMG  (or) DIRECT
+  SystemMatrix = new TSystemTCD2D(Scalar_FeSpace, GALERKIN, DIRECT);
 
-      count++;
-      k++;
-    }
-    else
-    {
-      i += skip;
-      count = 0;
-      i--;
-    }
-  }
+  // initilize the system matrix with the functions defined in Example file
+  SystemMatrix->Init(BilinearCoeffs, BoundCondition, BoundValue);
 
-  ///////////
-  for (int k = 0; k < modDim; k++)
-  {
-    std::random_device rd{};
-    std::mt19937 gen{rd()};
-    std::normal_distribution<> d{0, 1};
-
-    double *norm1 = new double[N_Realisations];
-
-    for (int n = 0; n < N_Realisations; ++n)
-    {
-      Z[k * N_Realisations + n] = S[k] * d(gen);
-    }
-  }
-
-  cout << " N_Realisations : " << N_Realisations << endl;
-  cout << " MULT START " << endl;
-  cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_U, N_Realisations, modDim, 1.0, Ut, modDim, Z, N_Realisations, 0.0, RealizationVector, N_Realisations);
-  cout << " MULT DONE " << endl;
-  // printMatrix(RealizationVector, N_DOF,N_Realisations);
-
-  // mkl_dimatcopy('R','T', N_DOF,N_Realisations,1.0,RealizationVector,N_DOF,N_Realisations);
-  cout << " COPY DONE " << endl;
-
-  cout << " REALISATIONS COMPUTED " << endl;
-
-  //////////////////////////////////End of Realization/////////////////////////////////////////
-
+  // Setup array for random number
   srand(time(NULL));
   int N_samples = 100;
   int *indexArray = new int[N_samples];
   for (int i = 0; i < N_samples; i++)
-    indexArray[i] = rand() % N_U;
+    indexArray[i] = rand() % N_DOF;
 
-  double *RealizationVectorTemp = new double[N_U * N_Realisations]();
-  for (int i = 0; i < N_U; i++)
+  int N_Composite = 7;
+  int *imgm = new int[7]();
+  for (int RealNo = 0; RealNo < N_Composite; RealNo++)
   {
-    for (int j = 0; j < N_Realisations; j++)
-    {
-      RealizationVectorTemp[mappingArray[i] * N_Realisations + j] = RealizationVector[j + N_Realisations * i];
-    }
-  }
-
-  memcpy(RealizationVector, RealizationVectorTemp, N_U * N_Realisations * SizeOfDouble);
-  delete[] Ut;
-  delete[] Z;
-  delete[] RealizationVectorTemp;
-  delete[] S;
-  delete[] U;
-  delete[] Vt;
-  delete[] org_x_coord;
-  delete[] org_y_coord;
-  delete[] x_coord;
-  delete[] y_coord;
-  delete[] C;
-  delete[] C1;
-
-  writeRealizationToText(RealizationVector,N_Realisations,N_U);
-  /////////////////////////////////////// -------- END OF REALISATION DATA SETS ------------ ////////////////////////////////////////////////////////////////
-
-  ////////////////////////////////////// -------- START OF DO INITIALIZATION ------------ ////////////////////////////////////////////////////////////////
-
-  double *MeanVector = new double[N_U * 1](); // overline{C}_{dof} = \sum_{i=1}^{N_Realisations}(C^{i}_{dof})/N_Realisations
-  for (int i = 0; i < N_U; ++i)
-  {
-    for (int j = 0; j < N_Realisations; ++j)
-    {
-      MeanVector[i] += (RealizationVector[i * N_Realisations + j] / N_Realisations);
-    }
-  }
-
-  double *PerturbationVector = new double[N_U * N_Realisations](); // \hat{C}^{i}_{dof} = C^{i}_{dof} - \overline{C}_{dof}
-  for (int i = 0; i < N_U; ++i)
-  {
-    for (int j = 0; j < N_Realisations; ++j)
-    {
-      PerturbationVector[i * N_Realisations + j] = RealizationVector[i * N_Realisations + j] - MeanVector[i];
-    }
-  }
-
-  //================================================================================================
-  /////////////////////////////DO - Initialization SVD//////////////////////////////////////////////
-  //================================================================================================
-  // Declare SVD parameters
-  int minDim = std::min(N_U, N_Realisations);
-  MKL_INT mDO = N_U, nDO = N_Realisations, ldaDO = N_Realisations, lduDO = minDim, ldvtDO = N_Realisations, infoDO;
-  double superbDO[minDim - 1];
-
-  double *PerturbationVectorCopy = new double[N_U * N_Realisations]();
-  memcpy(PerturbationVectorCopy, PerturbationVector, N_U * N_Realisations * SizeOfDouble);
-
-  double *Sg = new double[minDim];
-  double *L = new double[N_U * minDim];
-  double *Rt = new double[minDim * N_Realisations];
-
-  infoDO = LAPACKE_dgesvd(LAPACK_ROW_MAJOR, 'S', 'N', mDO, nDO, PerturbationVectorCopy, ldaDO,
-                          Sg, L, lduDO, Rt, ldvtDO, superbDO);
-
-  if (infoDO > 0)
-  {
-    printf("The algorithm computing SVD for DO failed to converge.\n");
-    exit(1);
-  }
-  cout << " DO SVD COMPUTED " << endl;
-
-  //////////////////////////////////////////// DO - SVD End///////////////////////////////
-
-  ///////DO - Subspace dimension calculation /////////////////////////////////////////////////
-  ////////////////////////////////////////////////////////////////////////////////////////////
-  double SVPercent = TDatabase::ParamDB->SVPERCENT;
-  int s = 0;
-  double valDO = 0.0;
-  double sumSingularValDO = 0.0;
-  for (int i = 0; i < minDim; i++)
-  {
-    sumSingularValDO += Sg[i];
-  }
-  while (valDO / sumSingularValDO < SVPercent)
-  {
-    valDO += Sg[s];
-    s++;
-  }
-
-  cout << " SUBSPACE DIMENSION : " << s + 1 << endl;
-
-  int subDim = s + 1;
-  ////////Subspace dimension calculated//////////////////
-  TDatabase::ParamDB->N_Subspace_Dim = subDim;
-
-  /////Projection Matrix///////////
-  ////////////////////////////////
-  cout << " Min DIMENSION : " << minDim << endl;
-  double *ProjectionVector = new double[N_Realisations * minDim]();
-  cout << "PROJ VECTOR MULT START " << endl;
-  cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, N_Realisations, minDim, N_U, 1.0, PerturbationVector, N_Realisations, L, minDim, 0.0, ProjectionVector, minDim);
-  cout << "PROJ VECTOR MULT DONE " << endl;
-
-  /// Initialize Coefficient Matrix - First subDim columns of Projection Matrix ////////////////////
-  double *CoeffVector = new double[N_Realisations * subDim]();
-  // memcpy(CoeffVector, ProjectionVector, N_Realisations*subDim*SizeOfDouble); //For ColMajor storage -wrong!!
-  // for (int i=0;i<N_Realisations;i++){
-  // 	for (int j=0;j<subDim;j++){
-  // 		CoeffVector[i*subDim+j] = ProjectionVector[i*minDim+j];
-  // 	}
-  // }
-  for (int i = 0; i < N_Realisations; i++)
-  {
-    for (int j = 0; j < subDim; j++)
-    {
-      CoeffVector[j * N_Realisations + i] = ProjectionVector[i * minDim + j]; // CoeffVector in Col Major form
-    }
-  }
-
-  ////////////Initialize Mode Vector - First subDim columns of Left Singular Vector//////////////////
-  double *ModeVector = new double[N_U * subDim]();
-  // memcpy(ModeVector, L, N_U*subDim*SizeOfDouble);//For ColMajor storage
-  // for (int i=0;i<N_U;i++){
-  // 	for (int j=0;j<subDim;j++){
-  // 		ModeVector[i*subDim+j] = ProjectionVector[i*minDim+j];
-  // 	}
-  // }
-  for (int i = 0; i < N_U; i++)
-  {
-    for (int j = 0; j < subDim; j++)
-    {
-      ModeVector[j * N_U + i] = L[i * minDim + j]; // ModeVector in Col Major form
-    }
-  }
-
-  ////////////////////////////////////////////DO - Initialization Ends//////////////////////////////////////
-  ///////================================================================================//////////////////
-
-  // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-  //======================================================================
-  // SystemMatrix construction and solution
-  //======================================================================
-  // Disc type: GALERKIN
-  // Solver: AMG_SOLVE (or) GMG  (or) DIRECT
-  // SystemMatrix_Mean = new TSystemTBE2D(Velocity_FeSpace, Velocity_Mean, sol, rhs, Disctype, DIRECT);
-  SystemMatrix_Mean = new TSystemTBE2D(Velocity_FeSpace_Mean, VelocityMean, solMean, rhsMean, Disctype, DIRECT);
-
-  // 2 parameters are needed for assembling (u1_old, u2_old)
-  FeFct[0] = u1_mean;
-  FeFct[1] = u2_mean;
-  fesp[0] = Velocity_FeSpace_Mean;
-
-  // FeFct[0] = u1_mean;
-  // FeFct[1] = u2_mean;
-  // fesp[0] = Velocity_FeSpace;
-  BEaux = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2, TimeNSN_ParamFct2,
-                          TimeNSN_FEValues2, fesp, FeFct, TimeNSFct2, TimeNSFEFctIndex2,
-                          TimeNSFEMultiIndex2, TimeNSN_Params2, TimeNSBeginParam2);
-
-  // aux for calculating the error
-  if (TDatabase::ParamDB->MEASURE_ERRORS)
-  {
-    BEaux_error = new TAuxParam2D(TimeNSN_FESpaces2, TimeNSN_Fct2,
-                                  TimeNSN_ParamFct2,
-                                  TimeNSN_FEValues2,
-                                  fesp, FeFct,
-                                  TimeNSFct2,
-                                  TimeNSFEFctIndex2, TimeNSFEMultiIndex2,
-                                  TimeNSN_Params2, TimeNSBeginParam2);
-  }
-  // initilize the system matrix with the functions defined in Example file
-  // last argument is aux that is used to pass additional fe functions (eg. mesh velocity)
-  // SystemMatrix_Mean->Init(LinCoeffs, BoundCondition, U1BoundValue, U2BoundValue, BEaux, BEaux_error);
-  // SystemMatrix_Mean->Init(LinCoeffs, BoundCondition, U1BoundValue, U2BoundValue, BEaux, BEaux_error);
-  SystemMatrix_Mean->Init(LinCoeffs, BoundCondition, U1BoundValue, U2BoundValue, BEaux, BEaux_error);
-
-  // Looping for Realization
-  for (int RealNo = 0; RealNo < 1; RealNo++)
-  {
-
-    cout << "Real No" << RealNo << endl;
-    // assemble M, A matrices and rhs
-    // SystemMatrix_Mean->Assemble(sol, rhs);
-    for (i = 0; i < N_U; i++)
-    {
-      solMean[i] = MeanVector[i];
-      solMean[N_U + i] = MeanVector[i];
-    }
-    SystemMatrix_Mean->Assemble(sol, rhs);
-
-    // system for Mode
-    // Disc type: GALERKIN
-    // Solver: AMG_SOLVE (or) GMG  (or) DIRECT
-    // SystemMatrix_Mode = new TSystemTBE_Mode2D(Velocity_FeSpace, Velocity_Mode, sol, rhs, Disctype, DIRECT, Velocity_Mean);
-
-    // // initilize the system matrix with the functions defined in Example file
-    // // 2 parameters are needed for assembling (u1_old, u2_old)
-    // FeFct_Mode[0] = u1_mean;
-    // FeFct_Mode[1] = u2_mean;
-    // FeFct_Mode[2] = Velocity_Mode->GetComponent(0);
-    // FeFct_Mode[3] = Velocity_Mode->GetComponent(1);
-
-    // fesp_mode[0] = VelocityMode_FeSpace;
-    // fesp_mode[1] = Velocity_FeSpace;
-    // BE_Modeaux = new TAuxParam2D(TimeNSN_FESpaces_Mode, TimeNSN_Fct_Mode, TimeNSN_ParamFct_Mode,
-    //                       TimeNSN_FEValues_Mode, fesp_mode, FeFct_Mode, TimeNSFct_Mode, TimeNSFEFctIndex_Mode,
-    //                       TimeNSFEMultiIndex_Mode, TimeNSN_Params_Mode, TimeNSBeginParam_Mode);
-
-    // // last argument is aux that is used to pass additional fe functions (eg. mesh velocity)
-    // SystemMatrix_Mode->Init(LinCoeffs_Mode, BoundCondition, U1BoundValue, U2BoundValue, BEaux, BEaux_error);
-
-    //======================================================================
-    // produce outout
-    //======================================================================
-    VtkBaseName = TDatabase::ParamDB->VTKBASENAME;
+    // cout << " ============================================================================================================= " <<endl;
+    cout << " Real no " << RealNo << endl;
+    // cout << " ============================================================================================================= " <<endl;
+  
+    // Scalar_FeFunction->Interpolate(InitialCondition);
     std::string str = std::to_string(RealNo);
     std::string filename = "Realization_Nr_" + std::to_string(RealNo);
     VtkBaseName = const_cast<char *>(filename.c_str());
 
-    std::string name = "Realization _Number_" + std::to_string(int(RealNo));
-    mkdir(name.c_str(), 0777);
-    OutputMean = new TOutput2D(2, 2, 1, 1, Domain);
+    for (int i = 0; i < N_DOF; i++)
+      // sol[mappingArray[i]] = RealizationVector[RealNo  +  N_Composite * i];
+      // sol[i] = RealizationVector[RealNo * N_DOF + i];
+      sol[i] = CompositeVector[i+RealNo*N_DOF];
 
-    //  Output->AddFEVectFunct(Velocity_Mean);
-    OutputMean->AddFEVectFunct(VelocityMean);
+    os.seekp(std::ios::beg);
+    if (imgm[RealNo] < 10)
+      os << "VTK"
+         << "/" << VtkBaseName << ".0000" << imgm[RealNo] << ".vtk" << ends;
+    else if (imgm[RealNo] < 100)
+      os << "VTK"
+         << "/" << VtkBaseName << ".000" << imgm[RealNo] << ".vtk" << ends;
+    else if (imgm[RealNo] < 1000)
+      os << "VTK"
+         << "/" << VtkBaseName << ".00" << imgm[RealNo] << ".vtk" << ends;
+    else if (imgm[RealNo] < 10000)
+      os << "VTK"
+         << "/" << VtkBaseName << ".0" << imgm[RealNo] << ".vtk" << ends;
+    else
+      os << "VTK"
+         << "/" << VtkBaseName << "." << imgm[RealNo] << ".vtk" << ends;
+    Output->WriteVtk(os.str().c_str());
+    imgm[RealNo]++;
 
-    if (TDatabase::ParamDB->WRITE_VTK)
-    {
-      os.seekp(std::ios::beg);
-      if (img < 10)
-        os << "VTK/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
-      else if (img < 100)
-        os << "VTK/" << VtkBaseName << ".000" << img << ".vtk" << ends;
-      else if (img < 1000)
-        os << "VTK/" << VtkBaseName << ".00" << img << ".vtk" << ends;
-      else if (img < 10000)
-        os << "VTK/" << VtkBaseName << ".0" << img << ".vtk" << ends;
-      else
-        os << "VTK/" << VtkBaseName << "." << img << ".vtk" << ends;
-      OutputMean->WriteVtk(os.str().c_str());
-      img++;
-    }
+
+    // assemble the system matrix with given aux, sol and rhs
+    // aux is used to pass  addition fe functions (eg. mesh velocity) that is nedded for assembling,
+    // otherwise, just pass with NULL
+    SystemMatrix->AssembleMRhs(NULL, sol, rhs);
 
     //======================================================================
     // time disc loop
@@ -671,165 +529,124 @@ int main(int argc, char *argv[])
     // parameters for time stepping scheme
     m = 0;
     N_SubSteps = GetN_SubSteps();
-    oldtau = 1.;
     end_time = TDatabase::TimeDB->ENDTIME;
-    limit = TDatabase::ParamDB->SC_NONLIN_RES_NORM_MIN_SADDLE;
-    Max_It = TDatabase::ParamDB->SC_NONLIN_MAXIT_SADDLE;
-    memset(AllErrors, 0, 7. * SizeOfDouble);
+
+    UpdateStiffnessMat = TRUE; // check BilinearCoeffs in example file
+    UpdateRhs = TRUE;          // check BilinearCoeffs in example file
+    ConvectionFirstTime = TRUE;
 
     // time loop starts
     while (TDatabase::TimeDB->CURRENTTIME < end_time)
-    { // time cycle
+    {
       m++;
       TDatabase::TimeDB->INTERNAL_STARTTIME = TDatabase::TimeDB->CURRENTTIME;
+
       for (l = 0; l < N_SubSteps; l++) // sub steps of fractional step theta
       {
         SetTimeDiscParameters(1);
 
         if (m == 1)
         {
-          OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
-          OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
-          OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
-          OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
+          // OutPut("Theta1: " << TDatabase::TimeDB->THETA1 << endl);
+          // OutPut("Theta2: " << TDatabase::TimeDB->THETA2 << endl);
+          // OutPut("Theta3: " << TDatabase::TimeDB->THETA3 << endl);
+          // OutPut("Theta4: " << TDatabase::TimeDB->THETA4 << endl);
         }
 
         tau = TDatabase::TimeDB->CURRENTTIMESTEPLENGTH;
         TDatabase::TimeDB->CURRENTTIME += tau;
 
-        // OutPut(endl << "CURRENT TIME: ");
+        // OutPut(endl<< "CURRENT TIME: ");
         // OutPut(TDatabase::TimeDB->CURRENTTIME << endl);
 
-        // copy sol, rhs to olssol, oldrhs
-        memcpy(oldrhs, rhs, N_Total_MeanDOF * SizeOfDouble);
+        // copy rhs to oldrhs
+        memcpy(oldrhs, rhs, N_DOF * SizeOfDouble);
 
-        // assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
-        // not needed if rhs is not time-dependent
-        if (m != 1)
+        // unless the stiffness matrix or rhs change in time, it is enough to
+        // assemble only once at the begning
+        if (UpdateStiffnessMat || UpdateRhs || ConvectionFirstTime)
         {
-          //  SystemMatrix_Mean->AssembleA();
-          SystemMatrix_Mean->AssembleA();
+          SystemMatrix->AssembleARhs(NULL, sol, rhs);
+
+          // M:= M + (tau*THETA1)*A
+          // rhs: =(tau*THETA4)*rhs +(tau*THETA3)*oldrhs +[M-(tau*THETA2)A]*oldsol
+          // note! sol contains only the previous time step value, so just pass
+          // sol for oldsol
+          SystemMatrix->AssembleSystMat(oldrhs, sol, rhs, sol);
+          ConvectionFirstTime = FALSE;
         }
-        else
-        {
-          //  SystemMatrix_Mean->Assemble(sol, rhs);
-          SystemMatrix_Mean->Assemble(sol, rhs);
-        }
 
-        // scale B matices and assemble NSE-rhs based on the \theta time stepping scheme
-        //  SystemMatrix_Mean->AssembleSystMat(oldrhs, rhs, sol);
-        SystemMatrix_Mean->AssembleSystMat(oldrhs, rhs, sol);
-        oldtau = tau;
-
-        // calculate the residual
-        // SystemMatrix_Mean->GetTBEResidual(sol, defect);
-        SystemMatrix_Mean->GetTBEResidual(sol, defect);
-
-        residual = Ddot(N_Total_MeanDOF, defect, defect);
-        // OutPut("Nonlinear iteration step   0");
-        // OutPut(setw(14) << sqrt(residual) << endl);
-
-        //======================================================================
-        // Solve the system
-        // Nonlinear iteration of fixed point type
-        //======================================================================
-        for (j = 1; j <= Max_It; j++)
-        {
-          // Solve the NSE system
-          //  SystemMatrix_Mean->Solve(sol);
-          SystemMatrix_Mean->Solve(sol);
-
-          // restore the mass matrix for the next nonlinear iteration
-          //  SystemMatrix_Mean->RestoreMassMat();
-          SystemMatrix_Mean->RestoreMassMat();
-
-          // assemble the system matrix with given aux, sol and rhs
-          //  SystemMatrix_Mean->AssembleANonLinear(sol, rhs);
-          SystemMatrix_Mean->AssembleANonLinear(sol, rhs);
-
-          // assemble system mat, S = M + dt\theta_1*A
-          //  SystemMatrix_Mean->AssembleSystMatNonLinear();
-          SystemMatrix_Mean->AssembleSystMatNonLinear();
-
-          // get the residual
-          memset(defect, 0, N_TotalDOF * SizeOfDouble);
-          //  SystemMatrix_Mean->GetTBEResidual(sol, defect);
-          SystemMatrix_Mean->GetTBEResidual(sol, defect);
-
-          residual = Ddot(N_Total_MeanDOF, defect, defect);
-          //  OutPut("nonlinear iteration step " << setw(3) << j);
-          //  OutPut(setw(14) << sqrt(residual) << endl);
-
-          if (sqrt(residual) <= limit)
-            break;
-
-        } // for(j=1;j<=Max_It;j++)
+        // solve the system matrix
+        SystemMatrix->Solve(sol, rhs);
 
         // restore the mass matrix for the next time step
-        // SystemMatrix_Mean->RestoreMassMat();
-        SystemMatrix_Mean->RestoreMassMat();
+        // unless the stiffness matrix or rhs change in time, it is not necessary to assemble the system matrix in every time step
+        if (UpdateStiffnessMat || UpdateRhs)
+        {
+          SystemMatrix->RestoreMassMat();
+        }
 
-      } // for(l=0;l<N_SubSteps;
-        //======================================================================
-        // measure errors to known solution
-        //======================================================================
-      if (TDatabase::ParamDB->MEASURE_ERRORS)
-      {
-        // SystemMatrix_Mean->MeasureErrors(ExactU1, ExactU2, AllErrors);
-        SystemMatrix_Mean->MeasureErrors(ExactU1, ExactU2, AllErrors);
-
-        //  OutPut("L2(u): " <<   AllErrors[0] << endl);
-        //  OutPut("H1-semi(u): " <<  AllErrors[1] << endl);
-        //  OutPut("L2(p): " <<  AllErrors[2] << endl);
-        //  OutPut("H1-semi(p): " <<  AllErrors[3]   << endl);
-        //  OutPut(AllErrors[4] <<  " l_infty(L2(u)) " <<AllErrors[5] << endl);
-        //  OutPut(TDatabase::TimeDB->CURRENTTIME << " L2(0,t,L2)(u) : " <<   sqrt(AllErrors[6]) << endl);
-      } // if(TDatabase::ParamDB->MEASURE_ERRORS)
-
-      //======================================================================
-      // produce outout
-      //======================================================================
-      if (m == 1 || m % TDatabase::TimeDB->STEPS_PER_IMAGE == 0)
         if (TDatabase::ParamDB->WRITE_VTK)
         {
           os.seekp(std::ios::beg);
-          if (img < 10)
-            os << "VTK/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
-          else if (img < 100)
-            os << "VTK/" << VtkBaseName << ".000" << img << ".vtk" << ends;
-          else if (img < 1000)
-            os << "VTK/" << VtkBaseName << ".00" << img << ".vtk" << ends;
-          else if (img < 10000)
-            os << "VTK/" << VtkBaseName << ".0" << img << ".vtk" << ends;
+          if (imgm[RealNo] < 10)
+            os << "VTK"
+               << "/" << VtkBaseName << ".0000" << imgm[RealNo] << ".vtk" << ends;
+          else if (imgm[RealNo] < 100)
+            os << "VTK"
+               << "/" << VtkBaseName << ".000" << imgm[RealNo] << ".vtk" << ends;
+          else if (imgm[RealNo] < 1000)
+            os << "VTK"
+               << "/" << VtkBaseName << ".00" << imgm[RealNo] << ".vtk" << ends;
+          else if (imgm[RealNo] < 10000)
+            os << "VTK"
+               << "/" << VtkBaseName << ".0" << imgm[RealNo] << ".vtk" << ends;
           else
-            os << "VTK/" << VtkBaseName << "." << img << ".vtk" << ends;
-          OutputMean->WriteVtk(os.str().c_str());
-          img++;
+            os << "VTK"
+               << "/" << VtkBaseName << "." << imgm[RealNo] << ".vtk" << ends;
+          Output->WriteVtk(os.str().c_str());
+          imgm[RealNo]++;
         }
 
-    } // while(TDatabase::TimeDB->CURRENTTIME< e
+      } // for(l=0;l< N_SubSteps;l++)
+
+    } // while(TDatabase::TimeDB->CURRENTTIME< end_time)
 
     //======================================================================
     // produce final outout
     //======================================================================
-    if (TDatabase::ParamDB->WRITE_VTK)
-    {
-      os.seekp(std::ios::beg);
-      if (img < 10)
-        os << "VTK/" << VtkBaseName << ".0000" << img << ".vtk" << ends;
-      else if (img < 100)
-        os << "VTK/" << VtkBaseName << ".000" << img << ".vtk" << ends;
-      else if (img < 1000)
-        os << "VTK/" << VtkBaseName << ".00" << img << ".vtk" << ends;
-      else if (img < 10000)
-        os << "VTK/" << VtkBaseName << ".0" << img << ".vtk" << ends;
-      else
-        os << "VTK/" << VtkBaseName << "." << img << ".vtk" << ends;
-      OutputMean->WriteVtk(os.str().c_str());
-      img++;
-    }
+
+    os.seekp(std::ios::beg);
+    if (imgm[RealNo] < 10)
+      os << "VTK"
+         << "/" << VtkBaseName << ".0000" << imgm[RealNo] << ".vtk" << ends;
+    else if (imgm[RealNo] < 100)
+      os << "VTK"
+         << "/" << VtkBaseName << ".000" << imgm[RealNo] << ".vtk" << ends;
+    else if (imgm[RealNo] < 1000)
+      os << "VTK"
+         << "/" << VtkBaseName << ".00" << imgm[RealNo] << ".vtk" << ends;
+    else if (imgm[RealNo] < 10000)
+      os << "VTK"
+         << "/" << VtkBaseName << ".0" << imgm[RealNo] << ".vtk" << ends;
+    else
+      os << "VTK"
+         << "/" << VtkBaseName << "." << imgm[RealNo] << ".vtk" << ends;
+    Output->WriteVtk(os.str().c_str());
+    imgm[RealNo]++;
+
+    // cout << " Solution Norm After: " << Ddot(N_DOF,sol,sol) <<endl;
+
+
+
+    // set Current Time as Zero
     TDatabase::TimeDB->CURRENTTIME = 0;
-  } // Realization Loop
+    // delete SystemMatrix;
+  }
+  delete[] CompositeVector;
+  delete[] imgm;
+  delete[] RealizationVector;
+
   CloseFiles();
 
   return 0;

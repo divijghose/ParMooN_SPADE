@@ -1110,6 +1110,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
 	}
 }
 
+
 //======================================================================
 // ************************** Coefficient ********************************//
 //======================================================================
@@ -1505,6 +1506,7 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
 
 	delete[] phi_New;
 }
+
 
 void DO_Mode_RHS_Aux_Param(double *in, double *out)
 {
