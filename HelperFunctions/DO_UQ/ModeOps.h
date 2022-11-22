@@ -1,8 +1,8 @@
 
 /**
  * @brief Routine to claculate the inner product of a matrix
- * 
- * @param IPMatx Pointer to the inner product 
+ *
+ * @param IPMatx Pointer to the inner product
  * @param Vector Pointer to the matrix
  * @param height Number of rows of matrix
  * @param width Number of columns of matrix
@@ -25,7 +25,6 @@ void calcIPMatx(double *IPMatx, double *Vector, int height, int width, char Rowo
         cblas_dgemm(CblasRowMajor, CblasTrans, CblasNoTrans, width, width, height, 1, TempRowMaj, width, TempRowMaj, width, 0.0, IPMatx, width);
     }
 }
-
 
 void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmode, int N_S, double *C_Stoch_Norm)
 {
@@ -238,7 +237,6 @@ void normalizeStochasticModes(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmod
     return;
 }
 
-
 void qr(double *const _Q, double *const _R, double *const _A, const size_t _m, const size_t _n)
 {
     // Maximal rank is used by Lapacke
@@ -274,8 +272,6 @@ void qr(double *const _Q, double *const _R, double *const _A, const size_t _m, c
     }
     return;
 }
-
-
 
 void reorthonormalizeA(double *Mode, int N_DOF, int N_S)
 {
@@ -343,7 +339,10 @@ void reorthonormalizeB(double *Mode, double *Coeff, int N_DOF, int N_S, int N_R)
                          VDCL, LDVL, VDCR, LDVR);
 
     if (info == 0)
-        cout << "The routine computing eignevalues of coefficient matrix was successful" << endl;
+    {
+        if (TDatabase::ParamDB->DOVerbose == 1)
+            cout << "The routine computing eignevalues of coefficient matrix was successful" << endl;
+    }
     else if (info < 0)
     {
         cout << "The routine computing eignevalues of coefficient matrix was unsuccessful" << endl
@@ -389,7 +388,10 @@ void reorthonormalizeB(double *Mode, double *Coeff, int N_DOF, int N_S, int N_R)
                          VML, LDVL, VMR, LDVR);
 
     if (info == 0)
-        cout << "The routine computing eignevalues of coefficient matrix was successful" << endl;
+    {
+        if (TDatabase::ParamDB->DOVerbose == 1)
+            cout << "The routine computing eignevalues of coefficient matrix was successful" << endl;
+    }
     else if (info < 0)
     {
         cout << "The routine computing eignevalues of coefficient matrix was unsuccessful" << endl
@@ -440,7 +442,10 @@ void reorthonormalizeB(double *Mode, double *Coeff, int N_DOF, int N_S, int N_R)
                          VOL, LDVL, VOR, LDVR);
 
     if (info == 0)
-        cout << "The routine computing eignevalues of coefficient matrix was successful" << endl;
+    {
+        if (TDatabase::ParamDB->DOVerbose == 1)
+            cout << "The routine computing eignevalues of coefficient matrix was successful" << endl;
+    }
     else if (info < 0)
     {
         cout << "The routine computing eignevalues of coefficient matrix was unsuccessful" << endl
@@ -541,7 +546,10 @@ void reorthonormalizeC(double *Mode, int N_DOF, int N_S)
                          VL, LDVL, VR, LDVR);
 
     if (info == 0)
-        cout << "The routine computing eignevalues of coefficient matrix was successful" << endl;
+    {
+        if (TDatabase::ParamDB->DOVerbose == 1)
+            cout << "The routine computing eignevalues of coefficient matrix was successful" << endl;
+    }
     else if (info < 0)
     {
         cout << "The routine computing eignevalues of coefficient matrix was unsuccessful" << endl
@@ -600,4 +608,3 @@ void reorthonormalizeC(double *Mode, int N_DOF, int N_S)
 
     return;
 }
-

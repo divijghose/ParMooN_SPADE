@@ -380,7 +380,10 @@ void calc_princVariance(double *princVariance, int N_S)
                          VL, LDVL, VR, LDVR);
 
     if (info == 0)
-        cout << "The routine computing eignevalues of coefficient matrix was successful" << endl;
+    {
+        if (TDatabase::ParamDB->DOVerbose)
+            cout << "The routine computing eignevalues of coefficient matrix was successful" << endl;
+    }
     else if (info < 0)
     {
         cout << "The routine computing eignevalues of coefficient matrix was unsuccessful" << endl

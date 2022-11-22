@@ -1,7 +1,3 @@
-#include <Database.h>
-#include <FESpace2D.h>
-#include <mkl.h>
-#include <random>
 
 void GenerateRealizations(TFESpace2D *Scalar_FeSpace, double *RealizationVector)
 {

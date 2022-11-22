@@ -187,21 +187,16 @@ void InitializeDO(TFESpace2D *Scalar_FeSpace, double *RealizationVector, double 
     memcpy(ModeVector, tempModeVector, N_DOF * subDim * SizeOfDouble);
     printToTxt("Init/Coeff.txt", CoeffVector, N_Realisations, subDim, 'C');
     printToTxt("Init/Mode.txt", ModeVector, N_DOF, subDim, 'C');
-    const char ip[] = "IPMatrices";
-    mkdir(ip, 0777);
-    const char ipmeandir[] = "IPMatrices/IPMean";
-    mkdir(ipmeandir, 0777);
-    const char ipmodedir[] = "IPMatrices/IPMode";
-    mkdir(ipmodedir, 0777);
+    
 
-    double *IPMatxMode = new double[subDim * subDim]();
-    double *IPMatxMean = new double[1 * 1]();
+    double *IPMatxModeInit = new double[subDim * subDim]();
+    double *IPMatxMeanInit = new double[1 * 1]();
 
-    calcIPMatx(IPMatxMode, ModeVector, N_DOF, subDim, 'C');
-    printToTxt("Init/IPMatxMode_Init.txt", IPMatxMode, subDim, subDim, 'R');
+    calcIPMatx(IPMatxModeInit, ModeVector, N_DOF, subDim, 'C');
+    printToTxt("Init/IPMatxMode_Init.txt", IPMatxModeInit, subDim, subDim, 'R');
 
-    calcIPMatx(IPMatxMean, MeanVector, N_DOF, 1, 'C');
-    printToTxt("Init/IPMatxMean_Init.txt", IPMatxMean, 1, 1, 'R');
+    calcIPMatx(IPMatxMeanInit, MeanVector, N_DOF, 1, 'C');
+    printToTxt("Init/IPMatxMean_Init.txt", IPMatxMeanInit, 1, 1, 'R');
 
     int m = 0;
     

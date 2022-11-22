@@ -1454,7 +1454,7 @@ int TOutput2D::WriteVtk(const char *name)
 //   delete [] Coords;
 
   dat.close();
-//   if( TDatabase::ParamDB->SC_VERBOSE > 0)
+  if( TDatabase::ParamDB->SC_VERBOSE > 0)
     OutPut("wrote output into vtk file: " << name << endl);
   return 0;
 }

@@ -38,7 +38,8 @@ void printToTxt(std::string filename, double *printArray, int height, int width,
         }
     }
     printFile.close();
-    cout << "File printed succesfully: " << filename << endl;
+    if (TDatabase::ParamDB->DOVerbose == 1)
+        cout << "File printed succesfully: " << filename << endl;
 }
 
 /**
@@ -215,6 +216,12 @@ void createOutputFolders()
     const char dir7[] = "MonteCarlo/MeanMinus3Sigma";
     const char initdir[] = "Init";
     const char vtkdir[] = "VTK";
+    const char ipfedir[] = "Energy_Data/IPModeFE";
+    const char pvdir[] = "Energy_Data/PV";
+    const char mfedir[] = "Energy_Data/MFE";
+    const char ip[] = "IPMatrices";
+    const char ipmeandir[] = "IPMatrices/IPMean";
+    const char ipmodedir[] = "IPMatrices/IPMode";
 
     mkdir(vtkdir, 0777);
     mkdir(meandir, 0777);
@@ -230,6 +237,13 @@ void createOutputFolders()
     mkdir(dir6, 0777);
     mkdir(dir7, 0777);
     mkdir(initdir, 0777);
+    mkdir(mfedir, 0777);
+    mkdir(ipfedir, 0777);
+    mkdir(pvdir, 0777);
+    mkdir(ipmeandir, 0777);
+    mkdir(ipmodedir, 0777);
+    mkdir(ip, 0777);
+
     return;
 }
 
@@ -240,18 +254,18 @@ void printVTKOutput(char *Basename, int *timestamp, TOutput2D *Output)
     if (TDatabase::ParamDB->WRITE_VTK)
     {
         os.seekp(std::ios::beg);
-        if (*timestamp < 10)
-            os << "VTK/" << Basename << ".0000" << *timestamp << ".vtk" << ends;
-        else if (*timestamp < 100)
-            os << "VTK/" << Basename << ".000" << *timestamp << ".vtk" << ends;
-        else if (*timestamp < 1000)
-            os << "VTK/" << Basename << ".00" << *timestamp << ".vtk" << ends;
-        else if (*timestamp < 10000)
-            os << "VTK/" << Basename << ".0" << *timestamp << ".vtk" << ends;
+        if (timestamp[0] < 10)
+            os << "VTK/" << Basename << ".0000" << timestamp[0] << ".vtk" << ends;
+        else if (timestamp[0] < 100)
+            os << "VTK/" << Basename << ".000" << timestamp[0] << ".vtk" << ends;
+        else if (timestamp[0] < 1000)
+            os << "VTK/" << Basename << ".00" << timestamp[0] << ".vtk" << ends;
+        else if (timestamp[0] < 10000)
+            os << "VTK/" << Basename << ".0" << timestamp[0] << ".vtk" << ends;
         else
-            os << "VTK/" << Basename << "." << *timestamp << ".vtk" << ends;
+            os << "VTK/" << Basename << "." << timestamp[0] << ".vtk" << ends;
         Output->WriteVtk(os.str().c_str());
-        *timestamp++;
+        timestamp[0]++;
     }
     return;
 }
