@@ -184,7 +184,9 @@
         "semaphore": "c",
         "span": "c",
         "stop_token": "c",
-        "syncstream": "c"
+        "syncstream": "c",
+        "TNSE3D_6DOF_ParMooN.C": "cpp",
+        "TNSE2D_ParMooN_IVUQ_DO_Paper.C": "cpp"
     },
     "cmake.configureOnOpen": false,
     "C_Cpp.dimInactiveRegions": false
