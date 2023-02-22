@@ -20,7 +20,8 @@ void GenerateRealizations(TFESpace2D *Scalar_FeSpace, double *RealizationVector)
         int *mappingArray = new int[N_DOF]();
 
         i = 0;
-        int N = pow(2, TDatabase::ParamDB->UNIFORM_STEPS) + 1;
+  
+        int N = (TDatabase::ParamDB->ANSATZ_ORDER*pow(2, TDatabase::ParamDB->UNIFORM_STEPS)) + 1;
         for (int i = 0; i < N_DOF; i++)
         {
             int local_i = i / N;
