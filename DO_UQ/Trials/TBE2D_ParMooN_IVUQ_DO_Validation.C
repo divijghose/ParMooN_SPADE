@@ -30,10 +30,10 @@
 // =======================================================================
 // include current example
 // =======================================================================
-#include "../HelperFunctions/IO.h" // Input-Output functions for DO
-#include "../HelperFunctions/DO_UQ/CoeffOps.h" //Operations on Coefficient Vector for DO
-#include "../HelperFunctions/DO_UQ/ModeOps.h" //Operations on Mode Vector for DO
-#include "../HelperFunctions/DO_UQ/Stats.h" //Operations on Mode Vector for DO
+#include "../do_utils/IO.h" // Input-Output functions for DO
+#include "../do_utils/DO_UQ/CoeffOps.h" //Operations on Coefficient Vector for DO
+#include "../do_utils/DO_UQ/ModeOps.h" //Operations on Mode Vector for DO
+#include "../do_utils/DO_UQ/Stats.h" //Operations on Mode Vector for DO
 
 
 #include "../Examples/DO_UQ/burgers_do_validation.h" // smooth sol in unit square

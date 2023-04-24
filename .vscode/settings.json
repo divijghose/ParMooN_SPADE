@@ -186,7 +186,8 @@
         "stop_token": "c",
         "syncstream": "c",
         "TNSE3D_6DOF_ParMooN.C": "cpp",
-        "TNSE2D_ParMooN_IVUQ_DO_Paper.C": "cpp"
+        "TNSE2D_ParMooN_IVUQ_DO_Paper.C": "cpp",
+        "TBE2D_ParMooN_IVUQ_DO_Paper.C": "cpp"
     },
     "cmake.configureOnOpen": false,
     "C_Cpp.dimInactiveRegions": false

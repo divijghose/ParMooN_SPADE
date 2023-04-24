@@ -1,5 +1,5 @@
 /**
- * @file TLA2D_ParMooN_IVUQ_DO_Validation.C
+ * @file TLA2D_ParMooN_IVUQ_DO_Paper.C
  * @brief Purpose:     Main program for scalar equations with new
  *                     kernels of ParMooN, for solution of
  *                     time-dependent linear advection equation
@@ -66,13 +66,13 @@
 // =======================================================================
 // include current example
 // =======================================================================
-#include "../HelperFunctions/IO.h"                    // Input-Output functions for DO
-#include "../HelperFunctions/Monte_Carlo/RealznGen.h" // Monte Carlo Routines
-#include "../HelperFunctions/DO_UQ/CoeffOps.h"        //Operations on Coefficient Vector for DO
-#include "../HelperFunctions/DO_UQ/ModeOps.h"         //Operations on Mode Vector for DO
-// #include "../HelperFunctions/DO_UQ/Stats.h"           //Operations on Mode Vector for DO
-#include "../HelperFunctions/DO_UQ/DOInit.h" //Operations on Mode Vector for DO
-#include "../HelperFunctions/DO_UQ/DOValidation.h"
+#include "../do_utils/IO.h"                    // Input-Output functions for DO
+#include "../do_utils/Monte_Carlo/RealznGen.h" // Monte Carlo Routines
+#include "../do_utils/DO_UQ/CoeffOps.h"        //Operations on Coefficient Vector for DO
+#include "../do_utils/DO_UQ/ModeOps.h"         //Operations on Mode Vector for DO
+// #include "../do_utils/DO_UQ/Stats.h"           //Operations on Mode Vector for DO
+#include "../do_utils/DO_UQ/DOInit.h" //Operations on Mode Vector for DO
+#include "../do_utils/DO_UQ/DOValidation.h"
 
 #include "../../Examples/DO_UQ/linear_advection_do_validation.h"
 
