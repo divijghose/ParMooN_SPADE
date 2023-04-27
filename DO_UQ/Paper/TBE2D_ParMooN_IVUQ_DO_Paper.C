@@ -193,17 +193,15 @@ int main(int argc, char *argv[])
     N_Cells = coll->GetN_Cells();
     OutPut("Number of Cells : " << N_Cells << endl);
 
-
-
     Velocity_FeSpace = new TFESpace2D(coll, (char *)"Sol", (char *)"FESpace for Solution", BoundCondition, ORDER, NULL);
     N_U = Velocity_FeSpace->GetN_DegreesOfFreedom();
-   
+
     OutPut("DOF for general solution" << setw(10) << 2 * N_U << endl);
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
     ////////// -------- REALISATION DATA GENERATION ----------------------------------------- //////
     ///////////////////////////////////////////////////////////////////////////////////////////////
-       int N_Realisations = TDatabase::ParamDB->REALIZATIONS;
+    int N_Realisations = TDatabase::ParamDB->REALIZATIONS;
     double *RealizationVector = new double[N_U * N_Realisations]();
 
     GenerateRealizations(Velocity_FeSpace, RealizationVector);
@@ -212,7 +210,7 @@ int main(int argc, char *argv[])
 
     ////////////////////////////////////// -------- START OF DO INITIALIZATION ------------ ////////////////////////////////////////////////////////////////
 
-   double *MeanVector = new double[N_U * 1]();
+    double *MeanVector = new double[N_U * 1]();
 
     int subDim = calculateStochSubspaceDim(Velocity_FeSpace, RealizationVector);
 

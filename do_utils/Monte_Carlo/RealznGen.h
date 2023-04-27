@@ -1,47 +1,59 @@
 
-void GenerateRealizations(TFESpace2D *Scalar_FeSpace, double *RealizationVector)
+void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeSpace, double *RealizationVector)
 {
     // ///////////////////////////////////////////////////////////////////////////////////////////////
     // ////////// -------- REALISATION DATA GENERATION ----------------------------------------- //////
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
     int N_Realisations = TDatabase::ParamDB->REALIZATIONS;
-    int N_DOF = Scalar_FeSpace->GetN_DegreesOfFreedom();
-    int i;
+    int N_DOF = Velocity_FeSpace->GetN_DegreesOfFreedom();
+    int Nx, Ny; // Number of grid points in x and y directions
+
+    Nx = sqrt(N_DOF);
+    Ny = sqrt(N_DOF);
+    cout << " Nx : " << Nx << " Ny : " << Ny << endl;
+
+    double dx = 1.0 / (Nx - 1);
+    double dy = 1.0 / (Ny - 1);
+    double width, height;
+
     if (TDatabase::ParamDB->toggleRealznSource == 0)
     {
         double LengthScale = TDatabase::ParamDB->LENGTHSCALE;
         double EigenPercent = TDatabase::ParamDB->EIGENPERCENT;
 
-        double *org_x_coord = new double[N_DOF]();
-        double *org_y_coord = new double[N_DOF]();
-        double *x_coord = new double[N_DOF]();
-        double *y_coord = new double[N_DOF]();
+        double *x_coord_true, *y_coord_true, *x_coord_calc, *y_coord_calc;
+
+        x_coord_true = new double[N_DOF]();
+        y_coord_true = new double[N_DOF]();
+        x_coord_calc = new double[N_DOF]();
+        y_coord_calc = new double[N_DOF]();
+
         int *mappingArray = new int[N_DOF]();
 
-        i = 0;
-  
-        int N = (TDatabase::ParamDB->ANSATZ_ORDER*pow(2, TDatabase::ParamDB->UNIFORM_STEPS)) + 1;
+        int N = (TDatabase::ParamDB->ANSATZ_ORDER * pow(2, TDatabase::ParamDB->UNIFORM_STEPS)) + 1;
+        // int N = pow(2, TDatabase::ParamDB->UNIFORM_STEPS) + 1;
+
+        cout << " N : " << N << endl;
+
         for (int i = 0; i < N_DOF; i++)
         {
             int local_i = i / N;
             int local_j = i % N;
 
-            x_coord[i] = double(1.0 / (N - 1)) * local_i;
-            y_coord[i] = double(1.0 / (N - 1)) * local_j;
+            x_coord_calc[i] = double(1.0 / (N - 1)) * local_i;
+            y_coord_calc[i] = double(1.0 / (N - 1)) * local_j;
         }
-        Scalar_FeSpace->GetDOFPosition(org_x_coord, org_y_coord);
 
-        for (int i = 0; i < N_DOF; i++) // Generated Values
+        Velocity_FeSpace->GetDOFPosition(x_coord_true, y_coord_true);
+
+        for (int i = 0; i < N_DOF; i++) // Calculated Values
         {
-            // get the generated Value
-            double xx = x_coord[i];
-            double yy = y_coord[i];
             bool foundFlag = false;
 
-            for (int j = 0; j < N_DOF; j++) // Actual parmooN Co-ordinates
+            for (int j = 0; j < N_DOF; j++) // True Values
             {
-                if (abs(xx - org_x_coord[j]) < 1e-10 && abs(yy - org_y_coord[j]) < 1e-10)
+                if (abs(x_coord_calc[i] - x_coord_true[j]) < 1e-10 && abs(y_coord_calc[i] - y_coord_true[j]) < 1e-10)
                 {
                     mappingArray[i] = j;
                     foundFlag = true;
@@ -49,321 +61,147 @@ void GenerateRealizations(TFESpace2D *Scalar_FeSpace, double *RealizationVector)
             }
 
             if (!foundFlag)
-                cerr << " DOF NOT FOUND FOR " << i << " position : " << setw(8) << org_x_coord[i] << setw(8) << org_y_coord[i] << endl;
+            {
+                cerr << " DOF NOT FOUND FOR " << i << " position : " << setw(8) << x_coord_true[i] << setw(8) << y_coord_true[i] << endl;
+                cout << "Exiting...Please check order of elements and uniform steps" << endl;
+                exit(0);
+            }
         }
-        // int N_DOF =  N * N;
-        double *x = new double[N_DOF]();
-        double *y = new double[N_DOF]();
+        OutPut("True values match calculated values for all co-ordinates" << endl);
 
+        // if x_coord_true[i] and y_coord_true[i] are the true coordinates of the ith DOF, then mappingArray[i] is the index of the ith DOF in the calculated coordinates
+
+        double *x_coord_int, *y_coord_int;
+        x_coord_int = new double[(Nx - 2) * (Ny - 2)]();
+        y_coord_int = new double[(Nx - 2) * (Ny - 2)]();
+
+        // fill x_coord_int with all values of x_coord_calc except the boundary values
+        // fill y_coord_int with all values of y_coord_calc except the boundary values
+
+        int int_count = 0;
+        int *mappingArrayInternal = new int[(Nx - 2) * (Ny - 2)]();
         for (int i = 0; i < N_DOF; i++)
         {
-            int local_i = i / N;
-            int local_j = i % N;
-
-            x[i] = double(1.0 / (N - 1)) * local_j;
-            y[i] = double(1.0 / (N - 1)) * local_i;
+            if (x_coord_calc[i] != 0 && x_coord_calc[i] != 1 && y_coord_calc[i] != 0 && y_coord_calc[i] != 1)
+            {
+                x_coord_int[int_count] = x_coord_calc[i];
+                y_coord_int[int_count] = y_coord_calc[i];
+                int_count++;
+            }
         }
-        int kmax = 4;
-        int Nx, Ny;
-        Nx = sqrt(N_DOF);
-        Ny = sqrt(N_DOF);
-        double *wgt = new double[Nx * Ny]();
-        double *wgt_int = new double[(Nx - 2) * (Ny - 2)]();
-        double *wgt_right = new double[(Nx - 2) * (Ny - 2)]();
-        double *wgt_left = new double[(Nx - 2) * (Ny - 2)]();
-        double *wgt_top = new double[(Nx - 2) * (Ny - 2)]();
-        double *wgt_bottom = new double[(Nx - 2) * (Ny - 2)]();
-        double *wgt_rt = new double[(Nx - 2) * (Ny - 2)]();
-        double *wgt_rb = new double[(Nx - 2) * (Ny - 2)]();
-        double *wgt_lt = new double[(Nx - 2) * (Ny - 2)]();
-        double *wgt_lb = new double[(Nx - 2) * (Ny - 2)]();
-        if (TDatabase::ParamDB->stddev_switch == 5)
+
+        cout << "int_count : " << int_count << endl;
+        cout << "Nx_int :" << sqrt(int_count) << " Ny_int : " << sqrt(int_count) << endl;
+
+        for (int i = 0; i < int_count; i++) // Calculated Values
         {
+            bool foundFlag = false;
 
-            for (int a = 0; a < N_DOF; a++)
+            for (int j = 0; j < N_DOF; j++) // True Values
             {
-                if (1 - x[a] <= 1e-6 || 1 - y[a] <= 1e-6 || x[a] - 0 <= 1e-6 || y[a] - 0 <= 1e-6)
-                    wgt[a] = 0;
-                else
-                    wgt[a] = 1;
-            }
-
-            for (int k = 0; k < kmax; k++)
-            {
-                for (int b = 0; b < Ny - 2; b++)
+                if (abs(x_coord_int[i] - x_coord_true[j]) < 1e-10 && abs(y_coord_int[i] - y_coord_true[j]) < 1e-10)
                 {
-                    for (int d = 0; d < Nx - 2; d++)
-                    {
-                        wgt_int[b * (Nx - 2) + d] = wgt[((b + 1) * Nx) + (d + 1)];
-                        wgt_right[b * (Nx - 2) + d] = wgt[((b + 1) * Nx) + (d + 2)];
-                        wgt_left[b * (Nx - 2) + d] = wgt[((b + 1) * Nx) + (d)];
-                        wgt_top[b * (Nx - 2) + d] = wgt[((b)*Nx) + (d + 1)];
-                        wgt_bottom[b * (Nx - 2) + d] = wgt[((b + 2) * Nx) + (d + 1)];
-                        wgt_rt[b * (Nx - 2) + d] = wgt[((b)*Nx) + (d + 2)];
-                        wgt_rb[b * (Nx - 2) + d] = wgt[((b + 2) * Nx) + (d + 2)];
-                        wgt_lt[b * (Nx - 2) + d] = wgt[((b)*Nx) + (d)];
-                        wgt_lb[b * (Nx - 2) + d] = wgt[((b + 2) * Nx) + (d)];
-                    }
-                }
-                for (int b = 0; b < Ny - 2; b++)
-                {
-                    for (int d = 0; d < Nx - 2; d++)
-                    {
-                        wgt[((b + 1) * Nx) + (d + 1)] *= (wgt_right[b * (Nx - 2) + d] + wgt_left[b * (Nx - 2) + d] + wgt_top[b * (Nx - 2) + d] + wgt_bottom[b * (Nx - 2) + d] + wgt_rt[b * (Nx - 2) + d] + wgt_rb[b * (Nx - 2) + d] + wgt_lt[b * (Nx - 2) + d] + wgt_lb[b * (Nx - 2) + d]) / 8;
-                    }
+                    mappingArrayInternal[i] = j;
+                    foundFlag = true;
                 }
             }
-            printToTxt("wgt.txt", wgt, Ny, Nx, 'R');
+
+            if (!foundFlag)
+            {
+                cerr << " Internal DOF NOT FOUND FOR " << i << " position : " << setw(8) << x_coord_true[i] << setw(8) << y_coord_true[i] << endl;
+                cout << "Exiting...Please check order of elements and uniform steps" << endl;
+                exit(0);
+            }
         }
-        else if (TDatabase::ParamDB->stddev_switch == 6)
+        OutPut("True values match calculated values for all co-ordinates of Internal DOFs" << endl);
+
+        // ///////////////////////////////////////////////////////////////////////////////////////////////
+        // ////////// -------- MOLLIFIER FUNCTION (To have consistent boundary conditions)   ------- //////
+        // ///////////////////////////////////////////////////////////////////////////////////////////////
+
+        int kmax = 5; // Number of averaging steps - Chamge to higher value for smoother realizations.
+
+        double *wgt = new double[(Nx - 2) * (Ny - 2)]();                    // Mollifier function
+        double *wgt_int = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();    // Mollifier function on interior window // Row major
+        double *wgt_right = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();  // Mollifier function on right shift window // Row major
+        double *wgt_left = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();   // Mollifier function on left shift window // Row major
+        double *wgt_top = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();    // Mollifier function on top shift window // Row major
+        double *wgt_bottom = new double[(Nx - 2 - 2) * (Ny - 2 - 2)](); // Mollifier function on bottom shift window    // Row major
+        double *wgt_rt = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();     // Molliifier function on right top shift window // Row major
+        double *wgt_rb = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();     // Molliifier function on right bottom shift window     // Row major
+        double *wgt_lt = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();     // Molliifier function on left top shift window // Row major
+        double *wgt_lb = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();     // Molliifier function on left bottom shift window // Row major
+
+        for (int a = 0; a < int_count; a++)
         {
-            double disp = TDatabase::ParamDB->stddev_disp;
-            double halfwidth = 0.2;
-            double xcenter, ycenter;
-            xcenter = 0.0;
-            ycenter = 0.0;
-            double xdist, ydist, refxdist, refydist;
-            refxdist = 2.0;
-            refydist = 2.0;
-            for (int m = 0; m < N_DOF; m++)
-            {
-                xdist = fabs(x[m] - disp);
-                if (xdist <= refxdist)
-                {
-                    xcenter = x[m];
-                    refxdist = xdist;
-                }
-            }
-            for (int m = 0; m < N_DOF; m++)
-            {
-                ydist = fabs(y[m] - disp);
-                if (ydist <= refydist)
-                {
-                    ycenter = y[m];
-                    refydist = ydist;
-                }
-            }
-
-            int Nx, Ny;
-            Nx = sqrt(N_DOF);
-            Ny = sqrt(N_DOF);
-
-            for (int k = 0; k < N_DOF; k++)
-            {
-                if (fabs(x[k] - xcenter) <= halfwidth && fabs(y[k] - ycenter) <= halfwidth)
-                    wgt[k] = 1;
-            }
-
-            kmax = 6;
-            for (int k = 0; k < kmax; k++)
-            {
-                for (int b = 0; b < Ny - 2; b++)
-                {
-                    for (int d = 0; d < Nx - 2; d++)
-                    {
-                        wgt_int[b * (Nx - 2) + d] = wgt[((b + 1) * Nx) + (d + 1)];
-                        wgt_right[b * (Nx - 2) + d] = wgt[((b + 1) * Nx) + (d + 2)];
-                        wgt_left[b * (Nx - 2) + d] = wgt[((b + 1) * Nx) + (d)];
-                        wgt_top[b * (Nx - 2) + d] = wgt[((b)*Nx) + (d + 1)];
-                        wgt_bottom[b * (Nx - 2) + d] = wgt[((b + 2) * Nx) + (d + 1)];
-                        wgt_rt[b * (Nx - 2) + d] = wgt[((b)*Nx) + (d + 2)];
-                        wgt_rb[b * (Nx - 2) + d] = wgt[((b + 2) * Nx) + (d + 2)];
-                        wgt_lt[b * (Nx - 2) + d] = wgt[((b)*Nx) + (d)];
-                        wgt_lb[b * (Nx - 2) + d] = wgt[((b + 2) * Nx) + (d)];
-                    }
-                }
-                for (int b = 0; b < Ny - 2; b++)
-                {
-                    for (int d = 0; d < Nx - 2; d++)
-                    {
-                        wgt[((b + 1) * Nx) + (d + 1)] *= (wgt_right[b * (Nx - 2) + d] + wgt_left[b * (Nx - 2) + d] + wgt_top[b * (Nx - 2) + d] + wgt_bottom[b * (Nx - 2) + d] + wgt_rt[b * (Nx - 2) + d] + wgt_rb[b * (Nx - 2) + d] + wgt_lt[b * (Nx - 2) + d] + wgt_lb[b * (Nx - 2) + d]) / 8;
-                    }
-                }
-            }
-            printToTxt("wgt.txt", wgt, Ny, Nx, 'R');
+            if (1 - x_coord_int[a] <= 1e-6 || 1 - y_coord_int[a] <= 1e-6 || x_coord_int[a] - 0 <= 1e-6 || y_coord_int[a] - 0 <= 1e-6)
+                wgt[a] = 0; // 0 on the boundary
+            else
+                wgt[a] = 1; // 1 on the interior
         }
-        else if (TDatabase::ParamDB->stddev_switch == 7)
+
+        for (int k = 0; k < kmax; k++) // Averaging pass
         {
-            double disp = TDatabase::ParamDB->stddev_disp;
-            double halfwidth = 0.2;
-            double xcenter, ycenter;
-            xcenter = 0.0;
-            ycenter = 0.0;
-            double xdist, ydist, refxdist, refydist;
-            refxdist = 2.0;
-            refydist = 2.0;
-            for (int m = 0; m < N_DOF; m++)
+            for (int b = 0; b < Ny - 2 - 2; b++)
             {
-                xdist = fabs(x[m] - disp);
-                if (xdist <= refxdist)
+                for (int d = 0; d < Nx - 2 - 2; d++)
                 {
-                    xcenter = x[m];
-                    refxdist = xdist;
+                    wgt_int[b * (Nx - 2 - 2) + d] = wgt[((b + 1) * Nx - 2) + (d + 1)];
+                    wgt_right[b * (Nx - 2 - 2) + d] = wgt[((b + 1) * Nx - 2) + (d + 2)];
+                    wgt_left[b * (Nx - 2 - 2) + d] = wgt[((b + 1) * Nx - 2) + (d)];
+                    wgt_top[b * (Nx - 2 - 2) + d] = wgt[((b)*Nx - 2) + (d + 1)];
+                    wgt_bottom[b * (Nx - 2 - 2) + d] = wgt[((b + 2) * Nx - 2) + (d + 1)];
+                    wgt_rt[b * (Nx - 2 - 2) + d] = wgt[((b)*Nx - 2) + (d + 2)];
+                    wgt_rb[b * (Nx - 2 - 2) + d] = wgt[((b + 2) * Nx - 2) + (d + 2)];
+                    wgt_lt[b * (Nx - 2 - 2) + d] = wgt[((b)*Nx - 2) + (d)];
+                    wgt_lb[b * (Nx - 2 - 2) + d] = wgt[((b + 2) * Nx - 2) + (d)];
                 }
             }
-            for (int m = 0; m < N_DOF; m++)
+            for (int b = 0; b < Ny - 2 - 2; b++)
             {
-                ydist = fabs(y[m] - disp);
-                if (ydist <= refydist)
+                for (int d = 0; d < Nx - 2 - 2; d++)
                 {
-                    ycenter = y[m];
-                    refydist = ydist;
+                    wgt[((b + 1) * Nx - 2) + (d + 1)] *= (wgt_right[b * (Nx - 2 - 2) + d] + wgt_left[b * (Nx - 2 - 2) + d] + wgt_top[b * (Nx - 2 - 2) + d] + wgt_bottom[b * (Nx - 2 - 2) + d] + wgt_rt[b * (Nx - 2 - 2) + d] + wgt_rb[b * (Nx - 2 - 2) + d] + wgt_lt[b * (Nx - 2 - 2) + d] + wgt_lb[b * (Nx - 2 - 2) + d]) / 8;
                 }
             }
-
-            int Nx, Ny;
-            Nx = sqrt(N_DOF);
-            Ny = sqrt(N_DOF);
-
-            for (int k = 0; k < N_DOF; k++)
-            {
-                if (sqrt(pow(x[k] - xcenter, 2) + pow(y[k] - ycenter, 2)) <= halfwidth)
-                    wgt[k] = 1;
-            }
-
-            kmax = 7;
-            for (int k = 0; k < kmax; k++)
-            {
-                for (int b = 0; b < Ny - 2; b++)
-                {
-                    for (int d = 0; d < Nx - 2; d++)
-                    {
-                        wgt_int[b * (Nx - 2) + d] = wgt[((b + 1) * Nx) + (d + 1)];
-                        wgt_right[b * (Nx - 2) + d] = wgt[((b + 1) * Nx) + (d + 2)];
-                        wgt_left[b * (Nx - 2) + d] = wgt[((b + 1) * Nx) + (d)];
-                        wgt_top[b * (Nx - 2) + d] = wgt[((b)*Nx) + (d + 1)];
-                        wgt_bottom[b * (Nx - 2) + d] = wgt[((b + 2) * Nx) + (d + 1)];
-                        wgt_rt[b * (Nx - 2) + d] = wgt[((b)*Nx) + (d + 2)];
-                        wgt_rb[b * (Nx - 2) + d] = wgt[((b + 2) * Nx) + (d + 2)];
-                        wgt_lt[b * (Nx - 2) + d] = wgt[((b)*Nx) + (d)];
-                        wgt_lb[b * (Nx - 2) + d] = wgt[((b + 2) * Nx) + (d)];
-                    }
-                }
-                for (int b = 0; b < Ny - 2; b++)
-                {
-                    for (int d = 0; d < Nx - 2; d++)
-                    {
-                        wgt[((b + 1) * Nx) + (d + 1)] *= (wgt_right[b * (Nx - 2) + d] + wgt_left[b * (Nx - 2) + d] + wgt_top[b * (Nx - 2) + d] + wgt_bottom[b * (Nx - 2) + d] + wgt_rt[b * (Nx - 2) + d] + wgt_rb[b * (Nx - 2) + d] + wgt_lt[b * (Nx - 2) + d] + wgt_lb[b * (Nx - 2) + d]) / 8;
-                    }
-                }
-            }
-            printToTxt("wgt.txt", wgt, Ny, Nx, 'R');
         }
-
-        double *C = new double[N_DOF * N_DOF]();  // MATRIX
-        double *C1 = new double[N_DOF * N_DOF](); // MATRIX  - Corelation Matrix
+        printToTxt("wgt.txt", wgt, Ny - 2, Nx - 2, 'R');
+        
+        ////////////////////////////////////////////////////////////////////////////////////
+        ////////////////// Correlation Matrix Calculation //////////////////////////////////
+        ////////////////////////////////////////////////////////////////////////////////////
+        double *CorrMatx = new double[N_DOF * N_DOF](); // Correlation Matrix
+        double *CovMatx = new double[N_DOF * N_DOF]();  // Covariance Matrix
 
         double r = 0.0;
         double norm = 0;
 
         for (int i = 0; i < N_DOF; i++)
         {
-            double actual_x = x[i];
-            double actual_y = y[i];
+            double x_1_fix = x_coord_int[i];
+            double y_1_fix = y_coord_int[i];
 
             for (int j = 0; j < N_DOF; j++)
             {
-                double local_x = x[j];
-                double local_y = y[j];
+                double x_2_move = x_coord_int[j];
+                double y_2_move = y_coord_int[j];
 
-                r = sqrt(pow((actual_x - local_x), 2) + pow((actual_y - local_y), 2));
+                r = sqrt(pow((x_1_fix - x_2_move), 2) + pow((y_1_fix - y_2_move), 2)); // Compute pair-wise distances
 
-                // CO -Relation
-                C[i * N_DOF + j] = exp((-1.0 * r * 10.0) / (LengthScale)) * (1.0 + (10.0 * r / LengthScale) + (pow(10.0 * r / (LengthScale), 2) / 3.0));
-                C1[i * N_DOF + j] = exp((-1.0 * r) / (LengthScale)) * (1 + (r / LengthScale) + pow(r / (LengthScale), 2) / 3.0);
+                // Correlation Calculation
 
-                if (TDatabase::ParamDB->stddev_switch == 0)
-                {
-                    double sig_r1 = exp(-1.0 / (1.0 - pow((2 * actual_x - 1), 4))) * exp(-1.0 / (1 - pow((2 * actual_y - 1), 4)));
-                    double sig_r2 = exp(-1.0 / (1.0 - pow((2 * local_x - 1), 4))) * exp(-1.0 / (1 - pow((2 * local_y - 1), 4)));
-                    // Co Variance
-                    C[i * N_DOF + j] *= sig_r1 * sig_r2 * 5.0;
-                }
+                CorrMatx[i * N_DOF + j] = exp((-1.0 * r) / (LengthScale)) * (1 + (r / LengthScale) + pow(r / (LengthScale), 2) / 3.0) * 1e-6;
 
-                else if (TDatabase::ParamDB->stddev_switch == 1)
-                {
+                // Covariance Calculation
 
-                    double E = TDatabase::ParamDB->stddev_denom;
-                    double disp = TDatabase::ParamDB->stddev_disp;
-                    double power = TDatabase::ParamDB->stddev_power;
-                    double sig_r1 = (exp(-1.0 * pow((2 * actual_x - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E))) * (exp(-1.0 * pow((2 * actual_y - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E)));
-                    double sig_r2 = (exp(-1.0 * pow((2 * local_x - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E))) * (exp(-1.0 * pow((2 * local_y - 1 - disp), power) / (E)) / (2 * Pi * sqrt(E)));
-                    // Co Variance
-                    C[i * N_DOF + j] *= 1.0 * sig_r1 * sig_r2;
-                }
-
-                else if (TDatabase::ParamDB->stddev_switch == 2)
-                {
-                    double amplitude = TDatabase::ParamDB->stddev_power;
-                    double sig_r1 = (amplitude)*sin(-1.0 * Pi * (2 * actual_x - 2)) * sin(-1.0 * Pi * (2 * actual_y - 2));
-                    double sig_r2 = (amplitude)*sin(-1.0 * Pi * (2 * local_x - 2)) * sin(-1.0 * Pi * (2 * local_y - 2));
-                    C[i * N_DOF + j] *= sig_r1 * sig_r2;
-                }
-
-                else if (TDatabase::ParamDB->stddev_switch == 3)
-                {
-
-                    double sigma = 1 / (LengthScale * (2.0 * sqrt(Pi)));
-                    double E = TDatabase::ParamDB->stddev_denom;
-                    double disp = TDatabase::ParamDB->stddev_disp;
-                    double power = TDatabase::ParamDB->stddev_power;
-                    double sig_r1 = sigma * (exp(-1.0 * pow((2 * actual_x - 1 - disp), power) / (E * pow(LengthScale, 2)))) * (exp(-1.0 * pow((2 * actual_y - 1 - disp), power) / (E * pow(LengthScale, 2))));
-                    double sig_r2 = sigma * (exp(-1.0 * pow((2 * local_x - 1 - disp), power) / (E * pow(LengthScale, 2)))) * (exp(-1.0 * pow((2 * local_y - 1 - disp), power) / (E * pow(LengthScale, 2))));
-                    // Co Variance
-                    C[i * N_DOF + j] *= 1 * sig_r1 * sig_r2;
-                }
-                else if (TDatabase::ParamDB->stddev_switch == 4)
-                {
-
-                    double height = 1;
-                    double disp = TDatabase::ParamDB->stddev_disp;
-                    double spread = TDatabase::ParamDB->stddev_denom;
-                    double power = TDatabase::ParamDB->stddev_power;
-                    double sig_r1 = height * (exp(-1.0 * (((pow(2.0 * actual_x - 1.0 - disp, power)) / (pow(spread, 2))))) * (exp(-1.0 * ((pow(2.0 * actual_y - 1.0 - disp, power)) / (pow(spread, 2))))));
-                    double sig_r2 = height * (exp(-1.0 * (((pow(2.0 * local_x - 1.0 - disp, power)) / (pow(spread, 2))))) * (exp(-1.0 * ((pow(2 * local_y - 1.0 - disp, power)) / (pow(spread, 2))))));
-                    // Co Variance
-                    C[i * N_DOF + j] *= sig_r1 * sig_r2 * 5e-3;
-                }
-                else if (TDatabase::ParamDB->stddev_switch == 5)
-                {
-
-                    double sig_r1, sig_r2;
-                    sig_r1 = wgt[i];
-                    sig_r2 = wgt[j];
-                    // Co Variance
-                    // C[i * N_DOF + j] *= sig_r1 * sig_r2;
-                    C[i * N_DOF + j] *= sig_r1 * sig_r2;
-                }
-                else if (TDatabase::ParamDB->stddev_switch == 6)
-                {
-                    double sig_r1, sig_r2;
-                    sig_r1 = wgt[i];
-                    sig_r2 = wgt[j];
-                    // Co Variance
-                    // C[i * N_DOF + j] *= sig_r1 * sig_r2;
-                    C[i * N_DOF + j] *= sig_r1 * sig_r2;
-                }
-                else if (TDatabase::ParamDB->stddev_switch == 7)
-                {
-                    double sig_r1, sig_r2;
-                    sig_r1 = wgt[i];
-                    sig_r2 = wgt[j];
-                    // Co Variance
-                    // C[i * N_DOF + j] *= sig_r1 * sig_r2;
-                    C[i * N_DOF + j] *= sig_r1 * sig_r2*700;
-                }
-                else
-                {
-                    cout << "Error - No standard deviation function is defined for stddev_switch: " << TDatabase::ParamDB->stddev_switch << endl;
-                    exit(0);
-                }
-
-                // norm += C[j * N + i] * C[j * N + i];
+                CovMatx[i * N_DOF + j] = wgt[i] * wgt[j] * CorrMatx[i * N_DOF + j];
             }
         }
-
         std::string fileOutCorrelation = "Init/Correlation_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
-        printToTxt(fileOutCorrelation, C, N_DOF, N_DOF, 'R');
+        printToTxt(fileOutCorrelation, CorrMatx, N_DOF, N_DOF, 'R');
+
+        std::string fileOutCovariance = "Init/Covariance_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
+        printToTxt(fileOutCovariance, CovMatx, N_DOF, N_DOF, 'R');
 
         ////////////////////////////////////////////////////// SVD ////////////////////////////////////////////
         // Declare SVD parameters
@@ -377,7 +215,7 @@ void GenerateRealizations(TFESpace2D *Scalar_FeSpace, double *RealizationVector)
 
         // info = LAPACKE_dsyev(LAPACK_ROW_MAJOR, 'V', 'U', N_DOF, C, N_DOF, S);
 
-        info = LAPACKE_dgesvd(LAPACK_ROW_MAJOR, 'A', 'A', m1, n, C, lda,
+        info = LAPACKE_dgesvd(LAPACK_ROW_MAJOR, 'A', 'A', m1, n, CovMatx, lda,
                               S, U, ldu, Vt, ldvt, superb);
 
         if (info > 0)
@@ -386,13 +224,13 @@ void GenerateRealizations(TFESpace2D *Scalar_FeSpace, double *RealizationVector)
             exit(1);
         }
 
-        std::string fileOutCorrS = "Init/Corr_S_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
+        std::string fileOutCorrS = "Init/S_of_Cov" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
         printToTxt(fileOutCorrS, S, N_DOF, 1, 'C');
 
-        std::string fileOutCorrU = "Init/Corr_U_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
+        std::string fileOutCorrU = "Init/U_of_Cov" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
         printToTxt(fileOutCorrU, U, N_DOF, N_DOF, 'R');
 
-        std::string fileOutCorrVt = "Init/Corr_Vt_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
+        std::string fileOutCorrVt = "Init/Vt_of_Cov" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
         printToTxt(fileOutCorrVt, Vt, N_DOF, N_DOF, 'R');
 
         int energyVal = 0;
@@ -411,9 +249,8 @@ void GenerateRealizations(TFESpace2D *Scalar_FeSpace, double *RealizationVector)
                 break;
         }
 
-        cout << " MODES : " << temp + 1 << endl;
-
         int modDim = temp + 1;
+        cout << " MODES : " << modDim << endl;
 
         double *Ut = new double[N_DOF * modDim]();
         double *Z = new double[N_Realisations * modDim]();
@@ -482,12 +319,12 @@ void GenerateRealizations(TFESpace2D *Scalar_FeSpace, double *RealizationVector)
         delete[] S;
         delete[] U;
         delete[] Vt;
-        delete[] org_x_coord;
-        delete[] org_y_coord;
-        delete[] x_coord;
-        delete[] y_coord;
-        delete[] C;
-        delete[] C1;
+        delete[] x_coord_true;
+        delete[] y_coord_true;
+        delete[] x_coord_calc;
+        delete[] y_coord_calc;
+        delete[] CorrMatx;
+        delete[] CovMatx;
 
         if (TDatabase::ParamDB->writeRealznToText == 1)
             writeRealizationToText(RealizationVector, N_Realisations, N_DOF);

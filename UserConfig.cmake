@@ -46,9 +46,10 @@ set(AParMooN_GEO "2D" CACHE STRING "Change AParMooN_GEO, to select the Dimensio 
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/Trials/TNSE2D_ParMooN_IVUQ_DO_Test.C" CACHE STRING "Enter to select the Main file of the model")
 
 #Paper
-set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/Paper/TNSE2D_ParMooN_IVUQ_DO_Paper.C" CACHE STRING "Enter to select the Main file of the model")
+# set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/Paper/TNSE2D_ParMooN_IVUQ_DO_Paper.C" CACHE STRING "Enter to select the Main file of the model")
 #set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/Paper/TBE2D_ParMooN_IVUQ_DO_Paper.C" CACHE STRING "Enter to select the Main file of the model")
 # set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/Paper/TLA2D_ParMooN_IVUQ_DO_Paper.C" CACHE STRING "Enter to select the Main file of the model")
+set(AParMooN_MODEL "${PROJECT_SOURCE_DIR}/DO_UQ/jcp/TNSE2D_DO.C" CACHE STRING "Enter to select the Main file of the model")
 
 
 #5. Miscellaneous test programs
