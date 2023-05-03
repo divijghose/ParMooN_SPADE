@@ -317,7 +317,7 @@ void LinCoeffs_Mode(int n_points, double *X, double *Y,
 void CalcCovarianceMatx(double *Vector)
 {
 
-	int height = TDatabase::ParamDB->REALIZATIONS;
+	int height = TDatabase::ParamDB->REALISATIONS;
 	int width = TDatabase::ParamDB->N_Subspace_Dim;
 	// TDatabase::ParamDB->COVARIANCE_MATRIX_DO = new double[width * width]();
 	double *phi = new double[width * height](); //Col to Row Major
@@ -348,7 +348,7 @@ void CalcCovarianceMatx(double *Vector)
 void CalcCoskewnessMatx(double *Vector)
 {
 
-	int height = TDatabase::ParamDB->REALIZATIONS;
+	int height = TDatabase::ParamDB->REALISATIONS;
 	int width = TDatabase::ParamDB->N_Subspace_Dim;
 	double *phi = new double[width * height](); //Col to Row Major
 	for (int i = 0; i < height; i++)

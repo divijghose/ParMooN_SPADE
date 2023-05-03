@@ -10,7 +10,7 @@
 
 void validateDOvsMC(TFESpace2D *Scalar_FeSpace, double *RealizationVector, TOutput2D *Output, TSystemTCD2D *SystemMatrix)
 {
-    int N_Realisations = TDatabase::ParamDB->REALIZATIONS;
+    int N_Realisations = TDatabase::ParamDB->REALISATIONS;
     int N_DOF = Scalar_FeSpace->GetN_DegreesOfFreedom();
     int subDim = TDatabase::ParamDB->N_Subspace_Dim;
 

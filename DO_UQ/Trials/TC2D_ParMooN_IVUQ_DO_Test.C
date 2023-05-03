@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
     // ////////// -------- REALISATION DATA GENERATION ----------------------------------------- //////
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    int N_Realisations = TDatabase::ParamDB->REALIZATIONS;
+    int N_Realisations = TDatabase::ParamDB->REALISATIONS;
     double LengthScale = TDatabase::ParamDB->LENGTHSCALE;
     double EigenPercent = TDatabase::ParamDB->EIGENPERCENT;
 

@@ -10,6 +10,11 @@
         "TBE2D_ParMooN_IVUQ_DO_Test.C": "cpp",
         "TBE2D_ParMooN_IVUQ_DO.C": "cpp",
         "TLA2D_ParMooN_IVUQ_DO.C": "cpp",
-        "TLA2D_ParMooN_IVUQ_DO_Test.C": "cpp"
+        "TLA2D_ParMooN_IVUQ_DO_Test.C": "cpp",
+        "TNSE2D_ParMooN_IVUQ_DO_Validation.C": "cpp",
+        "TNSE2D_ParMooN_IVUQ_DO_Paper.C": "cpp",
+        "TBE2D_ParMooN_IVUQ_DO_Paper.C": "cpp",
+        "TCD2D_ParMooN_IVUQ_DO_Paper.C": "cpp",
+        "TLA2D_ParMooN_IVUQ_DO_Paper.C": "cpp"
     }
 }

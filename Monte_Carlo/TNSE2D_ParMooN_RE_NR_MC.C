@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
 
 	///////Looping Starts Here
 	///////////////////////////
-	int N_Realizations = TDatabase::ParamDB->REALIZATIONS;
+	int N_Realizations = TDatabase::ParamDB->REALISATIONS;
 	parmoonOut << N_Realizations << endl;
 	std::ofstream fileoutSolution;
 	fileoutSolution.open("FinalSolution_AllRealisations.txt");

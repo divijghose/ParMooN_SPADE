@@ -55,7 +55,7 @@ TIMESTEPLENGTH: 0.05
 # Monte Carlo controls
 ----------------------------------------------------------------------
 #Number of Realizations
-REALIZATIONS: 1000
+REALISATIONS: 1000
 
 #Lengthscale of correlation kernel
 LENGTHSCALE: 10

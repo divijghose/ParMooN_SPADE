@@ -1,11 +1,11 @@
 
-void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeSpace, double *RealizationVector)
+void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeSpace, double *RealisationVector)
 {
     // ///////////////////////////////////////////////////////////////////////////////////////////////
     // ////////// -------- REALISATION DATA GENERATION ----------------------------------------- //////
     // ///////////////////////////////////////////////////////////////////////////////////////////////
 
-    int N_Realisations = TDatabase::ParamDB->REALIZATIONS;
+    int N_Realisations = TDatabase::ParamDB->REALISATIONS;
     int N_DOF = Velocity_FeSpace->GetN_DegreesOfFreedom();
     int Nx, Ny; // Number of grid points in x and y directions
 
@@ -22,12 +22,11 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
         double LengthScale = TDatabase::ParamDB->LENGTHSCALE;
         double EigenPercent = TDatabase::ParamDB->EIGENPERCENT;
 
-        double *x_coord_true, *y_coord_true, *x_coord_calc, *y_coord_calc;
 
-        x_coord_true = new double[N_DOF]();
-        y_coord_true = new double[N_DOF]();
-        x_coord_calc = new double[N_DOF]();
-        y_coord_calc = new double[N_DOF]();
+        double *x_coord_true = new double[N_DOF]();
+        double *y_coord_true = new double[N_DOF]();
+        double *x_coord_calc = new double[N_DOF]();
+        double *y_coord_calc = new double[N_DOF]();
 
         int *mappingArray = new int[N_DOF]();
 
@@ -121,7 +120,7 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
 
         int kmax = 5; // Number of averaging steps - Chamge to higher value for smoother realizations.
 
-        double *wgt = new double[(Nx - 2) * (Ny - 2)]();                    // Mollifier function
+        double *wgt = new double[(Nx - 2) * (Ny - 2)]();                // Mollifier function
         double *wgt_int = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();    // Mollifier function on interior window // Row major
         double *wgt_right = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();  // Mollifier function on right shift window // Row major
         double *wgt_left = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();   // Mollifier function on left shift window // Row major
@@ -166,22 +165,22 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
             }
         }
         printToTxt("wgt.txt", wgt, Ny - 2, Nx - 2, 'R');
-        
+
         ////////////////////////////////////////////////////////////////////////////////////
         ////////////////// Correlation Matrix Calculation //////////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////
-        double *CorrMatx = new double[N_DOF * N_DOF](); // Correlation Matrix
-        double *CovMatx = new double[N_DOF * N_DOF]();  // Covariance Matrix
+        double *CorrMatx = new double[int_count * int_count](); // Correlation Matrix
+        double *CovMatx = new double[int_count * int_count]();  // Covariance Matrix
 
         double r = 0.0;
         double norm = 0;
 
-        for (int i = 0; i < N_DOF; i++)
+        for (int i = 0; i < int_count; i++)
         {
             double x_1_fix = x_coord_int[i];
             double y_1_fix = y_coord_int[i];
 
-            for (int j = 0; j < N_DOF; j++)
+            for (int j = 0; j < int_count; j++)
             {
                 double x_2_move = x_coord_int[j];
                 double y_2_move = y_coord_int[j];
@@ -190,13 +189,14 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
 
                 // Correlation Calculation
 
-                CorrMatx[i * N_DOF + j] = exp((-1.0 * r) / (LengthScale)) * (1 + (r / LengthScale) + pow(r / (LengthScale), 2) / 3.0) * 1e-6;
+                CorrMatx[i * int_count + j] = exp((-1.0 * r) / (LengthScale)) * (1 + (r / LengthScale) + pow(r / (LengthScale), 2) / 3.0) * 1e-6;
 
                 // Covariance Calculation
 
-                CovMatx[i * N_DOF + j] = wgt[i] * wgt[j] * CorrMatx[i * N_DOF + j];
+                CovMatx[i * int_count + j] = wgt[i] * wgt[j] * CorrMatx[i * int_count + j];
             }
         }
+
         std::string fileOutCorrelation = "Init/Correlation_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
         printToTxt(fileOutCorrelation, CorrMatx, N_DOF, N_DOF, 'R');
 
@@ -205,15 +205,15 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
 
         ////////////////////////////////////////////////////// SVD ////////////////////////////////////////////
         // Declare SVD parameters
-        MKL_INT m1 = N_DOF, n = N_DOF, lda = N_DOF, ldu = N_DOF, ldvt = N_DOF, info;
-        double superb[std::min(N_DOF, N_DOF) - 1];
+        MKL_INT m1 = int_count, n = int_count, lda = int_count, ldu = int_count, ldvt = int_count, info;
+        double superb[std::min(int_count, int_count) - 1];
         double w[N];
 
-        double *S = new double[N_DOF]();
-        double *U = new double[N_DOF * N_DOF]();
-        double *Vt = new double[N_DOF * N_DOF]();
+        double *S = new double[int_count]();
+        double *U = new double[int_count * int_count]();
+        double *Vt = new double[int_count * int_count]();
 
-        // info = LAPACKE_dsyev(LAPACK_ROW_MAJOR, 'V', 'U', N_DOF, C, N_DOF, S);
+        // info = LAPACKE_dsyev(LAPACK_ROW_MAJOR, 'V', 'U', int_count, C, int_count, S);
 
         info = LAPACKE_dgesvd(LAPACK_ROW_MAJOR, 'A', 'A', m1, n, CovMatx, lda,
                               S, U, ldu, Vt, ldvt, superb);
@@ -237,11 +237,11 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
         int temp = 0;
 
         double sumSingularVal = 0;
-        for (int i = 0; i < N_DOF; i++)
+        for (int i = 0; i < int_count; i++)
             sumSingularVal += S[i];
 
         double val = 0;
-        for (energyVal = 0; energyVal < N_DOF; energyVal++)
+        for (energyVal = 0; energyVal < int_count; energyVal++)
         {
             val += S[energyVal];
             temp++;
@@ -252,10 +252,10 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
         int modDim = temp + 1;
         cout << " MODES : " << modDim << endl;
 
-        double *Ut = new double[N_DOF * modDim]();
+        double *Ut = new double[int_count * modDim]();
         double *Z = new double[N_Realisations * modDim]();
 
-        double *RealizationVectorTemp = new double[N_DOF * N_Realisations]();
+        double *RealisationVectorInternal = new double[int_count * N_Realisations]();
 
         // -------------- Generate Random Number Based on Normal Distribution -------------------------//
         int k = 0;
@@ -298,39 +298,63 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
 
         cout << " N_Realisations : " << N_Realisations << endl;
         cout << " MULT START " << endl;
-        cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, N_DOF, N_Realisations, modDim, 1.0, Ut, modDim, Z, N_Realisations, 0.0, RealizationVector, N_Realisations);
+        cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, int_count, N_Realisations, modDim, 1.0, Ut, modDim, Z, N_Realisations, 0.0, RealisationVectorInternal, N_Realisations);
         cout << " MULT DONE " << endl;
 
-        for (int i = 0; i < N_DOF; i++)
+        for (int i = 0; i < int_count; i++)
         {
             for (int j = 0; j < N_Realisations; j++)
             {
-                RealizationVectorTemp[mappingArray[i] * N_Realisations + j] = RealizationVector[j + N_Realisations * i];
+                RealisationVector[mappingArrayInternal[i] * N_Realisations + j] = RealisationVectorInternal[j + N_Realisations * i];
             }
         }
 
-        memcpy(RealizationVector, RealizationVectorTemp, N_DOF * N_Realisations * SizeOfDouble);
+        // for (int i = 0; i < N_DOF; i++)
+        // {
+        //     for (int j = 0; j < N_Realisations; j++)
+        //     {
+        //         RealisationVector[i* N_Realisations + j] = RealisationVectorTem   p[j + N_Realisations * i];
+        //     }
+        // }
+
+        // memcpy(RealisationVector, RealisationVectorTemp, N_DOF * N_Realisations * SizeOfDouble);
 
         cout << N_Realisations << " REALISATIONS COMPUTED " << endl;
 
-        delete[] Ut;
-        delete[] Z;
-        delete[] RealizationVectorTemp;
-        delete[] S;
-        delete[] U;
-        delete[] Vt;
         delete[] x_coord_true;
         delete[] y_coord_true;
         delete[] x_coord_calc;
         delete[] y_coord_calc;
+        delete[] x_coord_int;
+        delete[] y_coord_int;
+        delete[] wgt;
+        delete[] wgt_top;
+        delete[] wgt_bottom;
+        delete[] wgt_left;
+        delete[] wgt_right;
+        delete[] wgt_rt;
+        delete[] wgt_rb;
+        delete[] wgt_lt;
+        delete[] wgt_lb;
+        delete[] wgt_int;
+
+        delete[] Z;
+        delete[] S;
+        delete[] U;
+        delete[] Vt;
+        delete[] Ut;
+
         delete[] CorrMatx;
         delete[] CovMatx;
+        delete[] RealisationVectorInternal;
+        delete[] mappingArrayInternal;
+        delete[] mappingArray;
 
         if (TDatabase::ParamDB->writeRealznToText == 1)
-            writeRealizationToText(RealizationVector, N_Realisations, N_DOF);
+            writeRealizationToText(RealisationVector, N_Realisations, N_DOF);
     }
     else if (TDatabase::ParamDB->toggleRealznSource == 1)
-        readRealizationFromText(RealizationVector, N_Realisations, N_DOF);
+        readRealizationFromText(RealisationVector, N_Realisations, N_DOF);
     else
     {
         cout << "Please select correct value of Realization_Source" << endl

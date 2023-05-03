@@ -54,7 +54,7 @@ TIMESTEPLENGTH: 0.05
 ----------------------------------------------------------------------
 # Monte Carlo controls
 ----------------------------------------------------------------------
-REALIZATIONS: 5
+REALISATIONS: 5
 LENGTHSCALE: 10
 EIGENPERCENT: 0.99
 stddev_switch: 1

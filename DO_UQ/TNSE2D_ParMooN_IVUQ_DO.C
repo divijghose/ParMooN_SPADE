@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	////////// -------- REALISATION DATA GENERATION ----------------------------------------- //////
 	///////////////////////////////////////////////////////////////////////////////////////////////
-    int N_Realisations  = TDatabase::ParamDB->REALIZATIONS;
+    int N_Realisations  = TDatabase::ParamDB->REALISATIONS;
     double LengthScale  = TDatabase::ParamDB->LENGTHSCALE;
     double EigenPercent = TDatabase::ParamDB->EIGENPERCENT;
 
@@ -721,7 +721,7 @@ TDatabase::ParamDB->COVARIANCE_MATRIX_DO = CalcCovarianceMatx(CoeffVector,N_Real
 // Assign dimension values to Database
 //=========================================================================
 TDatabase::ParamDB->N_Subspace_Dim = subDim; // Added to Database.h
-TDatabase::ParamDB->REALIZATIONS = N_Realisations;
+TDatabase::ParamDB->REALISATIONS = N_Realisations;
 
 
 
@@ -801,7 +801,7 @@ PressureMean->Interpolate(InitialP);
 
 SystemMatrixMean = new TSystemTNSE2D(Velocity_FeSpace, Pressure_FeSpace, VelocityMean, PressureMean, solMean, rhsMean, Disctype, NSEType, DIRECT
 #ifdef __PRIVATE__
-									 ,
+	q								 ,
 									 Projection_space, NULL, NULL
 #endif
 	);

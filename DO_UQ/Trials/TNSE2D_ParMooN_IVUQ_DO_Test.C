@@ -195,7 +195,7 @@ int main(int argc, char *argv[])
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	////////// -------- REALISATION DATA GENERATION ----------------------------------------- //////
 	///////////////////////////////////////////////////////////////////////////////////////////////
-	int N_Realisations = TDatabase::ParamDB->REALIZATIONS;
+	int N_Realisations = TDatabase::ParamDB->REALISATIONS;
 	double LengthScale = TDatabase::ParamDB->LENGTHSCALE;
 	double EigenPercent = TDatabase::ParamDB->EIGENPERCENT;
 
@@ -826,7 +826,7 @@ exit(0);      */
 	// Assign dimension values to Database
 	//=========================================================================
 	TDatabase::ParamDB->N_Subspace_Dim = subDim; // Added to Database.h
-	TDatabase::ParamDB->REALIZATIONS = N_Realisations;
+	TDatabase::ParamDB->REALISATIONS = N_Realisations;
 
 	//=========================================================================
 	// Set up FE Spaces for velocity and pressure

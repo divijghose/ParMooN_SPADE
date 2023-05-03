@@ -1513,7 +1513,7 @@ void calc_ModeOrtho(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Cmode, int N_S
 void CalcCovarianceMatx(double *Vector)
 {
 
-    int height = TDatabase::ParamDB->REALIZATIONS;
+    int height = TDatabase::ParamDB->REALISATIONS;
     int width = TDatabase::ParamDB->N_Subspace_Dim;
     // TDatabase::ParamDB->COVARIANCE_MATRIX_DO
     double *k = new double[width * width]();

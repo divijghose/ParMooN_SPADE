@@ -14,7 +14,7 @@
 void CalcCovarianceMatx(double *Vector)
 {
 
-    int height = TDatabase::ParamDB->REALIZATIONS;
+    int height = TDatabase::ParamDB->REALISATIONS;
     int width = TDatabase::ParamDB->N_Subspace_Dim;
     // TDatabase::ParamDB->COVARIANCE_MATRIX_DO
     double *k = new double[width * width]();
@@ -45,7 +45,7 @@ void CalcCovarianceMatx(double *Vector)
 void CalcCoskewnessMatx(double *Vector)
 {
 
-    int height = TDatabase::ParamDB->REALIZATIONS;
+    int height = TDatabase::ParamDB->REALISATIONS;
     int width = TDatabase::ParamDB->N_Subspace_Dim;
     double *phi = new double[width * height](); // Col to Row Major
     for (int i = 0; i < height; i++)

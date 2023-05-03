@@ -236,7 +236,7 @@ struct TParaDB
   //======================================================================
   // ******** Parameters for Monte Carlo Runs *********// (Added by Divij)
   //======================================================================
-  int REALIZATIONS;
+  int REALISATIONS;
   double LENGTHSCALE;
   double EIGENPERCENT;
   double SVPERCENT;

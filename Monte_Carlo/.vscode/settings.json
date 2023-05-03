@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "TBE2D_ParMooN_MC.C": "cpp",
-        "TLA2D_ParMooN_MC_Test.C": "cpp"
+        "TLA2D_ParMooN_MC_Test.C": "cpp",
+        "TNSE2D_ParMooN_IVUQ_MC.C": "cpp",
+        "drivencavity.h": "c"
     }
 }

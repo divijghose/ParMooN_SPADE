@@ -653,7 +653,7 @@ void TDatabase::SetDefaultParameters()
   ParamDB->SC_STEP_LENGTH_CONTROL_ALL_SCALAR = 1;
 
   /////************Default Monte Carlo Parameters******///// (Added by Divij)
-  ParamDB->REALIZATIONS = 5; // Number of Realizations
+  ParamDB->REALISATIONS = 5; // Number of Realizations
   ParamDB->LENGTHSCALE = 10; // Lengthscale of RBF Kernel
   ParamDB->EIGENPERCENT = 0.80;
   ParamDB->SVPERCENT = 0.99;

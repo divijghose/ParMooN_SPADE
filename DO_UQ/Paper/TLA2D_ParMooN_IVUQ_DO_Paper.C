@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
     OutPut("dof all      : " << setw(10) << N_DOF << endl);
     OutPut("dof active   : " << setw(10) << N_Active << endl);
 
-    int N_Realisations = TDatabase::ParamDB->REALIZATIONS;
+    int N_Realisations = TDatabase::ParamDB->REALISATIONS;
     double *RealizationVector = new double[N_DOF * N_Realisations]();
 
     GenerateRealizations(Scalar_FeSpace, RealizationVector);

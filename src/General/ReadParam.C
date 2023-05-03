@@ -630,9 +630,9 @@ int TDomain::ReadParam(char *ParamFile)
       N_Param++;
     }
     ///////////Reading Monte Carlo Parameters///////////////////////
-    if (!strcmp(line, "REALIZATIONS:"))
+    if (!strcmp(line, "REALISATIONS:"))
     {
-      dat >> TDatabase::ParamDB->REALIZATIONS;
+      dat >> TDatabase::ParamDB->REALISATIONS;
       N_Param++;
     }
     if (!strcmp(line, "LENGTHSCALE:"))

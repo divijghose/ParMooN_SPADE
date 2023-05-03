@@ -5,7 +5,7 @@
 
 int calculateStochSubspaceDim(TFESpace2D *Scalar_FeSpace, double *RealizationVector)
 {
-    int N_Realisations = TDatabase::ParamDB->REALIZATIONS;
+    int N_Realisations = TDatabase::ParamDB->REALISATIONS;
     int N_DOF = Scalar_FeSpace->GetN_DegreesOfFreedom();
     int i;
     double *MeanVector = new double[N_DOF*1]();
@@ -95,7 +95,7 @@ int calculateStochSubspaceDim(TFESpace2D *Scalar_FeSpace, double *RealizationVec
 
 void InitializeDO(TFESpace2D *Scalar_FeSpace, double *RealizationVector, double *MeanVector, double *ModeVector, double *CoeffVector)
 {
-    int N_Realisations = TDatabase::ParamDB->REALIZATIONS;
+    int N_Realisations = TDatabase::ParamDB->REALISATIONS;
     int N_DOF = Scalar_FeSpace->GetN_DegreesOfFreedom();
     int subDim = TDatabase::ParamDB->N_Subspace_Dim;
     int i;

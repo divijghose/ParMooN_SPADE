@@ -1175,7 +1175,7 @@ void calc_MeanFieldEnergy(TFESpace2D *Fespace, TFEFunction2D *FeScalar_Cmean, TF
 void CalcCovarianceMatx(double *Vector)
 {
 
-    int height = TDatabase::ParamDB->REALIZATIONS;
+    int height = TDatabase::ParamDB->REALISATIONS;
     int width = TDatabase::ParamDB->N_Subspace_Dim;
     // TDatabase::ParamDB->COVARIANCE_MATRIX_DO
     double *k = new double[width * width]();

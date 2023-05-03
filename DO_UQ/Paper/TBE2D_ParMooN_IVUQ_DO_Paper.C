@@ -201,7 +201,7 @@ int main(int argc, char *argv[])
     ///////////////////////////////////////////////////////////////////////////////////////////////
     ////////// -------- REALISATION DATA GENERATION ----------------------------------------- //////
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    int N_Realisations = TDatabase::ParamDB->REALIZATIONS;
+    int N_Realisations = TDatabase::ParamDB->REALISATIONS;
     double *RealizationVector = new double[N_U * N_Realisations]();
 
     GenerateRealizations(Velocity_FeSpace, RealizationVector);
