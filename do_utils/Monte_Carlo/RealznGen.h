@@ -22,7 +22,6 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
         double LengthScale = TDatabase::ParamDB->LENGTHSCALE;
         double EigenPercent = TDatabase::ParamDB->EIGENPERCENT;
 
-
         double *x_coord_true = new double[N_DOF]();
         double *y_coord_true = new double[N_DOF]();
         double *x_coord_calc = new double[N_DOF]();
@@ -309,49 +308,36 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
             }
         }
 
-        // for (int i = 0; i < N_DOF; i++)
-        // {
-        //     for (int j = 0; j < N_Realisations; j++)
-        //     {
-        //         RealisationVector[i* N_Realisations + j] = RealisationVectorTem   p[j + N_Realisations * i];
-        //     }
-        // }
-
-        // memcpy(RealisationVector, RealisationVectorTemp, N_DOF * N_Realisations * SizeOfDouble);
-
         cout << N_Realisations << " REALISATIONS COMPUTED " << endl;
 
+        if (TDatabase::ParamDB->writeRealznToText == 1)
+            writeRealizationToText(RealisationVector, N_Realisations, N_DOF);
+
+ 
         delete[] x_coord_true;
         delete[] y_coord_true;
         delete[] x_coord_calc;
         delete[] y_coord_calc;
         delete[] x_coord_int;
         delete[] y_coord_int;
-        delete[] wgt;
-        delete[] wgt_top;
-        delete[] wgt_bottom;
-        delete[] wgt_left;
-        delete[] wgt_right;
-        delete[] wgt_rt;
-        delete[] wgt_rb;
-        delete[] wgt_lt;
-        delete[] wgt_lb;
-        delete[] wgt_int;
 
-        delete[] Z;
+        
+
         delete[] S;
         delete[] U;
         delete[] Vt;
-        delete[] Ut;
+
+        // delete[] Ut;
+        // delete[] Z;
 
         delete[] CorrMatx;
-        delete[] CovMatx;
-        delete[] RealisationVectorInternal;
-        delete[] mappingArrayInternal;
-        delete[] mappingArray;
+       
 
-        if (TDatabase::ParamDB->writeRealznToText == 1)
-            writeRealizationToText(RealisationVector, N_Realisations, N_DOF);
+        delete[] CovMatx;
+        
+        // delete[] RealisationVectorInternal;
+        // delete[] mappingArrayInternal;
+        // delete[] mappingArray;
     }
     else if (TDatabase::ParamDB->toggleRealznSource == 1)
         readRealizationFromText(RealisationVector, N_Realisations, N_DOF);
