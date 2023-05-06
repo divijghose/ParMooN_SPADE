@@ -2525,6 +2525,7 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
     delete[] phi_Array_b;
 }
 
+
 void qr(double *const _Q, double *const _R, double *const _A, const size_t _m, const size_t _n)
 {
 	// Maximal rank is used by Lapacke

@@ -15,13 +15,13 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
 
     double dx = 1.0 / (Nx - 1);
     double dy = 1.0 / (Ny - 1);
+    cout << "dx : " << dx << " dy : " << dy << endl;
     double width, height;
 
     if (TDatabase::ParamDB->toggleRealznSource == 0)
     {
         double LengthScale = TDatabase::ParamDB->LENGTHSCALE;
         double EigenPercent = TDatabase::ParamDB->EIGENPERCENT;
-
 
         double *x_coord_true = new double[N_DOF]();
         double *y_coord_true = new double[N_DOF]();
@@ -79,6 +79,7 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
 
         int int_count = 0;
         int *mappingArrayInternal = new int[(Nx - 2) * (Ny - 2)]();
+        cout << "Internal Coordinates : \n";
         for (int i = 0; i < N_DOF; i++)
         {
             if (x_coord_calc[i] != 0 && x_coord_calc[i] != 1 && y_coord_calc[i] != 0 && y_coord_calc[i] != 1)
@@ -98,7 +99,7 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
 
             for (int j = 0; j < N_DOF; j++) // True Values
             {
-                if (abs(x_coord_int[i] - x_coord_true[j]) < 1e-10 && abs(y_coord_int[i] - y_coord_true[j]) < 1e-10)
+                if (fabs(x_coord_int[i] - x_coord_true[j]) < 1e-10 && fabs(y_coord_int[i] - y_coord_true[j]) < 1e-10)
                 {
                     mappingArrayInternal[i] = j;
                     foundFlag = true;
@@ -120,47 +121,62 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
 
         int kmax = 5; // Number of averaging steps - Chamge to higher value for smoother realizations.
 
-        double *wgt = new double[(Nx - 2) * (Ny - 2)]();                // Mollifier function
-        double *wgt_int = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();    // Mollifier function on interior window // Row major
-        double *wgt_right = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();  // Mollifier function on right shift window // Row major
-        double *wgt_left = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();   // Mollifier function on left shift window // Row major
-        double *wgt_top = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();    // Mollifier function on top shift window // Row major
-        double *wgt_bottom = new double[(Nx - 2 - 2) * (Ny - 2 - 2)](); // Mollifier function on bottom shift window    // Row major
-        double *wgt_rt = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();     // Molliifier function on right top shift window // Row major
-        double *wgt_rb = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();     // Molliifier function on right bottom shift window     // Row major
-        double *wgt_lt = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();     // Molliifier function on left top shift window // Row major
-        double *wgt_lb = new double[(Nx - 2 - 2) * (Ny - 2 - 2)]();     // Molliifier function on left bottom shift window // Row major
+        double *wgt = new double[(Nx - 2) * (Ny - 2)]();        // Mollifier function
+        double *wgt_int = new double[(Nx - 4) * (Ny - 4)]();    // Mollifier function on interior window // Row major
+        double *wgt_right = new double[(Nx - 4) * (Ny - 4)]();  // Mollifier function on right shift window // Row major
+        double *wgt_left = new double[(Nx - 4) * (Ny - 4)]();   // Mollifier function on left shift window // Row major
+        double *wgt_top = new double[(Nx - 4) * (Ny - 4)]();    // Mollifier function on top shift window // Row major
+        double *wgt_bottom = new double[(Nx - 4) * (Ny - 4)](); // Mollifier function on bottom shift window    // Row major
+        double *wgt_rt = new double[(Nx - 4) * (Ny - 4)]();     // Molliifier function on right top shift window // Row major
+        double *wgt_rb = new double[(Nx - 4) * (Ny - 4)]();     // Molliifier function on right bottom shift window     // Row major
+        double *wgt_lt = new double[(Nx - 4) * (Ny - 4)]();     // Molliifier function on left top shift window // Row major
+        double *wgt_lb = new double[(Nx - 4) * (Ny - 4)]();     // Molliifier function on left bottom shift window // Row major
 
-        for (int a = 0; a < int_count; a++)
+        // int intBoundPoints = 0;
+        // for (int a = 0; a < int_count; a++)
+        // {
+        //     if ((1 - dx) - x_coord_int[a] <= 1e-6 || (1 - dy) - y_coord_int[a] <= 1e-6 || x_coord_int[a] - (0 + dx) <= 1e-6 || y_coord_int[a] - (0 + dy) <= 1e-6)
+        //     {
+        //         wgt[a] = 0; // 0 on the boundary
+        //         intBoundPoints++;
+        //     }
+        //     else
+        //         wgt[a] = 1; // 1 on the interior
+        // }
+
+        for (int b = 0; b < (Nx - 2); b++)
         {
-            if (1 - x_coord_int[a] <= 1e-6 || 1 - y_coord_int[a] <= 1e-6 || x_coord_int[a] - 0 <= 1e-6 || y_coord_int[a] - 0 <= 1e-6)
-                wgt[a] = 0; // 0 on the boundary
-            else
-                wgt[a] = 1; // 1 on the interior
+            for (int d = 0; d < (Ny - 2); d++)
+            {
+                if(b==0 || b==(Nx-3) || d==0 || d==(Ny-3))
+                    wgt[b * (Ny - 2) + d] = 0;
+                else
+                    wgt[b * (Ny - 2) + d] = 1;
+            }
         }
 
         for (int k = 0; k < kmax; k++) // Averaging pass
         {
-            for (int b = 0; b < Ny - 2 - 2; b++)
+            for (int b = 0; b < (Ny - 4); b++)
             {
-                for (int d = 0; d < Nx - 2 - 2; d++)
+                for (int d = 0; d < (Nx - 4); d++)
                 {
-                    wgt_int[b * (Nx - 2 - 2) + d] = wgt[((b + 1) * Nx - 2) + (d + 1)];
-                    wgt_right[b * (Nx - 2 - 2) + d] = wgt[((b + 1) * Nx - 2) + (d + 2)];
-                    wgt_left[b * (Nx - 2 - 2) + d] = wgt[((b + 1) * Nx - 2) + (d)];
-                    wgt_top[b * (Nx - 2 - 2) + d] = wgt[((b)*Nx - 2) + (d + 1)];
-                    wgt_bottom[b * (Nx - 2 - 2) + d] = wgt[((b + 2) * Nx - 2) + (d + 1)];
-                    wgt_rt[b * (Nx - 2 - 2) + d] = wgt[((b)*Nx - 2) + (d + 2)];
-                    wgt_rb[b * (Nx - 2 - 2) + d] = wgt[((b + 2) * Nx - 2) + (d + 2)];
-                    wgt_lt[b * (Nx - 2 - 2) + d] = wgt[((b)*Nx - 2) + (d)];
-                    wgt_lb[b * (Nx - 2 - 2) + d] = wgt[((b + 2) * Nx - 2) + (d)];
+                    wgt_int[b * (Nx - 4) + d] = wgt[((b + 1) * (Nx - 2)) + (d + 1)];
+                    wgt_right[b * (Nx - 4) + d] = wgt[((b + 1) * (Nx - 2)) + (d + 2)];
+                    wgt_left[b * (Nx - 4) + d] = wgt[((b + 1) * (Nx - 2)) + (d)];
+                    wgt_top[b * (Nx - 4) + d] = wgt[((b) * (Nx - 2)) + (d + 1)];
+                    wgt_bottom[b * (Nx - 4) + d] = wgt[((b + 2) * (Nx - 2)) + (d + 1)];
+                    wgt_rt[b * (Nx - 4) + d] = wgt[((b) * (Nx - 2)) + (d + 2)];
+                    wgt_rb[b * (Nx - 4) + d] = wgt[((b + 2) * (Nx - 2)) + (d + 2)];
+                    wgt_lt[b * (Nx - 4) + d] = wgt[((b) * (Nx - 2)) + (d)];
+                    wgt_lb[b * (Nx - 4) + d] = wgt[((b + 2) * (Nx - 2)) + (d)];
                 }
             }
-            for (int b = 0; b < Ny - 2 - 2; b++)
+            for (int b = 0; b < (Ny - 4); b++)
             {
-                for (int d = 0; d < Nx - 2 - 2; d++)
+                for (int d = 0; d < (Nx - 4); d++)
                 {
-                    wgt[((b + 1) * Nx - 2) + (d + 1)] *= (wgt_right[b * (Nx - 2 - 2) + d] + wgt_left[b * (Nx - 2 - 2) + d] + wgt_top[b * (Nx - 2 - 2) + d] + wgt_bottom[b * (Nx - 2 - 2) + d] + wgt_rt[b * (Nx - 2 - 2) + d] + wgt_rb[b * (Nx - 2 - 2) + d] + wgt_lt[b * (Nx - 2 - 2) + d] + wgt_lb[b * (Nx - 2 - 2) + d]) / 8;
+                    wgt[((b + 1) * (Nx - 2)) + (d + 1)] = wgt_int[b * (Nx - 4) + d] * ((wgt_right[b * (Nx - 4) + d] + wgt_left[b * (Nx - 4) + d] + wgt_top[b * (Nx - 4) + d] + wgt_bottom[b * (Nx - 4) + d] + wgt_rt[b * (Nx - 4) + d] + wgt_rb[b * (Nx - 4) + d] + wgt_lt[b * (Nx - 4) + d] + wgt_lb[b * (Nx - 4) + d]) / 8.0);
                 }
             }
         }
@@ -189,7 +205,7 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
 
                 // Correlation Calculation
 
-                CorrMatx[i * int_count + j] = exp((-1.0 * r) / (LengthScale)) * (1 + (r / LengthScale) + pow(r / (LengthScale), 2) / 3.0) * 1e-6;
+                CorrMatx[i * int_count + j] = exp((-1.0 * r) / (LengthScale)) * (1 + (r / LengthScale) + pow(r / (LengthScale), 2) / 3.0);
 
                 // Covariance Calculation
 
@@ -198,10 +214,10 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
         }
 
         std::string fileOutCorrelation = "Init/Correlation_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
-        printToTxt(fileOutCorrelation, CorrMatx, N_DOF, N_DOF, 'R');
+        printToTxt(fileOutCorrelation, CorrMatx, int_count, int_count, 'R');
 
         std::string fileOutCovariance = "Init/Covariance_" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
-        printToTxt(fileOutCovariance, CovMatx, N_DOF, N_DOF, 'R');
+        printToTxt(fileOutCovariance, CovMatx, int_count, int_count, 'R');
 
         ////////////////////////////////////////////////////// SVD ////////////////////////////////////////////
         // Declare SVD parameters
@@ -225,13 +241,13 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
         }
 
         std::string fileOutCorrS = "Init/S_of_Cov" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
-        printToTxt(fileOutCorrS, S, N_DOF, 1, 'C');
+        printToTxt(fileOutCorrS, S, int_count, 1, 'C');
 
         std::string fileOutCorrU = "Init/U_of_Cov" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
-        printToTxt(fileOutCorrU, U, N_DOF, N_DOF, 'R');
+        printToTxt(fileOutCorrU, U, int_count, int_count, 'R');
 
         std::string fileOutCorrVt = "Init/Vt_of_Cov" + std::to_string(N_DOF) + "_NR_" + std::to_string(N_Realisations) + ".txt";
-        printToTxt(fileOutCorrVt, Vt, N_DOF, N_DOF, 'R');
+        printToTxt(fileOutCorrVt, Vt, int_count, int_count, 'R');
 
         int energyVal = 0;
         int temp = 0;
@@ -259,9 +275,9 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
 
         // -------------- Generate Random Number Based on Normal Distribution -------------------------//
         int k = 0;
-        int skip = N_DOF - modDim;
+        int skip = int_count - modDim;
         int count = 0;
-        for (int i = 0; i < N_DOF * N_DOF; i++)
+        for (int i = 0; i < int_count * int_count; i++)
         {
             if (count < modDim)
             {
@@ -309,49 +325,27 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
             }
         }
 
-        // for (int i = 0; i < N_DOF; i++)
-        // {
-        //     for (int j = 0; j < N_Realisations; j++)
-        //     {
-        //         RealisationVector[i* N_Realisations + j] = RealisationVectorTem   p[j + N_Realisations * i];
-        //     }
-        // }
-
-        // memcpy(RealisationVector, RealisationVectorTemp, N_DOF * N_Realisations * SizeOfDouble);
-
         cout << N_Realisations << " REALISATIONS COMPUTED " << endl;
 
-        delete[] x_coord_true;
-        delete[] y_coord_true;
+        if (TDatabase::ParamDB->writeRealznToText == 1)
+            writeRealizationToText(RealisationVector, N_Realisations, N_DOF);
+
         delete[] x_coord_calc;
         delete[] y_coord_calc;
+        delete[] x_coord_true;
+        delete[] y_coord_true;
         delete[] x_coord_int;
         delete[] y_coord_int;
-        delete[] wgt;
-        delete[] wgt_top;
-        delete[] wgt_bottom;
-        delete[] wgt_left;
-        delete[] wgt_right;
-        delete[] wgt_rt;
-        delete[] wgt_rb;
-        delete[] wgt_lt;
-        delete[] wgt_lb;
-        delete[] wgt_int;
 
+        delete[] RealisationVectorInternal;
+        delete[] Ut;
         delete[] Z;
         delete[] S;
         delete[] U;
         delete[] Vt;
-        delete[] Ut;
 
         delete[] CorrMatx;
         delete[] CovMatx;
-        delete[] RealisationVectorInternal;
-        delete[] mappingArrayInternal;
-        delete[] mappingArray;
-
-        if (TDatabase::ParamDB->writeRealznToText == 1)
-            writeRealizationToText(RealisationVector, N_Realisations, N_DOF);
     }
     else if (TDatabase::ParamDB->toggleRealznSource == 1)
         readRealizationFromText(RealisationVector, N_Realisations, N_DOF);
