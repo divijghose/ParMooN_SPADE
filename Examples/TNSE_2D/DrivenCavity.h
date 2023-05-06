@@ -366,9 +366,12 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
           double Mult = Weights2[qdpt] * AbsDetjk[qdpt];
           double *orgD00 = origvaluesD00[qdpt];
 
-          val1 = -1.0 * ((U1_Mode_a[qdpt] * U1x_Mode_b[qdpt]) + (U2_Mode_a[qdpt] * U1y_Mode_b[qdpt])) * TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult;
+          // val1 = -1.0 * ((U1_Mode_a[qdpt] * U1x_Mode_b[qdpt]) + (U2_Mode_a[qdpt] * U1y_Mode_b[qdpt])) * TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult;
 
-          val2 = -1.0 * ((U1_Mode_a[qdpt] * U2x_Mode_b[qdpt]) + (U2_Mode_a[qdpt] * U2y_Mode_b[qdpt])) * TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult; // check if = or +=
+          // val2 = -1.0 * ((U1_Mode_a[qdpt] * U2x_Mode_b[qdpt]) + (U2_Mode_a[qdpt] * U2y_Mode_b[qdpt])) * TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult; // check if = or +=
+          val1 = 0;
+
+          val2 = 0;// check if = or +=
 
           for (int j = 0; j < N_BaseFunct; j++)
           {
@@ -658,17 +661,23 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
         double Mult = Weights2[qdpt] * AbsDetjk[qdpt];
         double eps = Coeffs[qdpt][0]; // nu
 
-        ipval01[p] += (-1.0 * (U1_Mode_i[qdpt] * U1x_Mean[qdpt] + U2_Mode_i[qdpt] * U1y_Mean[qdpt])) * U1_Mode_p[qdpt] * Mult;
+        // ipval01[p] += (-1.0 * (U1_Mode_i[qdpt] * U1x_Mean[qdpt] + U2_Mode_i[qdpt] * U1y_Mean[qdpt])) * U1_Mode_p[qdpt] * Mult;
 
-        ipval01[p] += (-1.0 * (U1_Mean[qdpt] * U1x_Mode_i[qdpt] + U2_Mean[qdpt] * U1y_Mode_i[qdpt])) * U1_Mode_p[qdpt] * Mult;
+        // ipval01[p] += (-1.0 * (U1_Mean[qdpt] * U1x_Mode_i[qdpt] + U2_Mean[qdpt] * U1y_Mode_i[qdpt])) * U1_Mode_p[qdpt] * Mult;
+        ipval01[p] += 0;
+
+        ipval01[p] += 0;
 
         ipval01[p] += eps * (U1xx_Mode_i[qdpt] + U1yy_Mode_i[qdpt]) * U1_Mode_p[qdpt] * Mult;
 
         ipval01[p] += -1.0 * (Px_Mode_i[qdpt]) * U1_Mode_p[qdpt] * Mult;
 
-        ipval02[p] += (-1.0 * (U1_Mode_i[qdpt] * U2x_Mean[qdpt] + U2_Mode_i[qdpt] * U2y_Mean[qdpt])) * U2_Mode_p[qdpt] * Mult;
+        // ipval02[p] += (-1.0 * (U1_Mode_i[qdpt] * U2x_Mean[qdpt] + U2_Mode_i[qdpt] * U2y_Mean[qdpt])) * U2_Mode_p[qdpt] * Mult;
 
-        ipval02[p] += (-1.0 * (U1_Mean[qdpt] * U2x_Mode_i[qdpt] + U2_Mean[qdpt] * U2y_Mode_i[qdpt])) * U2_Mode_p[qdpt] * Mult;
+        // ipval02[p] += (-1.0 * (U1_Mean[qdpt] * U2x_Mode_i[qdpt] + U2_Mean[qdpt] * U2y_Mode_i[qdpt])) * U2_Mode_p[qdpt] * Mult;
+        ipval02[p] += 0;
+
+        ipval02[p] += 0;
 
         ipval02[p] += eps * (U2xx_Mode_i[qdpt] + U2yy_Mode_i[qdpt]) * U2_Mode_p[qdpt] * Mult;
 
@@ -864,9 +873,12 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
             {
               double Mult = Weights2[qdpt] * AbsDetjk[qdpt];
 
-              ipval11[p] += -1.0 * (TDatabase::ParamDB->COVARIANCE_INVERSE_DO[N_S * c + i_index] * TDatabase::ParamDB->COSKEWNESS_MATRIX_DO[N_S * N_S * b + N_S * c + a]) * (U1_Mode_a[qdpt] * U1x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U1y_Mode_b[qdpt]) * U1_Mode_p[qdpt] * Mult;
+              // ipval11[p] += -1.0 * (TDatabase::ParamDB->COVARIANCE_INVERSE_DO[N_S * c + i_index] * TDatabase::ParamDB->COSKEWNESS_MATRIX_DO[N_S * N_S * b + N_S * c + a]) * (U1_Mode_a[qdpt] * U1x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U1y_Mode_b[qdpt]) * U1_Mode_p[qdpt] * Mult;
 
-              ipval12[p] += -1.0 * (TDatabase::ParamDB->COVARIANCE_INVERSE_DO[N_S * c + i_index] * TDatabase::ParamDB->COSKEWNESS_MATRIX_DO[N_S * N_S * b + N_S * c + a]) * (U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt]) * U2_Mode_p[qdpt] * Mult;
+              // ipval12[p] += -1.0 * (TDatabase::ParamDB->COVARIANCE_INVERSE_DO[N_S * c + i_index] * TDatabase::ParamDB->COSKEWNESS_MATRIX_DO[N_S * N_S * b + N_S * c + a]) * (U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt]) * U2_Mode_p[qdpt] * Mult;
+              ipval11[p] += 0;
+
+              ipval12[p] += 0;
             }
           } // c loop end for ipval cal2
 
@@ -1079,15 +1091,21 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
       double *orgD02 = origvaluesD02[qdpt];
       double eps = Coeffs[qdpt][0]; // eps
 
-      val1 = -1.0 * (U1_Mode_i[qdpt] * U1x_Mean[qdpt] + U2_Mode_i[qdpt] * U1y_Mean[qdpt]) * Mult;
-      val1 += -1.0 * (U1_Mean[qdpt] * U1x_Mode_i[qdpt] + U2_Mode_i[qdpt] * U1y_Mode_i[qdpt]) * Mult;
-      val1 += (U1_Mode_i[qdpt] * U1x_Mode_i[qdpt] + U2_Mode_i[qdpt] * U1y_Mode_i[qdpt]) * Mult;
+      // val1 = -1.0 * (U1_Mode_i[qdpt] * U1x_Mean[qdpt] + U2_Mode_i[qdpt] * U1y_Mean[qdpt]) * Mult;
+      // val1 += -1.0 * (U1_Mean[qdpt] * U1x_Mode_i[qdpt] + U2_Mode_i[qdpt] * U1y_Mode_i[qdpt]) * Mult;
+      // val1 += (U1_Mode_i[qdpt] * U1x_Mode_i[qdpt] + U2_Mode_i[qdpt] * U1y_Mode_i[qdpt]) * Mult;
+      val1 = 0;
+      val1 += 0;
+      val1 += 0;
       val1 += eps * (U1xx_Mode_i[qdpt] + U1yy_Mode_i[qdpt]) * Mult;
       val1 += -1.0 * (Px_Mode_i[qdpt]) * Mult;
 
-      val2 = -1.0 * (U1_Mode_i[qdpt] * U2x_Mean[qdpt] + U2_Mode_i[qdpt] * U2y_Mean[qdpt]) * Mult;
-      val2 += -1.0 * (U1_Mean[qdpt] * U2x_Mode_i[qdpt] + U2_Mode_i[qdpt] * U2y_Mode_i[qdpt]) * Mult;
-      val2 += (U1_Mode_i[qdpt] * U2x_Mode_i[qdpt] + U2_Mode_i[qdpt] * U2y_Mode_i[qdpt]) * Mult;
+      // val2 = -1.0 * (U1_Mode_i[qdpt] * U2x_Mean[qdpt] + U2_Mode_i[qdpt] * U2y_Mean[qdpt]) * Mult;
+      // val2 += -1.0 * (U1_Mean[qdpt] * U2x_Mode_i[qdpt] + U2_Mode_i[qdpt] * U2y_Mode_i[qdpt]) * Mult;
+      // val2 += (U1_Mode_i[qdpt] * U2x_Mode_i[qdpt] + U2_Mode_i[qdpt] * U2y_Mode_i[qdpt]) * Mult;
+      val2 = 0;
+      val2 += 0;
+      val2 += 0;
       val2 += eps * (U2xx_Mode_i[qdpt] + U2yy_Mode_i[qdpt]) * Mult;
       val2 += -1.0 * (Py_Mode_i[qdpt]) * Mult;
 

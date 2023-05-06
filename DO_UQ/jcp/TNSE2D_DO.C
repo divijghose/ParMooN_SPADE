@@ -1007,7 +1007,7 @@ exit(0);      */
                 // memcpy(old_solMode, modeSolution_i, N_Total_MeanDOF * SizeOfDouble);
 
                 // Assemble RHS
-                // DO_Mode_RHS(VelocityMode_FeSpace, Velocity_Mean, Velocity_Mode, Pressure_Mode, subDim, modeSolution_rhs, subSpaceNum);
+                DO_Mode_RHS(Velocity_FeSpace, Velocity_Mean, Velocity_Mode, Pressure_Mode, subDim, modeSolution_rhs, subSpaceNum);
 
                 SystemMatrixModeAll[subSpaceNum]->Assemble(modeSolution_i, modeSolution_rhs);
                 // scale B matices and assemble NSE-rhs based on the \theta time stepping scheme
@@ -1143,31 +1143,31 @@ exit(0);      */
         //======================================================================
         // produce outout
         //======================================================================
-        // if (m == 1 || m % TDatabase::TimeDB->STEPS_PER_IMAGE == 0)
-        // {
-        // 	for (int sd = 0; sd < subDim; sd++)
-        // 	{
+        if (m == 1 || m % TDatabase::TimeDB->STEPS_PER_IMAGE == 0)
+        {
+        	for (int sd = 0; sd < subDim; sd++)
+        	{
 
-        // 		std::string filenameMode = "Mode_NRealisations_" + std::to_string(N_Realisations) + "ModeN0_" + std::to_string(sd);
-        // 		VtkBaseNameMode = const_cast<char *>(filenameMode.c_str());
-        // 		if (TDatabase::ParamDB->WRITE_VTK)
-        // 		{
-        // 			os.seekp(std::ios::beg);
-        // 			if (modeimg[sd] < 10)
-        // 				os << "VTK/" << VtkBaseNameMode << ".0000" << modeimg[sd] << ".vtk" << ends;
-        // 			else if (modeimg[sd] < 100)
-        // 				os << "VTK/" << VtkBaseNameMode << ".000" << modeimg[sd] << ".vtk" << ends;
-        // 			else if (modeimg[sd] < 1000)
-        // 				os << "VTK/" << VtkBaseNameMode << ".00" << modeimg[sd] << ".vtk" << ends;
-        // 			else if (modeimg[sd] < 10000)
-        // 				os << "VTK/" << VtkBaseNameMode << ".0" << modeimg[sd] << ".vtk" << ends;
-        // 			else
-        // 				os << "VTK/" << VtkBaseNameMode << "." << modeimg[sd] << ".vtk" << ends;
-        // 			OutputModeAll[sd]->WriteVtk(os.str().c_str());
-        // 			modeimg[sd]++;
-        // 		}
-        // 	}
-        // }
+        		std::string filenameMode = "Mode_NRealisations_" + std::to_string(N_Realisations) + "ModeN0_" + std::to_string(sd);
+        		VtkBaseNameMode = const_cast<char *>(filenameMode.c_str());
+        		if (TDatabase::ParamDB->WRITE_VTK)
+        		{
+        			os.seekp(std::ios::beg);
+        			if (modeimg[sd] < 10)
+        				os << "VTK/" << VtkBaseNameMode << ".0000" << modeimg[sd] << ".vtk" << ends;
+        			else if (modeimg[sd] < 100)
+        				os << "VTK/" << VtkBaseNameMode << ".000" << modeimg[sd] << ".vtk" << ends;
+        			else if (modeimg[sd] < 1000)
+        				os << "VTK/" << VtkBaseNameMode << ".00" << modeimg[sd] << ".vtk" << ends;
+        			else if (modeimg[sd] < 10000)
+        				os << "VTK/" << VtkBaseNameMode << ".0" << modeimg[sd] << ".vtk" << ends;
+        			else
+        				os << "VTK/" << VtkBaseNameMode << "." << modeimg[sd] << ".vtk" << ends;
+        			OutputModeAll[sd]->WriteVtk(os.str().c_str());
+        			modeimg[sd]++;
+        		}
+        	}
+        }
 
     } // while(TDatabase::TimeDB->CURRENTTIME< e)
 
