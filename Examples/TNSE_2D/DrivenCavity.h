@@ -76,7 +76,7 @@ void U1BoundValue(int BdComp, double Param, double &value)
     if (abs(Param - 0) < 1e-6 || abs(Param - 1.0) < 1e-6)
       value = 0; // top moving side velocity
     else
-      value = 0.5;
+      value = 1;
     break;
   case 3:
     value = 0;
@@ -2005,3 +2005,6 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
   delete[] Mode_Comp2_b;
   delete[] phi_Array_b;
 }
+
+
+

@@ -119,7 +119,7 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
         // ////////// -------- MOLLIFIER FUNCTION (To have consistent boundary conditions)   ------- //////
         // ///////////////////////////////////////////////////////////////////////////////////////////////
 
-        int kmax = 5; // Number of averaging steps - Chamge to higher value for smoother realizations.
+        int kmax = 15; // Number of averaging steps - Chamge to higher value for smoother realizations.
 
         double *wgt = new double[(Nx - 2) * (Ny - 2)]();        // Mollifier function
         double *wgt_int = new double[(Nx - 4) * (Ny - 4)]();    // Mollifier function on interior window // Row major
