@@ -911,7 +911,7 @@ int main(int argc, char *argv[])
 
             // assemble only rhs, nonlinear matrix for NSE will be assemble in fixed point iteration
             // not needed if rhs is not time-dependent
-            // DO_Mean_RHS(VelocityMean_FeSpace, Velocity_Mode, subDim, rhsMean, N_U);
+            DO_Mean_RHS(Velocity_FeSpace, Velocity_Mode, subDim, rhsMean, N_U);
 
             SystemMatrix_Mean->Assemble(solMean, rhsMean);
 
