@@ -1063,7 +1063,9 @@ int TOutput2D::WriteVtk(const char *name)
 #ifdef __PSD__    
   << " L < " << TDatabase::ParamDB->REACTOR_P29 <<" >"
 #endif    
-  << "Date & Time: " <<asctime (timeinfo) <<endl;
+  // << "Date & Time: " <<asctime (timeinfo) <<endl;
+  << "Date & Time: " <<asctime (timeinfo);
+
 
 
   dat << "ASCII" << endl;

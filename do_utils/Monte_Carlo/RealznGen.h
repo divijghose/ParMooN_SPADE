@@ -148,7 +148,7 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
         {
             for (int d = 0; d < (Ny - 2); d++)
             {
-                if(b==0 || b==(Nx-3) || d==0 || d==(Ny-3))
+                if (b == 0 || b == (Nx - 3) || d == 0 || d == (Ny - 3))
                     wgt[b * (Ny - 2) + d] = 0;
                 else
                     wgt[b * (Ny - 2) + d] = 1;
@@ -209,7 +209,7 @@ void GenerateRealizations(TFESpace2D *Velocity_FeSpace, TFESpace2D *Pressure_FeS
 
                 // Covariance Calculation
 
-                CovMatx[i * int_count + j] = wgt[i] * wgt[j] * CorrMatx[i * int_count + j];
+                CovMatx[i * int_count + j] = wgt[i] * wgt[j] * CorrMatx[i * int_count + j]*1e2;
             }
         }
 

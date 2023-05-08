@@ -116,51 +116,51 @@ void LinCoeffs(int n_points, double *X, double *Y,
 }
 
 void DO_Mean_Equation_Coefficients(int n_points, double *X, double *Y,
-								   double **parameters, double **coeffs)
+                                   double **parameters, double **coeffs)
 {
-	int i;
-	double *coeff, x, y;
-	static double eps = double(1.0 / TDatabase::ParamDB->RE_NR);
+  int i;
+  double *coeff, x, y;
+  static double eps = double(1.0 / TDatabase::ParamDB->RE_NR);
 
-	for (i = 0; i < n_points; i++)
-	{
-		coeff = coeffs[i];
-		x = X[i];
-		y = Y[i];
+  for (i = 0; i < n_points; i++)
+  {
+    coeff = coeffs[i];
+    x = X[i];
+    y = Y[i];
 
-		coeff[0] = eps;
+    coeff[0] = eps;
 
-		coeff[1] = 0; // f1
-		coeff[2] = 0; // f2
-	}
+    coeff[1] = 0; // f1
+    coeff[2] = 0; // f2
+  }
 }
 
 void DO_Mode_Equation_Coefficients(int n_points, double *X, double *Y,
-								   double **parameters, double **coeffs)
+                                   double **parameters, double **coeffs)
 {
-	int i;
-	double *coeff, x, y;
-	static double eps = double(1.0 / TDatabase::ParamDB->RE_NR);
+  int i;
+  double *coeff, x, y;
+  static double eps = double(1.0 / TDatabase::ParamDB->RE_NR);
 
-	for (i = 0; i < n_points; i++)
-	{
-		coeff = coeffs[i];
-		x = X[i];
-		y = Y[i];
+  for (i = 0; i < n_points; i++)
+  {
+    coeff = coeffs[i];
+    x = X[i];
+    y = Y[i];
 
-		coeff[0] = eps;
+    coeff[0] = eps;
 
-		coeff[1] = 0; // f1
-		coeff[2] = 0; // f2
-	}
+    coeff[1] = 0; // f1
+    coeff[2] = 0; // f2
+  }
 }
-
 
 void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, double *GlobalRhs_mean, int N_U)
 {
 
   int N_Cells = Fespace->GetN_Cells();
   TCollection *coll = Fespace->GetCollection();
+  int N_Active = Fespace->GetActiveBound();
 
   double *U_Mode = FeVector_Mode->GetValues();
   int lenMode = FeVector_Mode->GetLength();
@@ -371,7 +371,7 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
           // val2 = -1.0 * ((U1_Mode_a[qdpt] * U2x_Mode_b[qdpt]) + (U2_Mode_a[qdpt] * U2y_Mode_b[qdpt])) * TDatabase::ParamDB->COVARIANCE_MATRIX_DO[a * N_S + b] * Mult; // check if = or +=
           val1 = 0;
 
-          val2 = 0;// check if = or +=
+          val2 = 0; // check if = or +=
 
           for (int j = 0; j < N_BaseFunct; j++)
           {
@@ -388,8 +388,11 @@ void DO_Mean_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, int N_S, do
     for (int j = 0; j < N_BaseFunct; j++)
     {
       int GlobalDOF = DOF[j];
-      GlobalRhs_mean[GlobalDOF] += rhs1[j];
-      GlobalRhs_mean[GlobalDOF + lenMean] += rhs2[j];
+      if (GlobalDOF < N_Active)
+      {
+        GlobalRhs_mean[GlobalDOF] += rhs1[j];
+        GlobalRhs_mean[GlobalDOF + lenMean] += rhs2[j];
+      }
     }
     // --
     for (int i = 0; i < MaxN_QuadPoints_2D; i++)
@@ -417,7 +420,7 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
   // Get the Global DOF arrays INdex from the FE Space.
   int *GlobalNumbers = Fespace->GetGlobalNumbers();
   int *BeginIndex = Fespace->GetBeginIndex();
-
+  int N_Active = Fespace->GetActiveBound();
   // --- Quadrature Formula Arrays  ------------------//
   int N_Points2;
   double *Weights2, *t1, *t2; // Weights - Quadrature Weights array ; t1  -- Quadrature point ( xi ) in ref coordinate ; t2 -  Quadrature Point ( eta ) in Ref Coordinate
@@ -468,6 +471,9 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
   int lenPressureMode = FePressure_Mode->GetLength();
   double *Mode_Pressure_i = new double[lenPressureMode]();
   memcpy(Mode_Pressure_i, Pressure_Mode + i_index * lenPressureMode, lenPressureMode * SizeOfDouble); // col Major
+
+  double *rhs_copy = new double[lenMode]();
+  memcpy(rhs_copy, GlobalRhs_mode, lenMode * SizeOfDouble);
 
   for (int p = 0; p < N_S; p++)
   {
@@ -660,24 +666,31 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
       {
         double Mult = Weights2[qdpt] * AbsDetjk[qdpt];
         double eps = Coeffs[qdpt][0]; // nu
+        if (TDatabase::ParamDB->FLOW_PROBLEM_TYPE == STOKES)
+        {
+          ipval01[p] += 0;
 
-        // ipval01[p] += (-1.0 * (U1_Mode_i[qdpt] * U1x_Mean[qdpt] + U2_Mode_i[qdpt] * U1y_Mean[qdpt])) * U1_Mode_p[qdpt] * Mult;
+          ipval01[p] += 0;
+          ipval02[p] += 0;
 
-        // ipval01[p] += (-1.0 * (U1_Mean[qdpt] * U1x_Mode_i[qdpt] + U2_Mean[qdpt] * U1y_Mode_i[qdpt])) * U1_Mode_p[qdpt] * Mult;
-        ipval01[p] += 0;
+          ipval02[p] += 0;
+        }
 
-        ipval01[p] += 0;
+        else
+        {
+
+          ipval01[p] += (-1.0 * (U1_Mode_i[qdpt] * U1x_Mean[qdpt] + U2_Mode_i[qdpt] * U1y_Mean[qdpt])) * U1_Mode_p[qdpt] * Mult;
+
+          ipval01[p] += (-1.0 * (U1_Mean[qdpt] * U1x_Mode_i[qdpt] + U2_Mean[qdpt] * U1y_Mode_i[qdpt])) * U1_Mode_p[qdpt] * Mult;
+
+          ipval02[p] += (-1.0 * (U1_Mode_i[qdpt] * U2x_Mean[qdpt] + U2_Mode_i[qdpt] * U2y_Mean[qdpt])) * U2_Mode_p[qdpt] * Mult;
+
+          ipval02[p] += (-1.0 * (U1_Mean[qdpt] * U2x_Mode_i[qdpt] + U2_Mean[qdpt] * U2y_Mode_i[qdpt])) * U2_Mode_p[qdpt] * Mult;
+        }
 
         ipval01[p] += eps * (U1xx_Mode_i[qdpt] + U1yy_Mode_i[qdpt]) * U1_Mode_p[qdpt] * Mult;
 
         ipval01[p] += -1.0 * (Px_Mode_i[qdpt]) * U1_Mode_p[qdpt] * Mult;
-
-        // ipval02[p] += (-1.0 * (U1_Mode_i[qdpt] * U2x_Mean[qdpt] + U2_Mode_i[qdpt] * U2y_Mean[qdpt])) * U2_Mode_p[qdpt] * Mult;
-
-        // ipval02[p] += (-1.0 * (U1_Mean[qdpt] * U2x_Mode_i[qdpt] + U2_Mean[qdpt] * U2y_Mode_i[qdpt])) * U2_Mode_p[qdpt] * Mult;
-        ipval02[p] += 0;
-
-        ipval02[p] += 0;
 
         ipval02[p] += eps * (U2xx_Mode_i[qdpt] + U2yy_Mode_i[qdpt]) * U2_Mode_p[qdpt] * Mult;
 
@@ -873,12 +886,17 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
             {
               double Mult = Weights2[qdpt] * AbsDetjk[qdpt];
 
-              // ipval11[p] += -1.0 * (TDatabase::ParamDB->COVARIANCE_INVERSE_DO[N_S * c + i_index] * TDatabase::ParamDB->COSKEWNESS_MATRIX_DO[N_S * N_S * b + N_S * c + a]) * (U1_Mode_a[qdpt] * U1x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U1y_Mode_b[qdpt]) * U1_Mode_p[qdpt] * Mult;
+              if (TDatabase::ParamDB->FLOW_PROBLEM_TYPE == STOKES)
+              {
+                ipval11[p] += 0;
+                ipval12[p] += 0;
+              }
+              else
+              {
+                ipval11[p] += -1.0 * (TDatabase::ParamDB->COVARIANCE_INVERSE_DO[N_S * c + i_index] * TDatabase::ParamDB->COSKEWNESS_MATRIX_DO[N_S * N_S * b + N_S * c + a]) * (U1_Mode_a[qdpt] * U1x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U1y_Mode_b[qdpt]) * U1_Mode_p[qdpt] * Mult;
 
-              // ipval12[p] += -1.0 * (TDatabase::ParamDB->COVARIANCE_INVERSE_DO[N_S * c + i_index] * TDatabase::ParamDB->COSKEWNESS_MATRIX_DO[N_S * N_S * b + N_S * c + a]) * (U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt]) * U2_Mode_p[qdpt] * Mult;
-              ipval11[p] += 0;
-
-              ipval12[p] += 0;
+                ipval12[p] += -1.0 * (TDatabase::ParamDB->COVARIANCE_INVERSE_DO[N_S * c + i_index] * TDatabase::ParamDB->COSKEWNESS_MATRIX_DO[N_S * N_S * b + N_S * c + a]) * (U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt]) * U2_Mode_p[qdpt] * Mult;
+              }
             }
           } // c loop end for ipval cal2
 
@@ -1091,21 +1109,28 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
       double *orgD02 = origvaluesD02[qdpt];
       double eps = Coeffs[qdpt][0]; // eps
 
-      // val1 = -1.0 * (U1_Mode_i[qdpt] * U1x_Mean[qdpt] + U2_Mode_i[qdpt] * U1y_Mean[qdpt]) * Mult;
-      // val1 += -1.0 * (U1_Mean[qdpt] * U1x_Mode_i[qdpt] + U2_Mode_i[qdpt] * U1y_Mode_i[qdpt]) * Mult;
-      // val1 += (U1_Mode_i[qdpt] * U1x_Mode_i[qdpt] + U2_Mode_i[qdpt] * U1y_Mode_i[qdpt]) * Mult;
-      val1 = 0;
-      val1 += 0;
-      val1 += 0;
+      if (TDatabase::ParamDB->FLOW_PROBLEM_TYPE == STOKES)
+      {
+        val1 = 0;
+        val1 += 0;
+        val1 += 0;
+        val2 = 0;
+        val2 += 0;
+        val2 += 0;
+      }
+      else
+      {
+        val1 = -1.0 * (U1_Mode_i[qdpt] * U1x_Mean[qdpt] + U2_Mode_i[qdpt] * U1y_Mean[qdpt]) * Mult;
+        val1 += -1.0 * (U1_Mean[qdpt] * U1x_Mode_i[qdpt] + U2_Mode_i[qdpt] * U1y_Mode_i[qdpt]) * Mult;
+        val1 += (U1_Mode_i[qdpt] * U1x_Mode_i[qdpt] + U2_Mode_i[qdpt] * U1y_Mode_i[qdpt]) * Mult;
+        val2 = -1.0 * (U1_Mode_i[qdpt] * U2x_Mean[qdpt] + U2_Mode_i[qdpt] * U2y_Mean[qdpt]) * Mult;
+        val2 += -1.0 * (U1_Mean[qdpt] * U2x_Mode_i[qdpt] + U2_Mode_i[qdpt] * U2y_Mode_i[qdpt]) * Mult;
+        val2 += (U1_Mode_i[qdpt] * U2x_Mode_i[qdpt] + U2_Mode_i[qdpt] * U2y_Mode_i[qdpt]) * Mult;
+      }
+
       val1 += eps * (U1xx_Mode_i[qdpt] + U1yy_Mode_i[qdpt]) * Mult;
       val1 += -1.0 * (Px_Mode_i[qdpt]) * Mult;
 
-      // val2 = -1.0 * (U1_Mode_i[qdpt] * U2x_Mean[qdpt] + U2_Mode_i[qdpt] * U2y_Mean[qdpt]) * Mult;
-      // val2 += -1.0 * (U1_Mean[qdpt] * U2x_Mode_i[qdpt] + U2_Mode_i[qdpt] * U2y_Mode_i[qdpt]) * Mult;
-      // val2 += (U1_Mode_i[qdpt] * U2x_Mode_i[qdpt] + U2_Mode_i[qdpt] * U2y_Mode_i[qdpt]) * Mult;
-      val2 = 0;
-      val2 += 0;
-      val2 += 0;
       val2 += eps * (U2xx_Mode_i[qdpt] + U2yy_Mode_i[qdpt]) * Mult;
       val2 += -1.0 * (Py_Mode_i[qdpt]) * Mult;
 
@@ -1307,12 +1332,19 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
             double Mult = Weights2[qdpt] * AbsDetjk[qdpt];
             double *orgD00 = origvaluesD00[qdpt];
 
-            // val1 = -1.0 * (TDatabase::ParamDB->COVARIANCE_INVERSE_DO[N_S * c + i_index] * TDatabase::ParamDB->COSKEWNESS_MATRIX_DO[N_S * N_S * b + N_S * c + a]) * (U1_Mode_a[qdpt] * U1x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U1y_Mode_b[qdpt]) * Mult;
+            if (TDatabase::ParamDB->FLOW_PROBLEM_TYPE == STOKES)
+            {
+              val1 = 0;
 
-            // val2 = -1.0 * (TDatabase::ParamDB->COVARIANCE_INVERSE_DO[N_S * c + i_index] * TDatabase::ParamDB->COSKEWNESS_MATRIX_DO[N_S * N_S * b + N_S * c + a]) * (U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt]) * Mult;
-            val1 = 0;
+              val2 = 0;
+            }
+            else
+            {
+              val1 = -1.0 * (TDatabase::ParamDB->COVARIANCE_INVERSE_DO[N_S * c + i_index] * TDatabase::ParamDB->COSKEWNESS_MATRIX_DO[N_S * N_S * b + N_S * c + a]) * (U1_Mode_a[qdpt] * U1x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U1y_Mode_b[qdpt]) * Mult;
 
-            val2 = 0;
+              val2 = -1.0 * (TDatabase::ParamDB->COVARIANCE_INVERSE_DO[N_S * c + i_index] * TDatabase::ParamDB->COSKEWNESS_MATRIX_DO[N_S * N_S * b + N_S * c + a]) * (U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt]) * Mult;
+            }
+
             for (int j = 0; j < N_BaseFunct; j++)
             {
               rhs1[j] += val1 * orgD00[j]; // * Mult;
@@ -1478,8 +1510,11 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
       for (int j = 0; j < N_BaseFunct; j++)
       {
         int GlobalDOF = DOF[j];
-        GlobalRhs_mode[GlobalDOF] += rhs1[j];
-        GlobalRhs_mode[GlobalDOF + lenMode] += rhs2[j];
+        if (GlobalDOF < N_Active)
+        {
+          GlobalRhs_mode[GlobalDOF] += rhs1[j];
+          GlobalRhs_mode[GlobalDOF + lenMode] += rhs2[j];
+        }
       }
     } // p loop
     for (int i = 0; i < MaxN_QuadPoints_2D; i++)
@@ -1503,6 +1538,9 @@ void DO_Mode_RHS(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mean, TFEVectFunc
   delete[] ipval02;
   delete[] ipval11;
   delete[] ipval12;
+
+  // delete the double array rhs_copy
+  delete[] rhs_copy;
 }
 
 //======================================================================
@@ -1795,9 +1833,22 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
       {
         double nu = Coeffs[qdpt][0];
         double Mult = Weights2[qdpt] * AbsDetjk[qdpt];
-        ipval1 += (U1_Mode_a[qdpt] * U1x_Mean[qdpt] + U2_Mode_a[qdpt] * U1y_Mean[qdpt] + U1_Mean[qdpt] * U1x_Mode_a[qdpt] + U2_Mean[qdpt] * U1y_Mode_a[qdpt] - nu * U1xx_Mode_a[qdpt] - nu * U1yy_Mode_a[qdpt]) * U1_Mode_i[qdpt] * Mult;
+        if (TDatabase::ParamDB->FLOW_PROBLEM_TYPE == STOKES)
+        {
+          ipval1 += 0;
 
-        ipval1 += (U1_Mode_a[qdpt] * U2x_Mean[qdpt] + U2_Mode_a[qdpt] * U2y_Mean[qdpt] + U1_Mean[qdpt] * U2x_Mode_a[qdpt] + U2_Mean[qdpt] * U2y_Mode_a[qdpt] - nu * U2xx_Mode_a[qdpt] - nu * U2yy_Mode_a[qdpt]) * U2_Mode_i[qdpt] * Mult;
+          ipval1 += 0;
+        }
+        else
+        {
+          ipval1 += (U1_Mode_a[qdpt] * U1x_Mean[qdpt] + U2_Mode_a[qdpt] * U1y_Mean[qdpt] + U1_Mean[qdpt] * U1x_Mode_a[qdpt] + U2_Mean[qdpt] * U1y_Mode_a[qdpt] - nu * U1xx_Mode_a[qdpt] - nu * U1yy_Mode_a[qdpt]) * U1_Mode_i[qdpt] * Mult;
+
+          ipval1 += (U1_Mode_a[qdpt] * U2x_Mean[qdpt] + U2_Mode_a[qdpt] * U2y_Mean[qdpt] + U1_Mean[qdpt] * U2x_Mode_a[qdpt] + U2_Mean[qdpt] * U2y_Mode_a[qdpt] - nu * U2xx_Mode_a[qdpt] - nu * U2yy_Mode_a[qdpt]) * U2_Mode_i[qdpt] * Mult;
+        }
+
+        ipval1 += (-1.0 * nu * U1xx_Mode_a[qdpt] - nu * U1yy_Mode_a[qdpt]) * U1_Mode_i[qdpt] * Mult;
+
+        ipval1 += (-1.0 * nu * U2xx_Mode_a[qdpt] - nu * U2yy_Mode_a[qdpt]) * U2_Mode_i[qdpt] * Mult;
       }
       for (int i = 0; i < MaxN_QuadPoints_2D; i++)
       {
@@ -1966,8 +2017,16 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
         {
           double Mult = Weights2[qdpt] * AbsDetjk[qdpt];
 
-          ipval2 += (U1_Mode_a[qdpt] * U1x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U1y_Mode_b[qdpt]) * U1_Mode_i[qdpt] * Mult;
-          ipval2 += (U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt]) * U2_Mode_i[qdpt] * Mult;
+          if (TDatabase::ParamDB->FLOW_PROBLEM_TYPE == STOKES)
+          {
+            ipval2 += 0;
+            ipval2 += 0;
+          }
+          else
+          {
+            ipval2 += (U1_Mode_a[qdpt] * U1x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U1y_Mode_b[qdpt]) * U1_Mode_i[qdpt] * Mult;
+            ipval2 += (U1_Mode_a[qdpt] * U2x_Mode_b[qdpt] + U2_Mode_a[qdpt] * U2y_Mode_b[qdpt]) * U2_Mode_i[qdpt] * Mult;
+          }
         }
         for (int i = 0; i < MaxN_QuadPoints_2D; i++)
         {
@@ -2005,6 +2064,3 @@ void DO_CoEfficient(TFESpace2D *Fespace, TFEVectFunct2D *FeVector_Mode, TFEVectF
   delete[] Mode_Comp2_b;
   delete[] phi_Array_b;
 }
-
-
-
